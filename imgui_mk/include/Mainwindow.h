@@ -54,7 +54,7 @@ public:
 	}
 private:
 
-	InputWindow<int> inputwindow;
+	InputWin                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               dow<int> inputwindow;
 	float f = 1.0;
 	mk::string<1024> buf1;
 	mk::string<1024> buf2;

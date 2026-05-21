@@ -59,7 +59,6 @@ namespace Mk {
 				glfwTerminate();
 				return nullptr;
 			}
-
 			return handle;
 		}
 	};

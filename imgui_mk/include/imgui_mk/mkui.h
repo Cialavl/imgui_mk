@@ -7,27 +7,25 @@ namespace Mk {
 
 	static std::vector<window*> m_Windows;
 	struct mkui {
-		
-	
 		static void RegistrationWindow(window* hand) {
 
 			m_Windows.push_back(hand);
 		}
 		static void run() {
-			while(!m_Windows.empty()) {
+			while (!m_Windows.empty()) {
 				glfwPollEvents();
-				for(auto &winp : m_Windows) {
-					
-					if(winp != nullptr) {
+				for (auto& winp : m_Windows) {
 
+					if (winp != nullptr) {
 
-						if(winp->shouldClose()) {
+						if (winp->shouldClose()) {
 
 							winp->~window();
 
 							winp = nullptr;
 
-						} else {
+						}
+						else {
 							winp->render();
 
 						}
