@@ -4,10 +4,11 @@
 #include <string_mk/mk_string.h>
 #include <imgui_mk/window.h>
 #include <imgui_mk/mkui.h>
-#include <test2/windowtest.h>
+#include <Mainwindow.h>
 int main() {
-	//mk::string str = "Pw";
-	AppMainWindow<int>::init("Pw");
+	mk::string<8> str = "Pw";
+	AppMainWindow<int>::init(str);
+	
 	Mk::mkui::run();
 	return 0;
 }
