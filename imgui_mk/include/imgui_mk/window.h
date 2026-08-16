@@ -9,7 +9,8 @@ namespace Mk {
 	class window {
 	public:
 		// 窗口实际状态（GLFW 句柄 + ImGui 上下文）。window 是共享句柄：
-		// 引擎与调用方共同持有 Impl，任一先释放状态仍存活，全部释放后才销毁。
+		// 引擎与调用方共同持有 Impl；close() 会立即销毁 GLFW 窗口与 ImGui 上下文，
+		// 但 Impl 对象本身存活到最后一个 shared_ptr 释放（释放时再次 close() 为空操作）。
 		struct Impl {
 			GLFWwindow* m_Handle = nullptr;
 			ImGuiContext* m_ImGuiContext = nullptr;
@@ -17,7 +18,33 @@ namespace Mk {
 			std::function<void()> m_UserUI;
 
 			~Impl() {
-				if(m_Handle) {
+				close();
+			}
+
+			// 真正关闭窗口：销毁 GLFW 窗口并清理 ImGui 后端/上下文。
+			// 与 shared_ptr 引用计数无关——引擎发现窗口关闭、或调用方主动 close()，
+			// 都会立即销毁窗口状态，所有共享句柄同步失效（getHandle() 返回 nullptr）。
+			void close() {
+				if(!m_Handle) return;
+
+				glfwMakeContextCurrent(m_Handle);
+				if(m_ImGuiContext) {
+					ImGui::SetCurrentContext(m_ImGuiContext);
+
+					// 清理顺序很关键：ImGui 的 GLFW 后端在 Windows 上把 WndProc 钩子装到每个窗口上，
+					// 钩子会读取“当前上下文”的后端数据（GetBackendData），且对空指针无保护。
+					// glfwDestroyWindow 期间系统会向仍存活的窗口同步发送激活等消息，
+					// 因此 GLFW 后端必须存活到 DestroyWindow 之后，否则钩子拿到已释放的 bd → 空指针崩溃。
+					ImGui_ImplOpenGL3_Shutdown();              // 1. 渲染后端（需要当前 GL 上下文）
+					ImGui_ImplGlfw_RestoreCallbacks(m_Handle); // 2. 窗口尚存活时恢复 GLFW 回调，避免 Shutdown 访问已销毁窗口
+					glfwMakeContextCurrent(nullptr);           // 3. 解除当前 GL 上下文，再销毁窗口
+					glfwDestroyWindow(m_Handle);               // 4. 销毁窗口（此期间后端数据仍有效，钩子安全）
+					m_Handle = nullptr;
+					ImGui_ImplGlfw_Shutdown();                 // 5. 平台后端收尾（窗口已销毁，钩子清理失败无害）
+					ImGui::DestroyContext(m_ImGuiContext);
+					m_ImGuiContext = nullptr;
+				}
+				else {
 					glfwDestroyWindow(m_Handle);
 					m_Handle = nullptr;
 				}
@@ -66,8 +93,9 @@ namespace Mk {
 				glfwSwapBuffers(m_Handle);
 			}
 
+			// 无句柄（已关闭）或收到关闭请求都视为应移出引擎
 			bool shouldClose() const {
-				return glfwWindowShouldClose(m_Handle);
+				return !m_Handle || glfwWindowShouldClose(m_Handle);
 			}
 
 			static void MouseButtonCallback(GLFWwindow* win, int button, int action, int mods) {
@@ -141,6 +169,13 @@ namespace Mk {
 		void setUserUI(std::function<void()> ui) {
 			if(m_Impl) {
 				m_Impl->m_UserUI = std::move(ui);
+			}
+		}
+
+		// 关闭窗口：真正销毁 GLFW 窗口与 ImGui 上下文，所有共享句柄同步失效
+		void close() {
+			if(m_Impl) {
+				m_Impl->close();
 			}
 		}
 

@@ -22,6 +22,8 @@ namespace Mk {
 				glfwPollEvents();
 				for (auto it = engine.m_Windows.begin(); it != engine.m_Windows.end(); ) {
 					if ((*it)->shouldClose()) {
+						// 真正关闭：销毁 GLFW 窗口与 ImGui 上下文（调用方持有的句柄同步失效）
+						(*it)->close();
 						it = engine.m_Windows.erase(it);
 					}
 					else {
