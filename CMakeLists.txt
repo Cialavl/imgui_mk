@@ -17,4 +17,5 @@ endif()
 add_subdirectory(imgui_mk)
 add_subdirectory(imgui)
 add_subdirectory(glad)
-add_subdirectory(example)
+
+add_subdirectory(test)

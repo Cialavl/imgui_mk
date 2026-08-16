@@ -1,78 +1,26 @@
 #pragma once
-#include <imgui_mk/windowRendereren.h>
-#include <iostream>
-#include <vector>
-#include <string_mk/mk_string.h>
 #include <imgui_mk/window.h>
-#include <inputwindow.h>
-//template<typename T>
-//class MainWindow {
-//public:
-//	MainWindow() {
-//
-//	}
-//
-//	void initui() {
-//		ImGui::Text("Hello, world %d", 123);
-//
-//		if(ImGui::BeginChild("left_panel", ImVec2(150, 0), true)) {
-//			// 左侧子窗口内容...
-//			if(ImGui::Button("Save")) {
-//				save();
-//				//std::cout << "save" << "\n"; 
-//			}
-//			ImGui::SameLine(100);
-//			if(ImGui::Button("encode")) {
-//				encode();
-//				//std::cout << "encode" << "\n"; 
-//			}
-//		}
-//		ImGui::EndChild();
-//
-//		ImGui::SameLine(); // 放置下一个子窗口在同一行上
-//
-//		if(ImGui::BeginChild("right_panel", ImVec2(0, 0), true)) {
-//			// 右侧子窗口内容...
-//			ImGui::InputText("string1", buf1.data(), IM_ARRAYSIZE(buf1.data()));
-//			ImGui::InputText("string2", buf2.data(), IM_ARRAYSIZE(buf2.data()));
-//			ImGui::InputText("string3", buf3.data(), IM_ARRAYSIZE(buf3.data()));
-//			ImGui::InputText("string4", buf4.data(), IM_ARRAYSIZE(buf4.data()));
-//			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-//		}
-//		ImGui::EndChild();
-//	}
-//
-//	void save() {
-//		std::cout << "save" << "\n";
-//	}
-//	void encode() {
-//		std::cout << "encode" << "\n";
-//
-//	}
-//	void show() {
-//		
-//	}
-//private:                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    dow<int> inputwindow;
-//	float f = 1.0;
-//	mk::string<1024> buf1;
-//	mk::string<1024> buf2;
-//	mk::string<1024> buf3;
-//	mk::string<1024> buf4;
-//	
-//};
+#include <memory>
 
-template<typename T, typename ...Args>
-struct AppMainWindow {
-	static inline std::unique_ptr<Mk::window> instance = nullptr;
-	static void init(mk::string<8>& str) {
-		instance = std::make_unique<Mk::window>(str.data(), 1600, 900);
-		Mk::mkui::RegistrationWindow(instance.get());
-	}
-	static std::unique_ptr<Mk::window> GetWindow() {
-		if(!instance) throw std::runtime_error("Window not initialized");
-		return instance;
-	}
-	static void setui() {
-		//instance->
-	}
-};
+namespace Mk {
+
+	// 主窗口组件：主窗口是特化的窗口，只负责创建窗口（自动注册到全局引擎）并持有源对象，
+	// 不含 UI（需要 UI 时用 Mk::window::setUserUI() 注入）。
+	// 组件生命周期必须覆盖 Mk::mkui<WindowT>::run()。
+	template <typename WindowT>
+	class MainWindow {
+	public:
+		MainWindow(const char* title, int width = 1600, int height = 900)
+			: m_Window(std::make_unique<WindowT>(title, width, height)) {
+		}
+
+		// 窗口源对象：run() 之后仍可使用
+		WindowT& getWindow() const {
+			return *m_Window;
+		}
+
+	private:
+		std::unique_ptr<WindowT> m_Window;
+	};
+
+}

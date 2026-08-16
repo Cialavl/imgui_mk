@@ -12,10 +12,10 @@
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
-
+build
 # Mono auto generated files
 mono_crash.*
-
+*json
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# ImGui runtime settings
+imgui.ini
