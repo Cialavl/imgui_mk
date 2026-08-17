@@ -4,6 +4,7 @@
 #include <imgui_mk/ui/fui_display.h>
 #include <imgui_mk/ui/fui_containers.h>
 #include <imgui_mk/ui/fui_popups.h>
+#include <imgui_mk/ui/fui_file.h>
 
 // 函数式控件库·伞头：包含全部模块（Mk::fui 命名空间）。
 //
@@ -16,6 +17,7 @@
 //                     树节点、tooltip/colored/indent、纹理上传辅助
 //   fui_containers.h  标签页、表格（数据驱动/泛型单元格）、菜单栏、浮动面板
 //   fui_popups.h      Popup/PopupModal、颜色编辑/拾取器、位标志复选框
+//   fui_file.h         本地文件打开对话框（异步，Windows IFileOpenDialog）
 //
 // 设计：控件是纯值（聚合类型，无基类、无虚函数），渲染是自由函数重载
 // draw(const T&)——编译期决议、可内联；容器持子控件值的 tuple，fold 表达式编译期展开。

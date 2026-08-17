@@ -6,6 +6,10 @@
 #include <array>
 #include <bitset>
 #include <cmath>
+#include <fstream>
+#include <cstdint>
+#include <filesystem>
+#include <limits>
 #include <cstdio>
 #include <iostream>
 #include <memory>
@@ -64,6 +68,12 @@ inline void draw(const MasterList& m) {
 		const bool sel = (i == m.current);
 		if(ImGui::Selectable(m.items[i], sel)) m.current = i;
 	}
+}
+
+// 文本预览（本地 ADL 控件）：整段 TextUnformatted（含换行），外部 string 引用
+struct FilePreview { const std::string& text; };
+inline void draw(const FilePreview& p) {
+	ImGui::TextUnformatted(p.text.data(), p.text.data() + p.text.size());
 }
 
 // —— OOP 动态列表（dyn 桥演示）：自持子控件所有权池，运行时增删 ——
@@ -157,6 +167,8 @@ static constexpr SidebarEntry kSidebar[] = {
 	{"主从布局", false},              // 34
 	{"多窗口联动", true},
 	{"检查器联动", false},            // 35
+	{"文件", true},
+	{"打开本地文件", false},          // 36
 };
 
 } // namespace
@@ -196,6 +208,10 @@ int main() {
 	int bitFlags = 0b101;
 	int navSel = 0, detailSel = 0, insFrames = 0;
 	static constexpr const char* kNav[] = {"概览", "数据", "设置"};
+	Mk::fui::FileDialog fileDlg;        // 异步文件对话框（worker 线程跑 IFileOpenDialog）
+	std::string filePath, filePreview;  // 选中路径与文本预览（前 64KB）
+	std::uintmax_t fileSize = 0;
+	bool fileBinary = false, fileMissing = false;
 	static constexpr const char* kDetail[] = {"项目甲", "项目乙", "项目丙", "项目丁"};
 
 	static constexpr const char* kHeaders[] = {"名称", "数值", "备注"};
@@ -234,6 +250,30 @@ int main() {
 			return;
 		}
 		++insFrames;
+		// 文件对话框轮询：完成即读取（文本截取前 64KB，二进制只记大小）
+		std::string picked;
+		if(fileDlg.poll(picked)) {
+			filePath = picked;
+			filePreview.clear();
+			fileSize = 0;
+			fileBinary = false;
+			fileMissing = false;
+			if(!filePath.empty()) {
+				std::error_code ec;
+				fileSize = std::filesystem::file_size(filePath, ec);
+				if(ec) { fileMissing = true; }
+				else {
+					std::ifstream in(filePath, std::ios::binary);
+					constexpr std::size_t kCap = 64 * 1024;
+					std::string buf(kCap, '\0');
+					in.read(buf.data(), (std::streamsize)kCap);
+					buf.resize((size_t)in.gcount());
+					fileBinary = buf.find('\0') != std::string::npos;
+					if(!fileBinary) filePreview = std::move(buf);
+				}
+			}
+		}
+
 		using namespace Mk::fui;
 		draw(vbox(8.0f,
 			separatorText("共享状态（与画廊实时联动）"),
@@ -250,6 +290,14 @@ int main() {
 			textWrapped("两个顶层窗口各有独立 ImGui 上下文与帧循环，绑定同一批外部变量即可实时联动：拖动任意窗口的滑块或颜色，另一窗口同帧跟随。点 X 仅隐藏本窗口，菜单 窗口 或画廊侧边栏可再次显示；画廊关闭时检查器自动跟随退出。")));
 	});
 
+	// 打开本地文件：启动异步对话框，完成后由每帧 poll 装载
+	auto openFileDialog = [&] {
+		fileDlg.open("打开文件（mkui 画廊）", {
+			{"文本/代码", "*.txt;*.md;*.cpp;*.h;*.hpp;*.json;*.xml;*.ini;*.log"},
+			{"所有文件", "*.*"},
+		});
+	};
+
 	GLFWwindow* handle = mainWindow.getHandle();
 
 	mainWindow.setUI([&] {
@@ -259,6 +307,30 @@ int main() {
 		history.push_back(0.5f + 0.5f * std::sin(frames * 0.05f));
 		if(history.size() > 300) history.erase(history.begin());
 
+		// 文件对话框轮询：完成即读取（文本截取前 64KB，二进制只记大小）
+		std::string picked;
+		if(fileDlg.poll(picked)) {
+			filePath = picked;
+			filePreview.clear();
+			fileSize = 0;
+			fileBinary = false;
+			fileMissing = false;
+			if(!filePath.empty()) {
+				std::error_code ec;
+				fileSize = std::filesystem::file_size(filePath, ec);
+				if(ec) { fileMissing = true; }
+				else {
+					std::ifstream in(filePath, std::ios::binary);
+					constexpr std::size_t kCap = 64 * 1024;
+					std::string buf(kCap, '\0');
+					in.read(buf.data(), (std::streamsize)kCap);
+					buf.resize((size_t)in.gcount());
+					fileBinary = buf.find('\0') != std::string::npos;
+					if(!fileBinary) filePreview = std::move(buf);
+				}
+			}
+		}
+
 		using namespace Mk::fui;
 
 		// —— 常驻层：菜单栏 + 浮动面板 ——
@@ -267,6 +339,7 @@ int main() {
 
 		draw(menuBar(
 			menu("文件",
+				menuItem("打开…", openFileDialog, "Ctrl+O"),
 				menuItem("退出", [handle] { glfwSetWindowShouldClose(handle, true); }, "Alt+F4")),
 			menu("窗口",
 				menuItem(insVisible ? "隐藏检查器" : "显示检查器", [&] {
@@ -566,7 +639,22 @@ int main() {
 							else glfwShowWindow(h);
 						}
 					}),
-					textWrapped("两个顶层窗口各有独立 ImGui 上下文与帧循环，绑定同一批外部变量即可实时联动：拖动任意窗口的滑块或颜色，另一窗口同帧跟随。检查器点 X 仅隐藏（关闭回调拦截），画廊关闭时自动跟随退出。")))
+					textWrapped("两个顶层窗口各有独立 ImGui 上下文与帧循环，绑定同一批外部变量即可实时联动：拖动任意窗口的滑块或颜色，另一窗口同帧跟随。				检查器点 X 仅隐藏（关闭回调拦截），画廊关闭时自动跟随退出。"))),
+
+				// ==== 文件（36）====
+				when(sel == 36, vbox(6.0f,
+					DemoHead{"打开本地文件", "FileDialog：Win32 IFileOpenDialog 跑在 worker 线程，渲染循环不冻结；主循环每帧 poll 取结果"},
+					hbox(8.0f,
+						button("打开文件…", openFileDialog),
+						when(fileDlg.busy(), textColored("对话框打开中…（主窗口仍在渲染）", ImVec4(1.0f, 0.8f, 0.2f, 1.0f)))),
+					labelText("路径", filePath.empty() ? "（未选择）" : filePath.c_str()),
+					labelText("大小", std::to_string(fileSize) + " 字节"),
+					when(fileMissing, textColored("文件不可读", ImVec4(0.9f, 0.4f, 0.4f, 1.0f))),
+					when(!filePath.empty() && fileBinary,
+						textColored("二进制文件：仅显示大小", ImVec4(0.6f, 0.8f, 1.0f, 1.0f))),
+					when(!filePath.empty() && !fileBinary,
+						subwindow("文本预览（前 64KB）", ImVec2(0, 0), true,
+							FilePreview{filePreview}))))
 				))));
 
 		// —— 弹窗（树外常驻）——
