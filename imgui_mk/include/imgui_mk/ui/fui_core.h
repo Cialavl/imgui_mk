@@ -136,6 +136,37 @@ namespace Mk::fui {
 		ui::Widget& widget;
 	};
 
+	// ============ 自适应布局原语 ============
+
+	// 弹性分格（hsplit/vsplit 的格子）：fixed 固定像素；stretch 按权重瓜分剩余。
+	// 格子内容以 BeginChild 承载（独立 id，继承主题样式）
+	template<typename T>
+	struct SplitCell {
+		bool stretch;     // false=固定，true=弹性
+		float size;       // fixed: 像素；stretch: 权重（相对其它 stretch 格）
+		std::string id;   // 子窗口 id（需在分格树内唯一）
+		T child;
+	};
+
+	// 水平弹性分格：avail 依次扣除 fixed 格与项间 spacing 后，按权重分配给 stretch 格
+	template<typename... Ts>
+	struct HSplit {
+		std::tuple<Ts...> cells;
+	};
+
+	// 垂直弹性分格：同 HSplit，方向为上到下
+	template<typename... Ts>
+	struct VSplit {
+		std::tuple<Ts...> cells;
+	};
+
+	// 宽度比例修饰：子视图内下一个 item 宽度 = 可用宽 × frac（1.0 占满）
+	template<typename T>
+	struct WidthFrac {
+		float frac;
+		T child;
+	};
+
 	// ============ draw 重载：先整体声明、再定义 ============
 	// 容器/修饰器可任意相互嵌套，前置声明保证每个定义点的普通查找
 	// 就能看到完整重载集（不依赖编译器对模板内 ADL 时机的实现差异）
@@ -150,6 +181,9 @@ namespace Mk::fui {
 	template<typename T> void draw(const WithId<T>& w);
 	template<typename T> void draw(const ItemWidth<T>& w);
 	inline void draw(const Dyn& w);
+	template<typename... Ts> void draw(const HSplit<Ts...>& w);
+	template<typename... Ts> void draw(const VSplit<Ts...>& w);
+	template<typename T> void draw(const WidthFrac<T>& w);
 
 	// 容器渲染：draw(child) 为依赖调用，实例化时经 ADL 找到用户自定义类型的重载
 	template<typename... Ts>
@@ -241,6 +275,87 @@ namespace Mk::fui {
 
 	inline void draw(const Dyn& w) { w.widget.draw(); }
 
+	namespace detail {
+		// 渲染一个分格：占 track 像素（水平格传宽，垂直格传高），另一维填满
+		template<typename T>
+		void drawCell(const SplitCell<T>& cell, bool horizontal, float track) {
+			const ImVec2 sz = horizontal
+				? ImVec2(track, 0.0f)
+				: ImVec2(0.0f, track);
+			if(ImGui::BeginChild(cell.id.c_str(), sz, ImGuiChildFlags_Border)) {
+				draw(cell.child);
+			}
+			ImGui::EndChild();
+		}
+	}
+
+	template<typename... Ts>
+	void draw(const HSplit<Ts...>& w) {
+		const float avail = ImGui::GetContentRegionAvail().x;
+		const float gap = ImGui::GetStyle().ItemSpacing.x;
+
+		// 两遍：先求 fixed 总量与权重和，再逐格分配
+		float fixedSum = 0.0f, weightSum = 0.0f;
+		std::size_t nCells = 0;
+		std::apply([&](const auto&... cs) {
+			const auto one = [&](const auto& c) {
+				if(c.stretch) weightSum += c.size;
+				else fixedSum += c.size;
+				++nCells;
+			};
+			(one(cs), ...);
+		}, w.cells);
+
+		const float stretchTotal = avail - fixedSum - (float)(nCells > 1 ? nCells - 1 : 0) * gap;
+		std::size_t idx = 0;
+		std::apply([&](const auto&... cs) {
+			const auto one = [&](const auto& c) {
+				if(idx > 0) ImGui::SameLine(0.0f, gap);
+				const float track = c.stretch
+					? (weightSum > 0.0f ? stretchTotal * (c.size / weightSum) : 0.0f)
+					: c.size;
+				detail::drawCell(c, true, track);
+				++idx;
+			};
+			(one(cs), ...);
+		}, w.cells);
+	}
+
+	template<typename... Ts>
+	void draw(const VSplit<Ts...>& w) {
+		const float avail = ImGui::GetContentRegionAvail().y;
+		const float gap = ImGui::GetStyle().ItemSpacing.y;
+
+		float fixedSum = 0.0f, weightSum = 0.0f;
+		std::size_t nCells = 0;
+		std::apply([&](const auto&... cs) {
+			const auto one = [&](const auto& c) {
+				if(c.stretch) weightSum += c.size;
+				else fixedSum += c.size;
+				++nCells;
+			};
+			(one(cs), ...);
+		}, w.cells);
+
+		const float stretchTotal = avail - fixedSum - (float)(nCells > 1 ? nCells - 1 : 0) * gap;
+		std::apply([&](const auto&... cs) {
+			const auto one = [&](const auto& c) {
+				const float track = c.stretch
+					? (weightSum > 0.0f ? stretchTotal * (c.size / weightSum) : 0.0f)
+					: c.size;
+				detail::drawCell(c, false, track);
+			};
+			(one(cs), ...);
+		}, w.cells);
+	}
+
+	template<typename T>
+	void draw(const WidthFrac<T>& w) {
+		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * w.frac);
+		draw(w.child);
+		ImGui::PopItemWidth();
+	}
+
 	// ============ 反向桥：函数式视图嵌入 OOP 树 ============
 
 	namespace detail {
@@ -315,6 +430,35 @@ namespace Mk::fui {
 	}
 	template<typename T>
 	auto itemWidth(float width, T child) { return ItemWidth<std::decay_t<T>>{width, std::move(child)}; }
+
+	// —— 自适应布局工厂 ——
+	// 固定格：size 像素；id 需在同一分格树内唯一
+	template<typename T>
+	auto fixed(std::string id, float size, T child) {
+		return SplitCell<std::decay_t<T>>{false, size, std::move(id), std::move(child)};
+	}
+	// 弹性格：weight 相对权重（同树内比较），瓜分 fixed 与间距之外的剩余空间
+	template<typename T>
+	auto stretch(std::string id, float weight, T child) {
+		return SplitCell<std::decay_t<T>>{true, weight, std::move(id), std::move(child)};
+	}
+	template<typename... Ts>
+	auto hsplit(Ts&&... cells) {
+		return HSplit<std::decay_t<Ts>...>{std::make_tuple(std::forward<Ts>(cells)...)};
+	}
+	template<typename... Ts>
+	auto vsplit(Ts&&... cells) {
+		return VSplit<std::decay_t<Ts>...>{std::make_tuple(std::forward<Ts>(cells)...)};
+	}
+	template<typename T>
+	auto widthFrac(float frac, T child) {
+		return WidthFrac<std::decay_t<T>>{frac, std::move(child)};
+	}
+
+	// 子窗口尺寸语义化别名：fill()=两维填满；fillW(h)=填宽定高；fillH(w)=填高定宽
+	inline ImVec2 fill() { return ImVec2(0.0f, 0.0f); }
+	inline ImVec2 fillW(float h) { return ImVec2(0.0f, h); }
+	inline ImVec2 fillH(float w) { return ImVec2(w, 0.0f); }
 
 	inline auto dyn(ui::Widget& w) { return Dyn{w}; }
 

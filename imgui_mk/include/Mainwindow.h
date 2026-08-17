@@ -47,6 +47,11 @@ namespace Mk {
 			m_Window.setWidget(root);
 		}
 
+		// 切换窗口主题（转发到内部窗口的 setTheme）
+		void setTheme(const fui::Theme& theme) {
+			m_Window.setTheme(theme);
+		}
+
 		// GLFW 窗口句柄（关闭后为 nullptr）
 		GLFWwindow* getHandle() const {
 			return m_Window.getHandle();

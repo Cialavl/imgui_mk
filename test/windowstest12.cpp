@@ -76,6 +76,19 @@ inline void draw(const FilePreview& p) {
 	ImGui::TextUnformatted(p.text.data(), p.text.data() + p.text.size());
 }
 
+// 主色编辑器（本地 ADL 控件）：编辑 col3 即时换肤（ColorEdit3 返回 bool 的副作用驱动）
+struct AccentEdit {
+	Mk::fui::Theme& theme;
+	std::array<float, 3>& col;
+	Mk::MainWindow<>& win;
+};
+inline void draw(const AccentEdit& e) {
+	if(ImGui::ColorEdit3("主色 accent", e.col.data())) {
+		e.theme = e.theme.withAccent(ImVec4(e.col[0], e.col[1], e.col[2], 1.0f));
+		e.win.setTheme(e.theme);
+	}
+}
+
 // —— OOP 动态列表（dyn 桥演示）：自持子控件所有权池，运行时增删 ——
 
 class DynList : public Mk::ui::Widget {
@@ -169,6 +182,8 @@ static constexpr SidebarEntry kSidebar[] = {
 	{"检查器联动", false},            // 35
 	{"文件", true},
 	{"打开本地文件", false},          // 36
+	{"主题与自适应", true},
+	{"主题换肤与弹性布局", false},    // 37
 };
 
 } // namespace
@@ -209,6 +224,7 @@ int main() {
 	int navSel = 0, detailSel = 0, insFrames = 0;
 	static constexpr const char* kNav[] = {"概览", "数据", "设置"};
 	Mk::fui::FileDialog fileDlg;        // 异步文件对话框（worker 线程跑 IFileOpenDialog）
+	Mk::fui::Theme theme = Mk::fui::Theme::dark();   // 当前主题（菜单/演示页可换肤）
 	std::string filePath, filePreview;  // 选中路径与文本预览（前 64KB）
 	std::uintmax_t fileSize = 0;
 	bool fileBinary = false, fileMissing = false;
@@ -348,6 +364,15 @@ int main() {
 						else glfwShowWindow(h);
 					}
 				})),
+			menu("主题",
+				menuItem("深色", [&] {
+					theme = Mk::fui::Theme::dark();
+					mainWindow.setTheme(theme);
+				}),
+				menuItem("浅色", [&] {
+					theme = Mk::fui::Theme::light();
+					mainWindow.setTheme(theme);
+				})),
 			menu("帮助",
 				menuItem("关于画廊", [&] { aboutOpen = true; }))));
 
@@ -356,11 +381,9 @@ int main() {
 			FrameLabel{frames}));
 
 		// —— 主体：左目录 + 右演示 ——
-		draw(hbox(0.0f,
-			subwindow("sidebar", ImVec2(250, 0), true,
-				Sidebar{kSidebar, sel}),
-			subwindow("preview", ImVec2(0, 0), true,
-				vbox(8.0f,
+		draw(hsplit(
+			fixed("sidebar", 250.0f, Sidebar{kSidebar, sel}),
+			stretch("preview", 1.0f, vbox(8.0f,
 
 				// ==== 基础（0..7）====
 				when(sel == 0, vbox(6.0f,
@@ -559,34 +582,34 @@ int main() {
 				// ==== 布局样例（31..34）====
 				when(sel == 31, vbox(6.0f,
 					DemoHead{"三栏布局", "导航 + 内容 + 检查器：左中右三个子窗口，左右定宽、中间自适应"},
-					hbox(0.0f,
-						subwindow("布局导航", ImVec2(150, 0), true,
-							radioGroup(kNav, navSel)),
-						subwindow("布局内容", ImVec2(0, 0), true,
+					hsplit(
+						fixed("布局导航", 150.0f, radioGroup(kNav, navSel)),
+						stretch("布局内容", 1.0f, vbox(0.0f,
 							when(navSel == 0, plotLines("概览折线", history, ImVec2(0, 120))),
 							when(navSel == 1, textTable("数据表", kHeaders, rows)),
 							when(navSel == 2, vbox(4.0f,
 								slider("设置项", volume, 0.0f, 1.0f),
-								checkbox("开关", mute)))),
-						subwindow("布局检查器", ImVec2(220, 0), true,
+								checkbox("开关", mute))))),
+						fixed("布局检查器", 220.0f,
 							vbox(4.0f,
 								colorEdit3("主题色", col3),
-								progressBar(volume, ImVec2(-FLT_MIN, 0))))))),
+											progressBar(volume, ImVec2(-FLT_MIN, 0))))))),
 
 				when(sel == 32, vbox(0.0f,
 					DemoHead{"上下结构", "工具栏 + 主内容 + 状态栏：顶部底部定高、中间自适应"},
-					subwindow("工具栏", ImVec2(0, 44), true,
-						hbox(4.0f,
-							button("新建", [] {}),
-							button("打开", [] {}),
-							button("保存", [] {}))),
-					subwindow("主内容", ImVec2(0, 0), true,
-						plotLines("主内容区折线", history, ImVec2(0, 100))),
-					subwindow("状态栏", ImVec2(0, 30), true,
-						hbox(16.0f,
-							labelText("帧", std::to_string(frames)),
-							labelText("音量", std::to_string(volume).substr(0, 4)),
-							labelText("静音", mute ? "是" : "否"))))),
+					vsplit(
+						fixed("工具栏", 44.0f,
+							hbox(4.0f,
+								button("新建", [] {}),
+								button("打开", [] {}),
+								button("保存", [] {}))),
+						stretch("主内容", 1.0f,
+							plotLines("主内容区折线", history, ImVec2(0, 100))),
+						fixed("状态栏", 30.0f,
+							hbox(16.0f,
+								labelText("帧", std::to_string(frames)),
+								labelText("音量", std::to_string(volume).substr(0, 4)),
+									labelText("静音", mute ? "是" : "否")))))),
 
 				when(sel == 33, vbox(8.0f,
 					DemoHead{"仪表盘", "Group 打包指标卡，hbox/vbox 排成网格"},
@@ -654,8 +677,36 @@ int main() {
 						textColored("二进制文件：仅显示大小", ImVec4(0.6f, 0.8f, 1.0f, 1.0f))),
 					when(!filePath.empty() && !fileBinary,
 						subwindow("文本预览（前 64KB）", ImVec2(0, 0), true,
-							FilePreview{filePreview}))))
-				))));
+												FilePreview{filePreview})))),
+
+				// ==== 主题与自适应（37）====
+				when(sel == 37, vbox(6.0f,
+					DemoHead{"主题换肤与弹性布局", "Theme 值类型：预设/链式派生；窗口级 setTheme + styled 子树作用域；hsplit/vsplit 弹性分配"},
+					hbox(8.0f,
+						button("深色", [&] {
+							theme = Mk::fui::Theme::dark();
+							mainWindow.setTheme(theme);
+						}),
+						button("浅色", [&] {
+							theme = Mk::fui::Theme::light();
+							mainWindow.setTheme(theme);
+						}),
+										AccentEdit{theme, col3, mainWindow}),
+					separatorText("styled 作用域：局部紧凑间距/圆角（不影响全局）"),
+					styled(theme.withItemSpacing(2.0f, 2.0f).withRounding(0.0f),
+						vbox(2.0f,
+							button("紧凑区域里的按钮", [] {}),
+							button("紧凑区域里的另一按钮", [] {}))),
+					separatorText("弹性布局（本画廊主结构即 hsplit：侧栏 fixed 250 + 预览 stretch）"),
+					hsplit(
+						fixed("sa", 100.0f, labelText("A", "fixed 100")),
+						stretch("sb", 2.0f, labelText("B", "stretch 2")),
+						stretch("sc", 1.0f, labelText("C", "stretch 1")),
+						fixed("sd", 90.0f, labelText("D", "fixed 90"))),
+					vsplit(
+						fixed("se", 40.0f, labelText("E", "fixed 40")),
+						stretch("sf", 1.0f, labelText("F", "stretch 1")))
+				))))));
 
 		// —— 弹窗（树外常驻）——
 		draw(popup("画廊弹窗", popupOpen,

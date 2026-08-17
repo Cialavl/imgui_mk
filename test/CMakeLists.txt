@@ -47,6 +47,10 @@ target_link_libraries(test11 PRIVATE imgui_mk)
 add_executable(test12 windowstest12.cpp)
 target_link_libraries(test12 PRIVATE imgui_mk)
 
+# 主题与自适应布局验证：hsplit 权重/widthFrac/styled 作用域/setTheme（120 帧 PASS 退出码 0）
+add_executable(test13 windowstest13.cpp)
+target_link_libraries(test13 PRIVATE imgui_mk)
+
 # 单元测试：gtest（FetchContent 源码构建，随各配置自动匹配 CRT/ASan 标志）
 # 单测源码命名 *_test.cpp（与示例 windowstest*.cpp 区分）
 include(CTest)

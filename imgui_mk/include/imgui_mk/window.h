@@ -2,6 +2,7 @@
 #include <imgui_mk/windowRendereren.h>
 #include <imgui_mk/mkui.h>
 #include <imgui_mk/ui/widget.h>
+#include <imgui_mk/ui/fui_style.h>
 #include <functional>
 #include <memory>
 
@@ -161,12 +162,8 @@ namespace Mk {
 				}
 			}
 
-			// 修改全局样式，去掉内边距和边框
-			ImGui::GetStyle().WindowPadding = ImVec2(0, 0);
-			ImGui::GetStyle().WindowBorderSize = 0.0f;
-			ImGui::GetStyle().WindowRounding = 0.0f;
-
-			ImGui::StyleColorsDark();
+			// 应用默认主题（深色：内边距/圆角/控件间距/配色），可用 setTheme 换肤
+			fui::applyTheme(impl.m_ImGuiContext, fui::Theme::dark());
 			ImGuiIO& io = ImGui::GetIO();
 
 			// 初始化ImGui的OpenGL3后端
@@ -196,6 +193,13 @@ namespace Mk {
 		void setWidget(ui::Widget& root) {
 			if(m_Impl) {
 				m_Impl->m_UserUI = [&root]() { root.draw(); };
+			}
+		}
+
+		// 切换本窗口主题（每窗口独立 ImGui 上下文，可各持一套皮肤）
+		void setTheme(const fui::Theme& theme) {
+			if(m_Impl && m_Impl->m_Handle) {
+				fui::applyTheme(m_Impl->m_ImGuiContext, theme);
 			}
 		}
 
