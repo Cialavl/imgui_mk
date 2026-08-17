@@ -148,6 +148,11 @@ namespace Mk::fui {
 			}, w.children);
 			ImGui::EndMainMenuBar();
 		}
+		// BeginMainMenuBar 是浮在视口顶部的独立窗口，不占宿主窗口布局空间：
+		// 若不下移光标，宿主内容会从顶部开始、与菜单栏重叠约一个菜单条高度。
+		// 这里把宿主光标下移菜单栏高度（GetFrameHeight），让后续内容从菜单栏
+		// 下方排起。约定：menuBar 放在 UI 树的开头调用
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetFrameHeight());
 	}
 
 	template<typename... Ts>

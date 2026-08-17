@@ -27,6 +27,14 @@ inline void draw(const ItemWidthProbe& p) {
 struct BgProbe { ImVec4& out; };
 inline void draw(const BgProbe& p) { p.out = ImGui::GetStyle().Colors[ImGuiCol_WindowBg]; }
 
+// 菜单栏偏移探针：记录画完菜单栏后的宿主光标 Y 与菜单栏高度
+//（MenuBar 应把宿主光标推到菜单栏底边之下，否则内容与菜单栏重叠）
+struct MenuOffsetProbe { float& cursorY; float& menuH; };
+inline void draw(const MenuOffsetProbe& p) {
+	p.cursorY = ImGui::GetCursorScreenPos().y;
+	p.menuH = ImGui::GetFrameHeight();
+}
+
 // 输入框宽度探针：InputText 后读 item 实宽（widthFrac 1.0 断言）
 struct InputWidthProbe { float& out; };
 inline void draw(const InputWidthProbe& p) {
@@ -51,6 +59,7 @@ int main() {
 	float spInStyled = 0, spOutside = 0;
 	float inputW = 0;
 	ImVec4 bg{0, 0, 0, 0};
+	float menuCursorY = 0, menuH = 0;
 
 	// 换浅色主题：验证窗口级应用
 	mainWindow.setTheme(Mk::fui::Theme::light());
@@ -58,6 +67,10 @@ int main() {
 	mainWindow.setUI([&] {
 		++frames;
 		using namespace Mk::fui;
+
+		// 菜单栏（浮在视口顶部的独立窗口）：画完后宿主光标应被推到菜单栏底边之下
+		draw(menuBar(menu("文件", menuItem("条目", [] {}))));
+		draw(MenuOffsetProbe{menuCursorY, menuH});
 
 		// hsplit：fixed(240) + stretch(1) + fixed(200)，间距 8
 		draw(hsplit(
@@ -93,6 +106,8 @@ int main() {
 	const bool okOutsideSp = about(spOutside, 8.0f);
 	const bool okBg = about(bg.x, 0.95f) && about(bg.y, 0.95f) && about(bg.z, 0.95f);
 	const bool okInput = inputW >= 400.0f;   // 占满 ≈ 中格可用宽
+	// 菜单栏底边 = 视口顶(0) + menuH；宿主光标必须在底边之下（0.5px 容差）
+	const bool okMenu = (menuCursorY >= menuH - 0.5f);
 	const bool okExit = (mainWindow.getHandle() == nullptr);
 
 	std::cout << "frames=" << frames
@@ -102,10 +117,11 @@ int main() {
 		<< " spIn=" << spInStyled
 		<< " spOut=" << spOutside
 		<< " inputW=" << inputW
-		<< " bg=(" << bg.x << "," << bg.y << "," << bg.z << ")" << std::endl;
+		<< " bg=(" << bg.x << "," << bg.y << "," << bg.z << ")"
+		<< " menuY=" << menuCursorY << " menuH=" << menuH << std::endl;
 
 	const bool pass = okFrames && okFixedL && okFixedR && okStretchW && okStyledSp
-		&& okOutsideSp && okBg && okInput && okExit;
+		&& okOutsideSp && okBg && okInput && okMenu && okExit;
 	std::cout << (pass ? "PASS" : "FAIL")
 		<< ": 帧数 " << okFrames
 		<< ", 左定宽 " << okFixedL
@@ -115,6 +131,7 @@ int main() {
 		<< ", 域外回落 " << okOutsideSp
 		<< ", 浅色主题 " << okBg
 		<< ", 输入占满 " << okInput
+		<< ", 菜单不重叠 " << okMenu
 		<< ", 干净关闭 " << okExit << std::endl;
 	return pass ? 0 : 1;
 }
