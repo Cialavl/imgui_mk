@@ -23,11 +23,28 @@ namespace Mk {
 			}
 		}
 
+		// —— 主窗口特定功能 ——
+
+		// 显示窗口（转发到内部窗口的 show）
+		void show() {
+			m_Window.show();
+		}
+
+		// 隐藏窗口（转发到内部窗口的 hide）
+		void hide() {
+			m_Window.hide();
+		}
+
 		// —— window.h API 的模板组合转发 ——
 
 		// 注入每帧 UI 回调（在 run() 之前调用；转发到内部窗口的 setUserUI）
 		void setUI(std::function<void()> ui) {
 			m_Window.setUserUI(std::move(ui));
+		}
+
+		// 挂载控件树（转发到内部窗口的 setWidget）
+		void setWidget(ui::Widget& root) {
+			m_Window.setWidget(root);
 		}
 
 		// GLFW 窗口句柄（关闭后为 nullptr）

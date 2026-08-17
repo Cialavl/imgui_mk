@@ -1,6 +1,7 @@
 #pragma once
 #include <imgui_mk/windowRendereren.h>
 #include <imgui_mk/mkui.h>
+#include <imgui_mk/ui/widget.h>
 #include <functional>
 #include <memory>
 
@@ -141,6 +142,25 @@ namespace Mk {
 			impl.m_ImGuiContext = ImGui::CreateContext();
 			ImGui::SetCurrentContext(impl.m_ImGuiContext);
 
+			// 加载中文字体：ImGui 默认字体仅含 ASCII，中文会渲染成“?”。
+			// 依次尝试常见 Windows 中文字体（微软雅黑/黑体/宋体），成功一个即止；
+			// 全部缺失时退回默认字体（英文不受影响）
+			{
+				ImGuiIO& io = ImGui::GetIO();
+				static const char* cjkFonts[] = {
+					"C:\\Windows\\Fonts\\msyh.ttc",   // 微软雅黑
+					"C:\\Windows\\Fonts\\simhei.ttf", // 黑体
+					"C:\\Windows\\Fonts\\simsun.ttc", // 宋体
+				};
+				for(const char* path : cjkFonts) {
+					if(io.Fonts->AddFontFromFileTTF(
+						   path, 18.0f, nullptr,
+						   io.Fonts->GetGlyphRangesChineseFull())) {
+						break;
+					}
+				}
+			}
+
 			// 修改全局样式，去掉内边距和边框
 			ImGui::GetStyle().WindowPadding = ImVec2(0, 0);
 			ImGui::GetStyle().WindowBorderSize = 0.0f;
@@ -169,6 +189,27 @@ namespace Mk {
 		void setUserUI(std::function<void()> ui) {
 			if(m_Impl) {
 				m_Impl->m_UserUI = std::move(ui);
+			}
+		}
+
+		// 挂载控件树：每帧渲染 root 及其整棵子树（setUserUI 的控件树便捷形式）
+		void setWidget(ui::Widget& root) {
+			if(m_Impl) {
+				m_Impl->m_UserUI = [&root]() { root.draw(); };
+			}
+		}
+
+		// 显示窗口（GLFW 创建即可见；窗口被隐藏后可重新显示）
+		void show() {
+			if(auto* h = getHandle()) {
+				glfwShowWindow(h);
+			}
+		}
+
+		// 隐藏窗口（show() 可重新显示）
+		void hide() {
+			if(auto* h = getHandle()) {
+				glfwHideWindow(h);
 			}
 		}
 
