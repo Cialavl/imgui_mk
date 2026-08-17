@@ -35,6 +35,10 @@ target_link_libraries(test8 PRIVATE imgui_mk)
 add_executable(test9 windowstest9.cpp)
 target_link_libraries(test9 PRIVATE imgui_mk)
 
+# 批次3：函数式结构容器验证（120 帧 PASS 退出码 0）
+add_executable(test10 windowstest10.cpp)
+target_link_libraries(test10 PRIVATE imgui_mk)
+
 # 单元测试：gtest（FetchContent 源码构建，随各配置自动匹配 CRT/ASan 标志）
 # 单测源码命名 *_test.cpp（与示例 windowstest*.cpp 区分）
 include(CTest)
