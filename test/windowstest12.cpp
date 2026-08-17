@@ -57,6 +57,15 @@ inline void draw(const DemoHead& h) {
 	ImGui::Separator();
 }
 
+// 主从列表（本地 ADL 控件）：Selectable 单选风格，点击写回选中下标
+struct MasterList { std::span<const char* const> items; int& current; };
+inline void draw(const MasterList& m) {
+	for(int i = 0; i < (int)m.items.size(); ++i) {
+		const bool sel = (i == m.current);
+		if(ImGui::Selectable(m.items[i], sel)) m.current = i;
+	}
+}
+
 // —— OOP 动态列表（dyn 桥演示）：自持子控件所有权池，运行时增删 ——
 
 class DynList : public Mk::ui::Widget {
@@ -141,6 +150,13 @@ static constexpr SidebarEntry kSidebar[] = {
 	{"双向桥", true},
 	{"dyn OOP 子树", false},          // 29
 	{"asWidget 反向桥", false},       // 30
+	{"布局样例", true},
+	{"三栏布局", false},              // 31
+	{"上下结构", false},              // 32
+	{"仪表盘", false},                // 33
+	{"主从布局", false},              // 34
+	{"多窗口联动", true},
+	{"检查器联动", false},            // 35
 };
 
 } // namespace
@@ -178,6 +194,9 @@ int main() {
 	std::array<float, 3> pick3{0.4f, 0.6f, 0.8f};
 	std::array<float, 4> pick4{0.8f, 0.6f, 0.4f, 1.0f};
 	int bitFlags = 0b101;
+	int navSel = 0, detailSel = 0, insFrames = 0;
+	static constexpr const char* kNav[] = {"概览", "数据", "设置"};
+	static constexpr const char* kDetail[] = {"项目甲", "项目乙", "项目丙", "项目丁"};
 
 	static constexpr const char* kHeaders[] = {"名称", "数值", "备注"};
 	std::vector<std::vector<std::string>> rows{
@@ -199,6 +218,38 @@ int main() {
 	});
 	oopBox.add(revAdapter);
 
+	// —— 第二顶层窗口：检查器（多窗口联动）。与画廊共享全部外置状态；
+	// 点 X 仅隐藏（关闭回调拦截，不进引擎销毁流程），
+	// 画廊关闭（引擎销毁）后检查器下一帧请求自身关闭，run() 随之退出
+	Mk::window inspector("检查器（多窗口联动）", 420, 640);
+	if(auto* h = inspector.getHandle()) {
+		glfwSetWindowCloseCallback(h, [](GLFWwindow* w) {
+			glfwSetWindowShouldClose(w, GLFW_FALSE);
+			glfwHideWindow(w);
+		});
+	}
+	inspector.setUserUI([&] {
+		if(mainWindow.getHandle() == nullptr) {
+			glfwSetWindowShouldClose(inspector.getHandle(), true);
+			return;
+		}
+		++insFrames;
+		using namespace Mk::fui;
+		draw(vbox(8.0f,
+			separatorText("共享状态（与画廊实时联动）"),
+			slider("音量", volume, 0.0f, 1.0f),
+			checkbox("静音", mute),
+			colorEdit3("主题色", col3),
+			hbox(8.0f,
+				checkboxFlags("位 A", bitFlags, 1),
+				checkboxFlags("位 B", bitFlags, 2),
+				checkboxFlags("位 C", bitFlags, 4)),
+			separatorText("独立帧循环"),
+			labelText("画廊帧", std::to_string(frames)),
+			labelText("检查器帧", std::to_string(insFrames)),
+			textWrapped("两个顶层窗口各有独立 ImGui 上下文与帧循环，绑定同一批外部变量即可实时联动：拖动任意窗口的滑块或颜色，另一窗口同帧跟随。点 X 仅隐藏本窗口，菜单 窗口 或画廊侧边栏可再次显示；画廊关闭时检查器自动跟随退出。")));
+	});
+
 	GLFWwindow* handle = mainWindow.getHandle();
 
 	mainWindow.setUI([&] {
@@ -211,9 +262,19 @@ int main() {
 		using namespace Mk::fui;
 
 		// —— 常驻层：菜单栏 + 浮动面板 ——
+		const bool insVisible = inspector.getHandle() != nullptr
+			&& glfwGetWindowAttrib(inspector.getHandle(), GLFW_VISIBLE) != 0;
+
 		draw(menuBar(
 			menu("文件",
 				menuItem("退出", [handle] { glfwSetWindowShouldClose(handle, true); }, "Alt+F4")),
+			menu("窗口",
+				menuItem(insVisible ? "隐藏检查器" : "显示检查器", [&] {
+					if(auto* h = inspector.getHandle()) {
+						if(glfwGetWindowAttrib(h, GLFW_VISIBLE)) glfwHideWindow(h);
+						else glfwShowWindow(h);
+					}
+				})),
 			menu("帮助",
 				menuItem("关于画廊", [&] { aboutOpen = true; }))));
 
@@ -420,7 +481,92 @@ int main() {
 				when(sel == 30, vbox(6.0f,
 					DemoHead{"asWidget：OOP 树内嵌函数式视图", "适配器每帧调用 maker，保持每帧重建语义"},
 					subwindow("OOP 容器", ImVec2(0, 100), true,
-						dyn(oopBox))))
+						dyn(oopBox)))),
+
+				// ==== 布局样例（31..34）====
+				when(sel == 31, vbox(6.0f,
+					DemoHead{"三栏布局", "导航 + 内容 + 检查器：左中右三个子窗口，左右定宽、中间自适应"},
+					hbox(0.0f,
+						subwindow("布局导航", ImVec2(150, 0), true,
+							radioGroup(kNav, navSel)),
+						subwindow("布局内容", ImVec2(0, 0), true,
+							when(navSel == 0, plotLines("概览折线", history, ImVec2(0, 120))),
+							when(navSel == 1, textTable("数据表", kHeaders, rows)),
+							when(navSel == 2, vbox(4.0f,
+								slider("设置项", volume, 0.0f, 1.0f),
+								checkbox("开关", mute)))),
+						subwindow("布局检查器", ImVec2(220, 0), true,
+							vbox(4.0f,
+								colorEdit3("主题色", col3),
+								progressBar(volume, ImVec2(-FLT_MIN, 0))))))),
+
+				when(sel == 32, vbox(0.0f,
+					DemoHead{"上下结构", "工具栏 + 主内容 + 状态栏：顶部底部定高、中间自适应"},
+					subwindow("工具栏", ImVec2(0, 44), true,
+						hbox(4.0f,
+							button("新建", [] {}),
+							button("打开", [] {}),
+							button("保存", [] {}))),
+					subwindow("主内容", ImVec2(0, 0), true,
+						plotLines("主内容区折线", history, ImVec2(0, 100))),
+					subwindow("状态栏", ImVec2(0, 30), true,
+						hbox(16.0f,
+							labelText("帧", std::to_string(frames)),
+							labelText("音量", std::to_string(volume).substr(0, 4)),
+							labelText("静音", mute ? "是" : "否"))))),
+
+				when(sel == 33, vbox(8.0f,
+					DemoHead{"仪表盘", "Group 打包指标卡，hbox/vbox 排成网格"},
+					hbox(8.0f,
+						group(vbox(4.0f,
+							separatorText("吞吐"),
+							textColored("+12.4%", ImVec4(0.4f, 0.9f, 0.6f, 1.0f)),
+							progressBar(volume, ImVec2(160, 0)))),
+						group(vbox(4.0f,
+							separatorText("延迟"),
+							textColored("-3.1%", ImVec4(0.4f, 0.9f, 0.6f, 1.0f)),
+							progressBar(history.back(), ImVec2(160, 0))))),
+					hbox(8.0f,
+						group(vbox(4.0f,
+							separatorText("错误率"),
+							textColored("+0.2%", ImVec4(0.9f, 0.4f, 0.4f, 1.0f)),
+							plotLines("err", history, ImVec2(160, 48)))),
+						group(vbox(4.0f,
+							separatorText("连接数"),
+							textColored("128", ImVec4(0.6f, 0.8f, 1.0f, 1.0f)),
+							labelText("上限", "256")))))),
+
+				when(sel == 34, vbox(6.0f,
+					DemoHead{"主从布局", "左列表右详情：MasterList（本地 ADL 单选列表）选中项驱动右侧详情"},
+					hbox(0.0f,
+						subwindow("master", ImVec2(200, 0), true,
+							MasterList{kDetail, detailSel}),
+						subwindow("detail", ImVec2(0, 0), true,
+							when(detailSel == 0, vbox(4.0f,
+								separatorText("项目甲"),
+								labelText("状态", "进行中"),
+								slider("进度", volume, 0.0f, 1.0f))),
+							when(detailSel == 1, vbox(4.0f,
+								separatorText("项目乙"),
+								labelText("状态", "已挂起"),
+								checkbox("启用", mute))),
+							when(detailSel >= 2, vbox(4.0f,
+								separatorText("其它项目"),
+								labelText("选中下标", std::to_string(detailSel)),
+								colorEdit3("标记色", col3))))))),
+
+				// ==== 多窗口联动（35）====
+				when(sel == 35, vbox(6.0f,
+					DemoHead{"多窗口联动", "第二个顶层窗口（检查器）与画廊共享全部外置状态"},
+					labelText("画廊帧", std::to_string(frames)),
+					labelText("检查器帧", std::to_string(insFrames)),
+					button(insVisible ? "隐藏检查器窗口" : "显示检查器窗口", [&] {
+						if(auto* h = inspector.getHandle()) {
+							if(glfwGetWindowAttrib(h, GLFW_VISIBLE)) glfwHideWindow(h);
+							else glfwShowWindow(h);
+						}
+					}),
+					textWrapped("两个顶层窗口各有独立 ImGui 上下文与帧循环，绑定同一批外部变量即可实时联动：拖动任意窗口的滑块或颜色，另一窗口同帧跟随。检查器点 X 仅隐藏（关闭回调拦截），画廊关闭时自动跟随退出。")))
 				))));
 
 		// —— 弹窗（树外常驻）——
