@@ -18,4 +18,9 @@ add_subdirectory(imgui_mk)
 add_subdirectory(imgui)
 add_subdirectory(glad)
 
+# apps/（如 passman）为可选应用层：目录就位时才接入（passman_core 仅 Release /MD 树存在）
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/apps/CMakeLists.txt")
+    add_subdirectory(apps)
+endif()
+
 add_subdirectory(test)
