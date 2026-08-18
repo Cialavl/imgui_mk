@@ -1,5 +1,7 @@
 #pragma once
 #include <imgui_mk/ui/wg.h>
+#include <array>
+#include <cstdio>
 #include <cmath>
 #include <string>
 
@@ -274,5 +276,172 @@ namespace Mk::wg {
 		}
 		ImGui::EndTabBar();
 	}
+
+
+	// ============ 原子控件 ============
+	// 每个原子 = 模板 struct（数据 + 功能函数），经 Control 组合。
+	// 数据件含自持状态（字符串/值），功能函数含行为（render/measure/…）。
+	// 布局：measureImpl 返回内容尺寸；arrangeImpl 记录 bounds。
+
+	// —— Label（文本标签，持字符串副本）——
+	template<std::size_t MaxLen = 128>
+	struct LabelImpl {
+		std::string text;
+
+		void setText(const char* t) { text = t; }
+		void setText(const std::string& t) { text = t; }
+		const char* c_str() const { return text.c_str(); }
+
+		void renderImpl(Node& n) { ImGui::TextUnformatted(text.c_str()); }
+		Size measureImpl(Node& n, const Size& avail) {
+			ImVec2 s = ImGui::CalcTextSize(text.c_str());
+			return Size{s.x, s.y};
+		}
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+	};
+	using Label = Control<LabelImpl<>, DefaultStyle>;
+
+	// —— Button（按钮，点击回调）——
+	struct ButtonImpl {
+		std::string label;
+		std::function<void()> onClick;
+
+		void setLabel(const char* l) { label = l; }
+		const char* c_str() const { return label.c_str(); }
+
+		void renderImpl(Node& n) {
+			if(ImGui::Button(label.c_str()) && onClick) onClick();
+		}
+		Size measureImpl(Node& n, const Size&) {
+			ImVec2 s = ImGui::CalcTextSize(label.c_str());
+			return Size{s.x + 20.0f, s.y + 12.0f};
+		}
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+	};
+	using Button = Control<ButtonImpl, DefaultStyle>;
+
+	// —— SliderF（滑块，绑定 float&——引用成员：控件经转发构造初始化，非 tuple 子）——
+	struct SliderFImpl {
+		std::string label;
+		float* value = nullptr;   // 指针绑定（可默认构造，兼容 tuple 子控件）
+		float mn = 0, mx = 1;
+
+		Size measureImpl(Node& n, const Size& avail) {
+			return Size{avail.w > 0 ? avail.w : 200.0f, 24.0f};
+		}
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node& n) {
+			if(value) ImGui::SliderFloat(label.c_str(), value, mn, mx);
+		}
+	};
+	using SliderF = Control<SliderFImpl, DefaultStyle>;
+
+	// —— CheckBox（复选框，绑定 bool*）——
+	struct CheckBoxImpl {
+		std::string label;
+		bool* checked = nullptr;
+
+		Size measureImpl(Node& n, const Size&) {
+			return Size{ImGui::CalcTextSize(label.c_str()).x + 28.0f, 22.0f};
+		}
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node& n) {
+			if(checked) ImGui::Checkbox(label.c_str(), checked);
+		}
+	};
+	using CheckBox = Control<CheckBoxImpl, DefaultStyle>;
+
+	// —— InputText（文本输入，模板参数 N = 缓冲容量）——
+	template<std::size_t N = 64>
+	struct InputTextImpl {
+		std::string label;
+		std::array<char, N> buf{};
+
+		void setText(const char* t) { std::snprintf(buf.data(), N, "%s", t); }
+		const char* c_str() const { return buf.data(); }
+
+		Size measureImpl(Node& n, const Size& avail) {
+			return Size{avail.w > 0 ? avail.w : 220.0f, 24.0f};
+		}
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node& n) {
+			ImGui::InputText(label.c_str(), buf.data(), N);
+		}
+	};
+	template<std::size_t N = 64>
+	using InputText = Control<InputTextImpl<N>, DefaultStyle>;
+
+	// —— Combo（下拉，items 长期存活）——
+	struct ComboImpl {
+		std::string label;
+		int* current = nullptr;
+		const char* const* items = nullptr;
+		int count = 0;
+
+		Size measureImpl(Node& n, const Size&) {
+			return Size{220.0f, 24.0f};
+		}
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node& n) {
+			if(current && items) ImGui::Combo(label.c_str(), current, items, count);
+		}
+	};
+	using Combo = Control<ComboImpl, DefaultStyle>;
+
+	// —— ProgressBar（进度条，绑定 float* fraction）——
+	struct ProgressBarImpl {
+		float* fraction = nullptr;
+		std::string overlay;
+
+		Size measureImpl(Node& n, const Size& avail) {
+			return Size{avail.w > 0 ? avail.w : 200.0f, 24.0f};
+		}
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node& n) {
+			if(fraction) {
+				ImGui::ProgressBar(*fraction, ImVec2(-FLT_MIN, 0),
+					overlay.empty() ? nullptr : overlay.c_str());
+			}
+		}
+	};
+	using ProgressBar = Control<ProgressBarImpl, DefaultStyle>;
+
+	// —— Tree（可折叠节点，展开才渲染子）——
+	struct TreeImpl {
+		std::string label;
+		bool defaultOpen = false;
+
+		void renderImpl(Node& n) {
+			ImGuiTreeNodeFlags flags = defaultOpen ? ImGuiTreeNodeFlags_DefaultOpen : 0;
+			if(ImGui::TreeNodeEx(label.c_str(), flags)) {
+				for(auto* c : n.children) {
+					if(!c) continue;
+					ImGui::SetCursorPos(ImVec2(c->bounds.x - n.bounds.x,
+						c->bounds.y - n.bounds.y));
+					c->draw();
+				}
+				ImGui::TreePop();
+			}
+		}
+		Size measureImpl(Node& n, const Size& avail) {
+			Size total{0, 0};
+			for(auto* c : n.children) {
+				if(!c) continue;
+				Size s = c->measure(avail);
+				total.h += s.h;
+			}
+			return Size{avail.w, total.h + 20.0f};
+		}
+		void arrangeImpl(Node& n, const Rect& r) {
+			float y = r.y + 20.0f;   // 标题行下
+			for(auto* c : n.children) {
+				if(!c) continue;
+				Size s = c->measure(Size{r.w, r.h - (y - r.y)});
+				c->arrange(Rect{r.x, y, s.w, s.h});
+				y += s.h;
+			}
+		}
+	};
+	using Tree = Control<TreeImpl, DefaultStyle>;
 
 }

@@ -44,6 +44,11 @@ int main() {
 
 	int frames = 0;
 	int renders = 0, creates = 0, destroys = 0, shows = 0, hides = 0;
+	int clicks = 0;
+	float volume = 0.5f;
+	bool mute = false;
+	int comboSel = 0;
+	static constexpr const char* kItems[] = {"选项甲", "选项乙", "选项丙"};
 
 	// VBox{A(40x30), B(60x40)} spacing=8 → measure: w=60 h=30+40+8=78
 	// 模板组合：子控件由 Control 内部持有（tuple），经 child<I>() 访问
@@ -57,6 +62,30 @@ int main() {
 
 	// 生命周期容器（onShow/onHide 验证）
 	LifecycleBox life(&creates, &destroys, &shows, &hides);
+
+	// —— 原子控件组合（模板传入）：Label + Button + SliderF + CheckBox ——
+	Mk::wg::VBox<Mk::wg::Label, Mk::wg::Button, Mk::wg::SliderF, Mk::wg::CheckBox> panel;
+	panel.child<0>().self.setText("wg 原子控件演示");
+	panel.child<1>().self.setLabel("点我");
+	panel.child<1>().self.onClick = [&] { ++clicks; };
+	panel.child<2>().self.label = "音量";
+	panel.child<2>().self.value = &volume;
+	panel.child<3>().self.label = "静音";
+	panel.child<3>().self.checked = &mute;
+	panel.child<0>().node.id = "lbl";
+	panel.child<3>().node.id = "muteBox";
+
+	// 输入/进度/下拉/Tree（更多原子）
+	Mk::wg::VBox<Mk::wg::InputText<>, Mk::wg::ProgressBar, Mk::wg::Combo, Mk::wg::Tree>
+		panel2;
+	panel2.child<0>().self.label = "文本";
+	panel2.child<1>().self.fraction = &volume;
+	panel2.child<2>().self.label = "选择";
+	panel2.child<2>().self.current = &comboSel;
+	panel2.child<2>().self.items = kItems;
+	panel2.child<2>().self.count = 3;
+	panel2.child<3>().self.label = "树";
+	panel2.child<3>().self.defaultOpen = true;
 
 	// 运行时动态添加进 VBox（墓碑增删）
 	std::unique_ptr<Fixed> dynC;
@@ -114,6 +143,10 @@ int main() {
 		if(frames == 110) life.node.visible = true;
 		life.layout(host);
 
+		// 原子面板布局（帧 20 起稳定）
+		panel.layout(Mk::wg::Rect{20, 360, 300, 200});
+		panel2.layout(Mk::wg::Rect{360, 360, 300, 200});
+
 		// 终态快照
 		if(frames == 120) {
 			rendersAt120 = renders;
@@ -149,6 +182,7 @@ int main() {
 	const bool okLife = (creates == 1 && hides == 1 && shows == 1);   // life 的 onCreate 1 次、onHide/onShow 各 1
 	// 渲染计数：a+b+ha+hb+动态（帧 40-90）
 	const bool okRender = (rendersAt120 >= 0);
+	// 原子面板渲染（帧 120 快照 renders 累计，含探针+原子）
 
 	std::cout << "VBox aY=" << aY << " bY=" << bY
 		<< " size=" << boxW << "x" << boxH
