@@ -49,6 +49,10 @@ target_link_libraries(test11 PRIVATE imgui_mk)
 add_executable(test13 windowstest13.cpp)
 target_link_libraries(test13 PRIVATE imgui_mk)
 
+# 文字溢出自适应验证：fixed em 化/fixedPx/em2/labelEllipsis/withMinWidth（120 帧 PASS 退出码 0）
+add_executable(test14 windowstest14.cpp)
+target_link_libraries(test14 PRIVATE imgui_mk)
+
 # 单元测试：gtest（FetchContent 源码构建，随各配置自动匹配 CRT/ASan 标志）
 # 单测源码命名 *_test.cpp（与示例 windowstest*.cpp 区分）
 include(CTest)

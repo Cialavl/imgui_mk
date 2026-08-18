@@ -1,6 +1,7 @@
 #pragma once
 #include <imgui_mk/windowRendereren.h>
 #include <imgui_mk/ui/widget.h>
+#include <algorithm>
 #include <functional>
 #include <string>
 #include <tuple>
@@ -138,12 +139,26 @@ namespace Mk::fui {
 
 	// ============ 自适应布局原语 ============
 
-	// 弹性分格（hsplit/vsplit 的格子）：fixed 固定像素；stretch 按权重瓜分剩余。
+	// 设计基准字号：控件尺寸写「按 18px 调好的设计像素」，运行时随当前字号等比缩放——
+	// 文字与控件比例恒定，字号升档/DPI 变化不再溢出或比例失衡
+	inline constexpr float kDesignFontBase = 18.0f;
+
+	// 设计像素 → 实际像素（× 当前字号/18）
+	inline float em(float designPx) {
+		return designPx * ImGui::GetFontSize() / kDesignFontBase;
+	}
+	// ImVec2 版
+	inline ImVec2 em2(float designW, float designH) {
+		const float k = ImGui::GetFontSize() / kDesignFontBase;
+		return ImVec2(designW * k, designH * k);
+	}
+	// 弹性分格（hsplit/vsplit 的格子）：fixed 固定宽；stretch 按权重瓜分剩余。
 	// 格子内容以 BeginChild 承载（独立 id，继承主题样式）
 	template<typename T>
 	struct SplitCell {
 		bool stretch;     // false=固定，true=弹性
-		float size;       // fixed: 像素；stretch: 权重（相对其它 stretch 格）
+		float size;       // fixed: 设计像素（em 缩放）；stretch: 权重（相对其它 stretch 格）
+		bool absolute;    // fixed 的尺寸语义：false=设计像素（随字号缩放），true=真像素
 		std::string id;   // 子窗口 id（需在分格树内唯一）
 		T child;
 	};
@@ -167,6 +182,18 @@ namespace Mk::fui {
 		T child;
 	};
 
+	// 单行省略文本：超出可用宽时二分截断加“…”（配 tooltip 可看全文）
+	struct LabelEllipsis {
+		std::string text;
+	};
+
+	// 最小宽度修饰：子视图内下一个 item 撑到设计宽（em 缩放）；内容更宽时不变
+	template<typename T>
+	struct WithMinWidth {
+		float minDesignPx;
+		T child;
+	};
+
 	// ============ draw 重载：先整体声明、再定义 ============
 	// 容器/修饰器可任意相互嵌套，前置声明保证每个定义点的普通查找
 	// 就能看到完整重载集（不依赖编译器对模板内 ADL 时机的实现差异）
@@ -184,6 +211,8 @@ namespace Mk::fui {
 	template<typename... Ts> void draw(const HSplit<Ts...>& w);
 	template<typename... Ts> void draw(const VSplit<Ts...>& w);
 	template<typename T> void draw(const WidthFrac<T>& w);
+inline void draw(const LabelEllipsis& w);
+template<typename T> void draw(const WithMinWidth<T>& w);
 
 	// 容器渲染：draw(child) 为依赖调用，实例化时经 ADL 找到用户自定义类型的重载
 	template<typename... Ts>
@@ -276,12 +305,15 @@ namespace Mk::fui {
 	inline void draw(const Dyn& w) { w.widget.draw(); }
 
 	namespace detail {
-		// 渲染一个分格：占 track 像素（水平格传宽，垂直格传高），另一维填满
+		// 渲染一个分格：占 track 像素（水平格传宽，垂直格传高），另一维填满。
+		// fixed 格的尺寸语义在设计像素（em 缩放，见 fixed/fixedPx），拉伸格不变
 		template<typename T>
 		void drawCell(const SplitCell<T>& cell, bool horizontal, float track) {
+			const float real = cell.stretch ? track
+				: (cell.absolute ? track : em(track));
 			const ImVec2 sz = horizontal
-				? ImVec2(track, 0.0f)
-				: ImVec2(0.0f, track);
+				? ImVec2(real, 0.0f)
+				: ImVec2(0.0f, real);
 			if(ImGui::BeginChild(cell.id.c_str(), sz, ImGuiChildFlags_Border)) {
 				draw(cell.child);
 			}
@@ -352,6 +384,33 @@ namespace Mk::fui {
 	template<typename T>
 	void draw(const WidthFrac<T>& w) {
 		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * w.frac);
+		draw(w.child);
+		ImGui::PopItemWidth();
+	}
+
+	inline void draw(const LabelEllipsis& w) {
+		const float avail = ImGui::GetContentRegionAvail().x;
+		const ImVec2 full = ImGui::CalcTextSize(w.text.c_str());
+		if(full.x <= avail) {
+			ImGui::TextUnformatted(w.text.c_str());
+			return;
+		}
+		// 超宽：二分截断 + 省略号（省略号自身占宽预扣）
+		const float ell = ImGui::CalcTextSize("...").x;
+		const float budget = avail - ell;
+		size_t lo = 0, hi = w.text.size();   // lo 可行、hi 不可行
+		while(lo < hi) {
+			const size_t mid = (lo + hi + 1) / 2;
+			if(ImGui::CalcTextSize(w.text.c_str(), w.text.c_str() + mid).x <= budget) lo = mid;
+			else hi = mid - 1;
+		}
+		ImGui::Text("%.*s...", (int)lo, w.text.c_str());
+	}
+
+	template<typename T>
+	void draw(const WithMinWidth<T>& w) {
+		// 真最小宽：与当前默认计算宽取 max（避免把本来更宽的 item 压窄）
+		ImGui::PushItemWidth(std::max(ImGui::CalcItemWidth(), em(w.minDesignPx)));
 		draw(w.child);
 		ImGui::PopItemWidth();
 	}
@@ -432,15 +491,20 @@ namespace Mk::fui {
 	auto itemWidth(float width, T child) { return ItemWidth<std::decay_t<T>>{width, std::move(child)}; }
 
 	// —— 自适应布局工厂 ——
-	// 固定格：size 像素；id 需在同一分格树内唯一
+	// 固定格：size 为 18px 基准的设计像素（随字号等比缩放，见 em()）；id 需在同一分格树内唯一
 	template<typename T>
 	auto fixed(std::string id, float size, T child) {
-		return SplitCell<std::decay_t<T>>{false, size, std::move(id), std::move(child)};
+		return SplitCell<std::decay_t<T>>{false, size, false, std::move(id), std::move(child)};
+	}
+	// 固定格（真像素）：不随字号缩放，罕用逃生舱（如对齐外部资源尺寸）
+	template<typename T>
+	auto fixedPx(std::string id, float size, T child) {
+		return SplitCell<std::decay_t<T>>{false, size, true, std::move(id), std::move(child)};
 	}
 	// 弹性格：weight 相对权重（同树内比较），瓜分 fixed 与间距之外的剩余空间
 	template<typename T>
 	auto stretch(std::string id, float weight, T child) {
-		return SplitCell<std::decay_t<T>>{true, weight, std::move(id), std::move(child)};
+		return SplitCell<std::decay_t<T>>{true, weight, false, std::move(id), std::move(child)};
 	}
 	template<typename... Ts>
 	auto hsplit(Ts&&... cells) {
@@ -453,6 +517,11 @@ namespace Mk::fui {
 	template<typename T>
 	auto widthFrac(float frac, T child) {
 		return WidthFrac<std::decay_t<T>>{frac, std::move(child)};
+	}
+	inline auto labelEllipsis(std::string text) { return LabelEllipsis{std::move(text)}; }
+	template<typename T>
+	auto withMinWidth(float minDesignPx, T child) {
+		return WithMinWidth<std::decay_t<T>>{minDesignPx, std::move(child)};
 	}
 
 	// 子窗口尺寸语义化别名：fill()=两维填满；fillW(h)=填宽定高；fillH(w)=填高定宽
