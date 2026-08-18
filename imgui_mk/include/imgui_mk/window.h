@@ -143,6 +143,9 @@ namespace Mk {
 			impl.m_ImGuiContext = ImGui::CreateContext();
 			ImGui::SetCurrentContext(impl.m_ImGuiContext);
 
+			// 全局默认主题（setDefaultTheme 须在首个窗口创建前调用；此处读取烘焙）
+			const fui::Theme& theme = fui::defaultTheme();
+
 			// 加载中文字体：ImGui 默认字体仅含 ASCII，中文会渲染成“?”。
 			// 依次尝试常见 Windows 中文字体（微软雅黑/黑体/宋体），成功一个即止；
 			// 全部缺失时退回默认字体（英文不受影响）
@@ -155,15 +158,15 @@ namespace Mk {
 				};
 				for(const char* path : cjkFonts) {
 					if(io.Fonts->AddFontFromFileTTF(
-						   path, 18.0f, nullptr,
+						   path, theme.fontSize, nullptr,
 						   io.Fonts->GetGlyphRangesChineseFull())) {
 						break;
 					}
 				}
 			}
 
-			// 应用默认主题（深色：内边距/圆角/控件间距/配色），可用 setTheme 换肤
-			fui::applyTheme(impl.m_ImGuiContext, fui::Theme::dark());
+			// 应用默认主题（几何随 fontSize 等比），可用 setTheme 换肤
+			fui::applyTheme(impl.m_ImGuiContext, theme);
 			ImGuiIO& io = ImGui::GetIO();
 
 			// 初始化ImGui的OpenGL3后端

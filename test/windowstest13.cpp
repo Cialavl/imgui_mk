@@ -35,6 +35,14 @@ inline void draw(const MenuOffsetProbe& p) {
 	p.menuH = ImGui::GetFrameHeight();
 }
 
+// 样式实测探针：捕获宿主 WindowPadding.x 与 ItemSpacing.x（公式推导断言用，
+// 期望值与实现同源，主题比例再调也无需改测试）
+struct StyleProbe { float& padX; float& spX; };
+inline void draw(const StyleProbe& p) {
+	p.padX = ImGui::GetStyle().WindowPadding.x;
+	p.spX = ImGui::GetStyle().ItemSpacing.x;
+}
+
 // 输入框宽度探针：InputText 后读 item 实宽（widthFrac 1.0 断言）
 struct InputWidthProbe { float& out; };
 inline void draw(const InputWidthProbe& p) {
@@ -60,6 +68,7 @@ int main() {
 	float inputW = 0;
 	ImVec4 bg{0, 0, 0, 0};
 	float menuCursorY = 0, menuH = 0;
+	float hostPadX = 0, styleSpX = 0;
 
 	// 换浅色主题：验证窗口级应用
 	mainWindow.setTheme(Mk::fui::Theme::light());
@@ -71,6 +80,7 @@ int main() {
 		// 菜单栏（浮在视口顶部的独立窗口）：画完后宿主光标应被推到菜单栏底边之下
 		draw(menuBar(menu("文件", menuItem("条目", [] {}))));
 		draw(MenuOffsetProbe{menuCursorY, menuH});
+		draw(StyleProbe{hostPadX, styleSpX});
 
 		// hsplit：fixed(240) + stretch(1) + fixed(200)，间距 8
 		draw(hsplit(
@@ -100,10 +110,12 @@ int main() {
 	const bool okFrames = (frames == 120);
 	const bool okFixedL = about(wFixedL, 240.0f);
 	const bool okFixedR = about(wFixedR, 200.0f);
-	// 中格 = 宿主可用宽(1000-2*8 padding) - 240 - 200 - 2*8 间距（±4 容差）
-	const bool okStretchW = std::abs(wStretch - (1000.0f - 16.0f - 240.0f - 200.0f - 16.0f)) <= 4.0f;
+	// 中格 = 宿主可用宽(1000−2×pad) − 240 − 200 − 2×间距：用当帧实测样式值推导（±4 容差）
+	const float expectStretch = 1000.0f - 2.0f * hostPadX - 240.0f - 200.0f - 2.0f * styleSpX;
+	const bool okStretchW = std::abs(wStretch - expectStretch) <= 4.0f;
 	const bool okStyledSp = about(spInStyled, 20.0f);
-	const bool okOutsideSp = about(spOutside, 8.0f);
+	// 主题默认间距 = 0.58×fontSize（applyTheme 比例推导的联动验证）
+	const bool okOutsideSp = about(spOutside, 0.58f * Mk::fui::Theme::dark().fontSize);
 	const bool okBg = about(bg.x, 0.95f) && about(bg.y, 0.95f) && about(bg.z, 0.95f);
 	const bool okInput = inputW >= 400.0f;   // 占满 ≈ 中格可用宽
 	// 菜单栏底边 = 视口顶(0) + menuH；宿主光标必须在底边之下（0.5px 容差）

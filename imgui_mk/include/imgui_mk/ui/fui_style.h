@@ -12,7 +12,7 @@
 //
 // 几何中的 itemSpacing 即全局控件间距：容器 vbox/hbox 的 spacing < 0（默认）
 // 本就回落到 ImGui style，因此主题一改、所有容器间距跟随，无需逐处配置。
-// 字体大小不进主题（字号烘焙进字体图集，运行时切换需重建图集，另行处理）。
+// 几何随 fontSize 等比联动（见 Theme 字段与 applyTheme）；字体位图本身在窗口创建时按 fontSize 烘焙，setTheme 运行时切换不重建图集。
 
 namespace Mk::fui {
 
@@ -39,15 +39,18 @@ namespace Mk::fui {
 		ImVec4 accentActive{0.20f, 0.50f, 0.90f, 1.00f};
 		ImVec4 border{0.28f, 0.28f, 0.32f, 0.60f};
 
-		// —— 几何（像素）——
-		float rounding = 6.0f;        // 窗口/弹窗圆角
-		float frameRounding = 4.0f;   // 控件框架圆角
-		float windowPadding = 8.0f;   // 窗口内边距
-		float framePaddingX = 8.0f;   // 控件内边距 X
-		float framePaddingY = 4.0f;   // 控件内边距 Y
-		float itemSpacingX = 8.0f;    // 控件间距 X（容器默认间距来源）
-		float itemSpacingY = 6.0f;    // 控件间距 Y
-		float indentWidth = 20.0f;    // 缩进步进
+		// —— 几何 ——
+		// 圆角为绝对像素；间距/内边距字段默认 -1 = 按字号比值推导（见 applyTheme），
+		// 显式写入绝对值（withItemSpacing 等）则优先于比例——显式意图覆盖自动推导
+		float rounding = 6.0f;        // 窗口/弹窗圆角（绝对像素）
+		float frameRounding = 4.0f;   // 控件框架圆角（绝对像素）
+		float windowPadding = -1.0f;  // 窗口内边距；<0 → 0.60×fontSize
+		float framePaddingX = -1.0f;  // 控件内边距 X；<0 → 0.45×fontSize
+		float framePaddingY = -1.0f;  // 控件内边距 Y；<0 → 0.22×fontSize
+		float itemSpacingX = -1.0f;   // 控件间距 X；<0 → 0.58×fontSize（容器默认间距来源）
+		float itemSpacingY = -1.0f;   // 控件间距 Y；<0 → 0.34×fontSize
+		float indentWidth = -1.0f;    // 缩进步进；<0 → 1.10×fontSize
+		float fontSize = 18.0f;       // 基准字号：改此值整套 UI（文字/控件/间距/边距）等比联动
 
 		// —— 预设 ——
 		static Theme dark() { return Theme{}; }
@@ -86,6 +89,7 @@ namespace Mk::fui {
 		Theme withRounding(float r) const { Theme t = *this; t.rounding = r; t.frameRounding = r * 0.66f; return t; }
 		Theme withWindowPadding(float p) const { Theme t = *this; t.windowPadding = p; return t; }
 		Theme withItemSpacing(float x, float y) const { Theme t = *this; t.itemSpacingX = x; t.itemSpacingY = y; return t; }
+		Theme withFontSize(float s) const { Theme t = *this; t.fontSize = s; return t; }
 	};
 
 	// ============ 应用：写入当前 ImGui 上下文 ============
@@ -102,12 +106,18 @@ namespace Mk::fui {
 		s.ScrollbarRounding = t.rounding;
 		s.TabRounding = t.frameRounding;
 
-		s.WindowPadding = ImVec2(t.windowPadding, t.windowPadding);
-		s.FramePadding = ImVec2(t.framePaddingX, t.framePaddingY);
-		s.ItemSpacing = ImVec2(t.itemSpacingX, t.itemSpacingY);
-		s.IndentSpacing = t.indentWidth;
-		s.GrabMinSize = 10.0f;
-		s.ScrollbarSize = 14.0f;
+		// 几何推导：字段 >=0 用绝对值（显式覆盖），否则按 基准字号×比值。
+		// 比值以 ImGui 官方 13px 风格标定，@18px ≈ 边距10.8/间距10.4×6.1/控件内距8.1×4.0
+		const float F = t.fontSize;
+		const auto pick = [](float absOrSentinel, float ratio, float fontSize_) {
+			return absOrSentinel >= 0.0f ? absOrSentinel : ratio * fontSize_;
+		};
+		s.WindowPadding = ImVec2(pick(t.windowPadding, 0.60f, F), pick(t.windowPadding, 0.60f, F));
+		s.FramePadding = ImVec2(pick(t.framePaddingX, 0.45f, F), pick(t.framePaddingY, 0.22f, F));
+		s.ItemSpacing = ImVec2(pick(t.itemSpacingX, 0.58f, F), pick(t.itemSpacingY, 0.34f, F));
+		s.IndentSpacing = pick(t.indentWidth, 1.10f, F);
+		s.GrabMinSize = 0.55f * F;
+		s.ScrollbarSize = 0.78f * F;
 		s.WindowBorderSize = 1.0f;
 		s.ChildBorderSize = 1.0f;
 		s.FrameBorderSize = 0.0f;
@@ -209,8 +219,12 @@ namespace Mk::fui {
 			ImGui::PushStyleColor(ImGuiCol_TabActive, t.accent);
 			ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, t.header);
 			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, t.frameRounding);
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(t.framePaddingX, t.framePaddingY));
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(t.itemSpacingX, t.itemSpacingY));
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
+				ImVec2(t.framePaddingX >= 0.0f ? t.framePaddingX : 0.45f * t.fontSize,
+					t.framePaddingY >= 0.0f ? t.framePaddingY : 0.22f * t.fontSize));
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
+				ImVec2(t.itemSpacingX >= 0.0f ? t.itemSpacingX : 0.58f * t.fontSize,
+					t.itemSpacingY >= 0.0f ? t.itemSpacingY : 0.34f * t.fontSize));
 			(void)s;
 			return 0;
 		}
@@ -267,6 +281,46 @@ namespace Mk::fui {
 	template<typename T>
 	auto styleVar(ImGuiStyleVar idx, const ImVec2& value, T child) {
 		return StyleVarV<std::decay_t<T>>{idx, value, std::move(child)};
+	}
+
+	// ============ 默认主题与 DPI ============
+
+	namespace detail {
+		// 全局默认主题槽（函数局部 static，跨 TU 合一；窗口构造时读取）
+		inline Theme& defaultThemeSlot() {
+			static Theme t = Theme::dark();
+			return t;
+		}
+	}
+
+	// 当前全局默认主题（未设置过则 dark@18）
+	inline const Theme& defaultTheme() { return detail::defaultThemeSlot(); }
+
+	// 设置全局默认主题：须在首个窗口创建前调用——窗口构造时读取它烘焙
+	// 字体位图（fontSize）与应用样式；之后切换只影响新窗口
+	inline void setDefaultTheme(const Theme& t) { detail::defaultThemeSlot() = t; }
+
+	// 主显示器 DPI 缩放（进程内缓存；glfwInit 幂等可先调用；取不到则 1.0）。
+	// 默认不参与任何路径——测试保持确定性，应用显式 opt-in
+	inline float dpiScale() {
+		static const float cached = [] {
+			if(!glfwInit()) return 1.0f;
+			if(GLFWmonitor* m = glfwGetPrimaryMonitor()) {
+				float x = 1.0f, y = 1.0f;
+				glfwGetMonitorContentScale(m, &x, &y);
+				return (x > 0.0f && y > 0.0f) ? (x + y) * 0.5f : 1.0f;
+			}
+			return 1.0f;
+		}();
+		return cached;
+	}
+
+	// 按显示器 DPI 派生主题：字号×scale，几何随字号自动等比；
+	// 窗口默认尺寸建议同步 ×dpiScale() 保持物理观感一致
+	inline Theme scaledForMonitor(const Theme& t) {
+		Theme r = t;
+		r.fontSize = t.fontSize * dpiScale();
+		return r;
 	}
 
 }

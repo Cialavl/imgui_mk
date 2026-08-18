@@ -27,7 +27,13 @@ void makeChecker(unsigned char* px) {
 } // namespace
 
 int main() {
-	Mk::MainWindow<> gallery("mkui Widget Gallery", 1440, 880);
+	// DPI 感知（应用显式 opt-in，测试代码不启用以保持像素断言确定性）：
+	// 默认主题字号与窗口尺寸按主显示器缩放，几何随字号自动等比
+	Mk::fui::setDefaultTheme(Mk::fui::scaledForMonitor(Mk::fui::Theme::dark()));
+	const float dpi = Mk::fui::dpiScale();
+
+	Mk::MainWindow<> gallery("mkui Widget Gallery",
+		(int)(1440.0f * dpi), (int)(880.0f * dpi));
 
 	// 等宽字体装入画廊图集：此刻字体纹理尚未构建（首帧才烘焙），零重建成本
 	gallery::gMono = ImGui::GetIO().Fonts->AddFontDefault();
@@ -37,7 +43,7 @@ int main() {
 
 	// —— 第二顶层窗口：Inspector（多窗口联动）。与画廊共享全部外置状态；
 	// 点 X 仅隐藏（关闭回调拦截否决），画廊关闭（引擎销毁）后下一帧跟随退出
-	Mk::window inspector("Inspector", 420, 640);
+	Mk::window inspector("Inspector", (int)(420.0f * dpi), (int)(640.0f * dpi));
 	s.inspectorHandle = inspector.getHandle();
 	if(s.inspectorHandle) {
 		glfwSetWindowCloseCallback(s.inspectorHandle, [](GLFWwindow* w) {
