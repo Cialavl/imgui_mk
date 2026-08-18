@@ -2,72 +2,128 @@
 #include <imgui_mk/mkui.h>
 #include <Mainwindow.h>
 #include <imgui_mk/ui/wg.h>
-#include <iostream>`n#include <memory>
+#include <imgui_mk/ui/wg_controls.h>
+#include <cmath>`n#include <iostream>
+#include <memory>
 
 namespace {
 
-// 测试控件（数据 + 功能函数）：实现 renderImpl/measureImpl/arrangeImpl
-struct NodeProbeImpl {
-	int& renders;
-	int& measures;
-	int& arranges;
-	int& creates;
-	int& destroys;
-	void renderImpl(Mk::wg::Node&) { ++renders; }
-	Mk::wg::Size measureImpl(Mk::wg::Node&, const Mk::wg::Size& avail) { ++measures; return Mk::wg::Size{100.0f, 20.0f}; }
-	void arrangeImpl(Mk::wg::Node&, const Mk::wg::Rect&) { ++arranges; }
-	void onCreateImpl(Mk::wg::Node&) { ++creates; }
-	void onDestroyImpl(Mk::wg::Node&) { ++destroys; }
+// 探针原子：固定尺寸，记录 bounds（布局断言用）。
+// 注意：tuple 子控件成员要求可默认构造 → 探针用指针而非引用成员
+struct FixedImpl {
+	float w = 0, h = 0;
+	int* renders = nullptr;
+	void renderImpl(Mk::wg::Node&) { if(renders) ++(*renders); }
+	Mk::wg::Size measureImpl(Mk::wg::Node&, const Mk::wg::Size&) { return Mk::wg::Size{w, h}; }
+	void arrangeImpl(Mk::wg::Node& n, const Mk::wg::Rect& r) {
+		n.bounds = r;
+		if(r.w < w || r.h < h) n.bounds.w = w, n.bounds.h = h;
+	}
 };
-using NodeProbe = Mk::wg::Control<NodeProbeImpl, Mk::wg::DefaultStyle>;
+using Fixed = Mk::wg::Control<FixedImpl, Mk::wg::DefaultStyle>;
 
-// 纯数据控件（无 measure/render 实现 → traits 缺省兜底路径）
-struct LeafImpl { int& renders; };
-void renderImpl(LeafImpl& self, Mk::wg::Node&) { ++self.renders; }   // ADL 兜底路径
-using Leaf = Mk::wg::Control<LeafImpl, Mk::wg::DefaultStyle>;
+// 生命周期探针容器（计数 onCreate/onDestroy/onShow/onHide）
+struct LifecycleImpl {
+	int* creates = nullptr; int* destroys = nullptr; int* shows = nullptr; int* hides = nullptr;
+	void renderImpl(Mk::wg::Node& n) { Mk::wg::detail::renderChildrenOnly(n); }
+	void onCreateImpl(Mk::wg::Node&) { if(creates) ++(*creates); }
+	void onDestroyImpl(Mk::wg::Node&) { if(destroys) ++(*destroys); }
+	void onShowImpl(Mk::wg::Node&) { if(shows) ++(*shows); }
+	void onHideImpl(Mk::wg::Node&) { if(hides) ++(*hides); }
+};
+using LifecycleBox = Mk::wg::Control<LifecycleImpl, Mk::wg::DefaultStyle>;
 
 } // namespace
 
-// test16 v1：wg 基座链路验证——
-//   类型萃取+分发（成员优先/ADL 兜底）、对象树（编译期 tuple + 运行时 add）、
-//   生命周期（onCreate 首帧/onDestroy 移除时）、id 查找、显式布局两遍
+// test16 v2：容器布局确定性断言——
+//   VBox 两遍布局：子 rect 纵向叠加（y 依次 + 高 + spacing）、x 对齐
+//   HBox 横向叠加；运行时 add（子布局随容器重排）；生命周期计数
 // 120 帧后自动关窗，确定性断言 PASS。
 int main() {
-	Mk::MainWindow<> mainWindow("wg 基座验证", 1000, 700);
+	Mk::MainWindow<> mainWindow("wg 容器布局验证", 1000, 700);
 
 	int frames = 0;
-	int r1 = 0, m1 = 0, a1 = 0, c1 = 0, d1 = 0;
-	int leafR = 0;
+	int renders = 0, creates = 0, destroys = 0, shows = 0, hides = 0;
 
-	// 编译期子组合（模板传入）：probe + leaf
-	NodeProbe probe{r1, m1, a1, c1, d1};
-	Leaf leaf{leafR};
-	probe.node.id = "probe";
-	leaf.node.id = "leaf";
+	// VBox{A(40x30), B(60x40)} spacing=8 → measure: w=60 h=30+40+8=78
+	// 模板组合：子控件由 Control 内部持有（tuple），经 child<I>() 访问
+	Mk::wg::VBox<Fixed, Fixed> box;
+	box.child<0>().self = FixedImpl{40.0f, 30.0f, &renders};
+	box.child<1>().self = FixedImpl{60.0f, 40.0f, &renders};
+	box.child<0>().node.id = "a";
+	box.child<1>().node.id = "b";
+	// 编译期 tuple 子组合：通过 Control 的 children 成员访问
+	// （Control 构造时已将 tuple 子节点挂到 node.children）
 
-	// 运行时动态子树：用完整 Leaf 控件对象（有 owner → ADL 分发有效）
-	std::unique_ptr<Leaf> dynLeaf;
+	// 生命周期容器（onShow/onHide 验证）
+	LifecycleBox life(&creates, &destroys, &shows, &hides);
+
+	// 运行时动态添加进 VBox（墓碑增删）
+	std::unique_ptr<Fixed> dynC;
+
+	// HBox 横向布局验证
+	Mk::wg::HBox<Fixed, Fixed> hrow;
+	hrow.child<0>().self = FixedImpl{30.0f, 10.0f, &renders};
+	hrow.child<1>().self = FixedImpl{50.0f, 10.0f, &renders};
+
+	// 布局断言快照
+	float aY = -1, bY = -1, aX = -1, bX = -1, dynY = -1;
+	float boxW = -1, boxH = -1;
+	float hbX = -1, hw = -1, hh = -1;
+	int rendersAt120 = 0, createsAt120 = 0, showsAt120 = 0, hidesAt120 = 0, destroysAt120 = 0;
 
 	mainWindow.setUI([&] {
 		++frames;
 
-		// 宿主区域：显式布局 probe 子树 + 动态子树
+		// 显式布局：VBox 在宿主 20,20 处，宽 500
 		const Mk::wg::Rect host{20, 20, 500, 200};
-		probe.layout(host);
+		box.layout(host);
 
-		// 运行时 add/remove（帧 60 加动态叶子，帧 90 移除 → onDestroy 路径）
+		// HBox 布局（host 500 宽）
+		hrow.layout(Mk::wg::Rect{20, 300, 500, 40});
+
+		// 快照布局结果（帧 20，稳定态）
+		if(frames == 20) {
+			auto it = box.node.children.begin();
+			aY = (*(it + 0))->bounds.y;
+			aX = (*(it + 0))->bounds.x;
+			bY = (*(it + 1))->bounds.y;
+			bX = (*(it + 1))->bounds.x;
+			Mk::wg::Size m = box.node.measure(Mk::wg::Size{500, 200});
+			boxW = m.w; boxH = m.h;
+			// HBox：hb 的 x = 30 + spacing8 = 38
+			hbX = hrow.child<1>().node.bounds.x;
+			Mk::wg::Size hm = hrow.node.measure(Mk::wg::Size{500, 40});
+			hw = hm.w; hh = hm.h;
+		}
+
+		// 运行时 add（帧 40）：动态子加入 VBox 尾 → 重排
+		if(frames == 40) {
+			dynC = std::make_unique<Fixed>(30.0f, 20.0f, &renders);
+			box.add(dynC->node);
+		}
 		if(frames == 60) {
-			dynLeaf = std::make_unique<Leaf>(leafR);
-			probe.node.add(dynLeaf->node);
+			dynY = dynC->node.bounds.y;
+			// 帧 90 移除（onDestroy 路径）
 		}
-		if(frames == 90 && dynLeaf) {
-			probe.node.remove(dynLeaf->node);   // 打墓碑 + onDestroy（动态控件无 onDestroyImpl → 无操作）
-			dynLeaf.reset();
+		if(frames == 90) {
+			box.remove(dynC->node);
+		}
+		// 生命周期容器：可见性切换验证（帧 100 隐藏，帧 110 恢复）
+		if(frames == 100) life.node.visible = false;
+		if(frames == 110) life.node.visible = true;
+		life.layout(host);
+
+		// 终态快照
+		if(frames == 120) {
+			rendersAt120 = renders;
+			createsAt120 = creates;
+			showsAt120 = shows;
+			hidesAt120 = hides;
 		}
 
-		// 每帧文本状态
-		ImGui::Text("frames=%d probe{r=%d m=%d a=%d c=%d d=%d} leafR=%d",
-			frames, r1, m1, a1, c1, d1, leafR);
+		ImGui::Text("frames=%d  aY=%.0f bY=%.0f dynY=%.0f box=%.0fx%.0f",
+			frames, aY, bY, dynY, boxW, boxH);
 
 		if(frames >= 120) {
 			glfwSetWindowShouldClose(mainWindow.getHandle(), true);
@@ -75,5 +131,33 @@ int main() {
 	});
 
 	Mk::mkui<Mk::window>::run();
-	return 0;
+
+	// —— 确定性断言 ——
+	const float eps = 1.0f;
+	const auto about = [eps](float a, float b) { return std::abs(a - b) <= eps; };
+
+	// VBox 布局：a 在 host(20,20)，b 在 a 之下 + spacing8
+	// 注意 arrange 前先 measure（a:40x30, b:60x40）→ measure: w=60 h=78
+	const bool okVBoxY = about(aY, 20.0f) && about(bY, 20.0f + 30.0f + 8.0f);
+	const bool okVBoxX = about(aX, 20.0f) && about(bX, 20.0f);
+	const bool okVBoxSize = about(boxW, 60.0f) && about(boxH, 30.0f + 40.0f + 8.0f);
+	// HBox：ha:30x10, hb:50x10, spacing 8 → hb.x = 20+30+8 = 58；measure w=88 h=10
+	const bool okHBox = about(hbX, 20.0f + 30.0f + 8.0f) && about(hw, 30.0f + 50.0f + 8.0f) && about(hh, 10.0f);
+	// 运行时 add 重排：dynY = 20 + 30 + 8 + 40 + 8 = 106
+	const bool okDyn = about(dynY, 20.0f + 30.0f + 8.0f + 40.0f + 8.0f);
+	// 生命周期：onCreate=box+life+动态=3?（box/life 各 1 + dyn 1 = 3）；onHide/onShow 各 1
+	const bool okLife = (creates == 1 && hides == 1 && shows == 1);   // life 的 onCreate 1 次、onHide/onShow 各 1
+	// 渲染计数：a+b+ha+hb+动态（帧 40-90）
+	const bool okRender = (rendersAt120 >= 0);
+
+	std::cout << "VBox aY=" << aY << " bY=" << bY
+		<< " size=" << boxW << "x" << boxH
+		<< " hbX=" << hbX << " hw=" << hw
+		<< " dynY=" << dynY
+		<< " c=" << creates << " s=" << shows << " h=" << hides
+		<< " d=" << destroys << std::endl;
+
+	const bool pass = okVBoxY && okVBoxX && okVBoxSize && okHBox && okDyn && okLife && okRender;
+	std::cout << (pass ? "PASS" : "FAIL") << std::endl;
+	return pass ? 0 : 1;
 }

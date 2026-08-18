@@ -1,6 +1,7 @@
 #pragma once
 #include <imgui_mk/windowRendereren.h>
 #include <algorithm>
+#include <concepts>
 #include <cstddef>
 #include <functional>
 #include <string>
@@ -295,7 +296,8 @@ namespace Mk::wg {
 		std::tuple<Ts...> children;   // 编译期子控件组合（模板参数传入）
 
 		// 无参构造：控件数据用默认值（原子控件也常用）
-		Control() : self() {
+		// 无参构造：控件数据用默认值（原子控件也常用）；Self 不可默认构造时跳过
+		Control() requires std::default_initializable<Self> : self() {
 			node.owner = &self;
 			node.bind<Self>();
 			std::apply([&](auto&... c) { (node.add(c.node), ...); }, children);
@@ -315,6 +317,12 @@ namespace Mk::wg {
 
 		Self& get() { return self; }
 		const Self& get() const { return self; }
+
+		// 编译期子控件访问（模板组合）：child<I>() 返回第 I 个子控件
+		template<std::size_t I>
+		auto& child() { return std::get<I>(children); }
+		template<std::size_t I>
+		const auto& child() const { return std::get<I>(children); }
 
 		void draw() { node.draw(); }
 		void layout(const Rect& host) { node.layout(host); }
