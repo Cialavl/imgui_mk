@@ -444,4 +444,140 @@ namespace Mk::wg {
 	};
 	using Tree = Control<TreeImpl, DefaultStyle>;
 
+
+	// ============ 输入类原子（批次A：fui 输入控件对象化）============
+	// 统一约定：绑定用指针成员（可默认构造，兼容 tuple 子控件）；
+	// 交互直接写回绑定的外部变量（与 fui 同语义）。
+
+	// —— InputInt（整数输入，绑定 int*）——
+	struct InputIntImpl {
+		std::string label;
+		int* value = nullptr;
+		Size measureImpl(Node&, const Size& avail) { return Size{avail.w > 0 ? avail.w : 160.0f, 24.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(value) ImGui::InputInt(label.c_str(), value); }
+	};
+	using InputInt = Control<InputIntImpl, DefaultStyle>;
+
+	// —— InputFloat / InputDouble ——
+	struct InputFloatImpl {
+		std::string label;
+		float* value = nullptr;
+		Size measureImpl(Node&, const Size& avail) { return Size{avail.w > 0 ? avail.w : 160.0f, 24.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(value) ImGui::InputFloat(label.c_str(), value); }
+	};
+	using InputFloat = Control<InputFloatImpl, DefaultStyle>;
+
+	struct InputDoubleImpl {
+		std::string label;
+		double* value = nullptr;
+		Size measureImpl(Node&, const Size& avail) { return Size{avail.w > 0 ? avail.w : 160.0f, 24.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(value) ImGui::InputDouble(label.c_str(), value); }
+	};
+	using InputDouble = Control<InputDoubleImpl, DefaultStyle>;
+
+	// —— vec2 输入（std::array<T,2>* 绑定）——
+	struct InputInt2Impl {
+		std::string label;
+		std::array<int, 2>* value = nullptr;
+		Size measureImpl(Node&, const Size& avail) { return Size{avail.w > 0 ? avail.w : 160.0f, 24.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(value) ImGui::InputInt2(label.c_str(), value->data()); }
+	};
+	using InputInt2 = Control<InputInt2Impl, DefaultStyle>;
+
+	struct InputFloat2Impl {
+		std::string label;
+		std::array<float, 2>* value = nullptr;
+		Size measureImpl(Node&, const Size& avail) { return Size{avail.w > 0 ? avail.w : 160.0f, 24.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(value) ImGui::InputFloat2(label.c_str(), value->data()); }
+	};
+	using InputFloat2 = Control<InputFloat2Impl, DefaultStyle>;
+
+	// —— DragF / DragI（拖拽输入）——
+	struct DragFImpl {
+		std::string label;
+		float* value = nullptr;
+		float speed = 0.01f, mn = 0.0f, mx = 10.0f;
+		Size measureImpl(Node&, const Size& avail) { return Size{avail.w > 0 ? avail.w : 160.0f, 24.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(value) ImGui::DragFloat(label.c_str(), value, speed, mn, mx); }
+	};
+	using DragF = Control<DragFImpl, DefaultStyle>;
+
+	struct DragIImpl {
+		std::string label;
+		int* value = nullptr;
+		float speed = 1.0f;
+		int mn = 0, mx = 1000;
+		Size measureImpl(Node&, const Size& avail) { return Size{avail.w > 0 ? avail.w : 160.0f, 24.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(value) ImGui::DragInt(label.c_str(), value, speed, mn, mx); }
+	};
+	using DragI = Control<DragIImpl, DefaultStyle>;
+
+	// —— SliderInt / SliderAngle ——
+	struct SliderIntImpl {
+		std::string label;
+		int* value = nullptr;
+		int mn = 0, mx = 100;
+		Size measureImpl(Node&, const Size& avail) { return Size{avail.w > 0 ? avail.w : 160.0f, 24.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(value) ImGui::SliderInt(label.c_str(), value, mn, mx); }
+	};
+	using SliderInt = Control<SliderIntImpl, DefaultStyle>;
+
+	struct SliderAngleImpl {
+		std::string label;
+		float* valueRad = nullptr;
+		float degMin = -360.0f, degMax = 360.0f;
+		Size measureImpl(Node&, const Size& avail) { return Size{avail.w > 0 ? avail.w : 160.0f, 24.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(valueRad) ImGui::SliderAngle(label.c_str(), valueRad, degMin, degMax); }
+	};
+	using SliderAngle = Control<SliderAngleImpl, DefaultStyle>;
+
+	// —— RadioButton / RadioGroup ——
+	struct RadioButtonImpl {
+		std::string label;
+		bool* active = nullptr;
+		Size measureImpl(Node&, const Size&) { return Size{ImGui::CalcTextSize(label.c_str()).x + 28.0f, 22.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(active) ImGui::RadioButton(label.c_str(), active); }
+	};
+	using RadioButton = Control<RadioButtonImpl, DefaultStyle>;
+
+	struct RadioGroupImpl {
+		const char* const* items = nullptr;
+		int count = 0;
+		int* current = nullptr;
+		Size measureImpl(Node&, const Size&) { return Size{160.0f, (float)count * 22.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) {
+			if(!items || !current) return;
+			for(int i = 0; i < count; ++i) {
+				bool sel = (i == *current);
+				if(ImGui::RadioButton(items[i], &sel)) *current = i;
+			}
+		}
+	};
+	using RadioGroup = Control<RadioGroupImpl, DefaultStyle>;
+
+	// —— ListBox（列表选择，items 长期存活契约）——
+	struct ListBoxImpl {
+		std::string label;
+		const char* const* items = nullptr;
+		int count = 0;
+		int* current = nullptr;
+		Size measureImpl(Node&, const Size&) { return Size{160.0f, (float)count * 22.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) {
+			if(items && current) ImGui::ListBox(label.c_str(), current, items, count);
+		}
+	};
+	using ListBox = Control<ListBoxImpl, DefaultStyle>;
+
 }

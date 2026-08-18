@@ -5,6 +5,7 @@
 #include <imgui_mk/ui/wg_controls.h>
 #include <imgui_mk/ui/wg_bridge.h>
 #include <cmath>`n#include <iostream>
+#include <array>
 #include <memory>
 
 namespace {
@@ -49,6 +50,13 @@ int main() {
 	float volume = 0.5f;
 	bool mute = false;
 	int comboSel = 0;
+	int iVal = 42, iVal2 = 7, slideIntV = 50, dragIV = 100;
+	float fVal = 3.14f, dragFV = 0.5f, angleRad = 0.8f;
+	double dVal = 2.718;
+	std::array<int, 2> iv2{1, 2};
+	std::array<float, 2> fv2{1.5f, 2.5f};
+	bool radioA = false;
+	int radioSel = 1, listSel = 0;
 	static constexpr const char* kItems[] = {"选项甲", "选项乙", "选项丙"};
 
 	// VBox{A(40x30), B(60x40)} spacing=8 → measure: w=60 h=30+40+8=78
@@ -101,6 +109,26 @@ int main() {
 	panel2.child<2>().self.count = 3;
 	panel2.child<3>().self.label = "树";
 	panel2.child<3>().self.defaultOpen = true;
+
+	// 批次A 输入类面板
+	Mk::wg::VBox<Mk::wg::InputInt, Mk::wg::InputFloat, Mk::wg::InputDouble,
+		Mk::wg::InputInt2, Mk::wg::InputFloat2, Mk::wg::DragF, Mk::wg::DragI,
+		Mk::wg::SliderInt, Mk::wg::SliderAngle, Mk::wg::RadioButton,
+		Mk::wg::RadioGroup, Mk::wg::ListBox> inputs;
+	inputs.child<0>().self.label = "整数";  inputs.child<0>().self.value = &iVal;
+	inputs.child<1>().self.label = "浮点";  inputs.child<1>().self.value = &fVal;
+	inputs.child<2>().self.label = "双精度"; inputs.child<2>().self.value = &dVal;
+	inputs.child<3>().self.label = "ivec2"; inputs.child<3>().self.value = &iv2;
+	inputs.child<4>().self.label = "vec2";  inputs.child<4>().self.value = &fv2;
+	inputs.child<5>().self.label = "拖拽f"; inputs.child<5>().self.value = &dragFV;
+	inputs.child<6>().self.label = "拖拽i"; inputs.child<6>().self.value = &dragIV;
+	inputs.child<7>().self.label = "滑块";  inputs.child<7>().self.value = &slideIntV;
+	inputs.child<8>().self.label = "角度";  inputs.child<8>().self.valueRad = &angleRad;
+	inputs.child<9>().self.label = "单选";  inputs.child<9>().self.active = &radioA;
+	inputs.child<10>().self.items = kItems; inputs.child<10>().self.count = 3;
+	inputs.child<10>().self.current = &radioSel;
+	inputs.child<11>().self.label = "列表"; inputs.child<11>().self.items = kItems;
+	inputs.child<11>().self.count = 3;      inputs.child<11>().self.current = &listSel;
 
 	// 运行时动态添加进 VBox（墓碑增删）
 	std::unique_ptr<Fixed> dynC;
@@ -165,6 +193,9 @@ int main() {
 		// 桥接节点布局（fui 视图 + 绘制函数）
 		fuiNode.layout(Mk::wg::Rect{680, 360, 300, 60});
 		fnNode.layout(Mk::wg::Rect{680, 440, 300, 40});
+
+		// 批次A 输入面板布局
+		inputs.layout(Mk::wg::Rect{20, 600, 340, 400});
 
 		// 终态快照
 		if(frames == 120) {
