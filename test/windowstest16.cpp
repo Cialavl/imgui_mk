@@ -3,6 +3,7 @@
 #include <Mainwindow.h>
 #include <imgui_mk/ui/wg.h>
 #include <imgui_mk/ui/wg_controls.h>
+#include <imgui_mk/ui/wg_bridge.h>
 #include <cmath>`n#include <iostream>
 #include <memory>
 
@@ -62,6 +63,20 @@ int main() {
 
 	// 生命周期容器（onShow/onHide 验证）
 	LifecycleBox life(&creates, &destroys, &shows, &hides);
+
+	// —— 桥接：wg 树内嵌 fui 视图（方向1）——
+	auto fuiMaker = [&] {
+		return Mk::fui::hbox(8.0f,
+			Mk::fui::label("fui 视图（每帧重建）"),
+			Mk::fui::labelText("桥", std::to_string(clicks)));
+	};
+	Mk::wg::FuiView<decltype(fuiMaker)> fuiNode(fuiMaker);
+
+	// 方向2：fui 绘制函数
+	auto fuiDrawer = [&] {
+		Mk::fui::draw(Mk::fui::progressBar(volume, ImVec2(-FLT_MIN, 0)));
+	};
+	Mk::wg::FnRender<decltype(fuiDrawer)> fnNode(fuiDrawer);
 
 	// —— 原子控件组合（模板传入）：Label + Button + SliderF + CheckBox ——
 	Mk::wg::VBox<Mk::wg::Label, Mk::wg::Button, Mk::wg::SliderF, Mk::wg::CheckBox> panel;
@@ -146,6 +161,10 @@ int main() {
 		// 原子面板布局（帧 20 起稳定）
 		panel.layout(Mk::wg::Rect{20, 360, 300, 200});
 		panel2.layout(Mk::wg::Rect{360, 360, 300, 200});
+
+		// 桥接节点布局（fui 视图 + 绘制函数）
+		fuiNode.layout(Mk::wg::Rect{680, 360, 300, 60});
+		fnNode.layout(Mk::wg::Rect{680, 440, 300, 40});
 
 		// 终态快照
 		if(frames == 120) {
