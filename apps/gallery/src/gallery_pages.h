@@ -49,7 +49,9 @@ inline void draw(const Sidebar& sb) {
 		}
 		ImGui::PushID(idx);
 		const bool sel = (idx == sb.current);
-		if(ImGui::Selectable(e.label, sel)) sb.current = idx;
+		// 条目超宽省略截断（侧栏 min 宽收缩下不裁切）
+		const float avail = ImGui::GetContentRegionAvail().x - ImGui::GetStyle().FramePadding.x * 2.0f;
+		if(ImGui::Selectable(Mk::fui::detail::ellipsize(e.label, avail).c_str(), sel)) sb.current = idx;
 		ImGui::PopID();
 		++idx;
 	}
@@ -666,16 +668,16 @@ inline void drawPreview(State& s) {
 		// ==== Layouts 31..34 ====
 		when(s.sel == 31, page("Three-pane", "hsplit: nav + content + inspector (fixed / stretch / fixed)",
 			hsplit(
-				fixed("Nav",   em(150.0f), radioGroup(State::kNav, s.navSel)),
+				fixed("Nav",   150.0f, radioGroup(State::kNav, s.navSel)).min(100.0f),
 				stretch("Content", 1.0f, vbox(0.0f,
 					when(s.navSel == 0, plotLines("Overview", s.history, ImVec2(0, 120))),
 					when(s.navSel == 1, textTable("Data", State::kHeaders, s.rows)),
 					when(s.navSel == 2, vbox(4.0f,
 						slider("Setting", s.volume, 0.0f, 1.0f),
 						checkbox("Toggle", s.mute))))),
-				fixed("Side",  em(220.0f), vbox(4.0f,
+				fixed("Side",  220.0f, vbox(4.0f,
 					colorEdit3("Theme color", s.col3),
-					progressBar(s.volume, ImVec2(-FLT_MIN, 0))))),
+					progressBar(s.volume, ImVec2(-FLT_MIN, 0)))).min(150.0f)),
 			snips::kHsplit)),
 
 		when(s.sel == 32, page("Top-down", "vsplit: toolbar + main + status bar (fixed / stretch / fixed)",
@@ -715,7 +717,7 @@ inline void drawPreview(State& s) {
 
 		when(s.sel == 34, page("Master-detail", "Local ADL MasterList drives the right-hand detail views",
 			hsplit(
-				fixed("List", em(200.0f), MasterList{State::kDetail, s.detailSel}),
+				fixed("List", 200.0f, MasterList{State::kDetail, s.detailSel}).min(130.0f),
 				stretch("Detail", 1.0f, vbox(0.0f,
 					when(s.detailSel == 0, vbox(4.0f,
 						separatorText("Item 1"),
@@ -790,10 +792,10 @@ inline void drawPreview(State& s) {
 						button("Another compact button", [] {}))),
 				separatorText("hsplit/vsplit mixed weights"),
 				hsplit(
-					fixed("sa", em(100.0f), labelText("A", "fixed 100")),
+					fixed("sa", 100.0f, labelText("A", "fixed 100")).min(60.0f),
 					stretch("sb", 2.0f, labelText("B", "stretch 2")),
 					stretch("sc", 1.0f, labelText("C", "stretch 1")),
-					fixed("sd", em(90.0f), labelText("D", "fixed 90"))),
+					fixed("sd", 90.0f, labelText("D", "fixed 90")).min(50.0f)),
 				vsplit(
 					fixed("se", em(40.0f), labelText("E", "fixed 40")),
 					stretch("sf", 1.0f, labelText("F", "stretch 1")))),

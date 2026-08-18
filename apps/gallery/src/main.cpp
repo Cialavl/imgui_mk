@@ -172,7 +172,7 @@ int main() {
 
 		// —— 主体：左侧目录 + 右侧演示（上控件下代码）——
 		draw(hsplit(
-			fixed("sidebar", em(250.0f), gallery::Sidebar{gallery::kSidebar, s.sel}),
+			fixed("sidebar", 250.0f, gallery::Sidebar{gallery::kSidebar, s.sel}).min(150.0f).atMost(0.35f),
 			stretch("preview", 1.0f, gallery::Preview{s})));
 
 		// —— 弹窗（树外常驻）——

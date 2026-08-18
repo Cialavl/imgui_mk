@@ -153,7 +153,10 @@ namespace Mk::fui {
 		return ImVec2(designW * k, designH * k);
 	}
 	// 弹性分格（hsplit/vsplit 的格子）：fixed 固定宽；stretch 按权重瓜分剩余。
-	// 格子内容以 BeginChild 承载（独立 id，继承主题样式）
+	// 格子内容以 BeginChild 承载（独立 id，继承主题样式）。
+	// fixed 格三层约束（flexbox 语义）：min=文字可读下限 / preferred=设计像素 /
+	// maxFrac=占容器上限——空间够按 preferred（比例美观），不足向 min 收缩
+	//（文字永远可读），极窄由格内 ellipsis 兜底
 	template<typename T>
 	struct SplitCell {
 		bool stretch;     // false=固定，true=弹性
@@ -161,6 +164,12 @@ namespace Mk::fui {
 		bool absolute;    // fixed 的尺寸语义：false=设计像素（随字号缩放），true=真像素
 		std::string id;   // 子窗口 id（需在分格树内唯一）
 		T child;
+		float minPx = 0.0f;    // 下限（设计像素，em 缩放）；默认 0=可完全收缩
+		float maxFrac = 1.0f;  // 占容器可用宽的上限
+
+		// 链式约束（工厂返回的临时对象上链式调用）：fixed("sb", 250, x).min(150).atMost(0.35f)
+		SplitCell&& min(float designPx) && { minPx = designPx; return std::move(*this); }
+		SplitCell&& atMost(float frac) && { maxFrac = frac; return std::move(*this); }
 	};
 
 	// 水平弹性分格：avail 依次扣除 fixed 格与项间 spacing 后，按权重分配给 stretch 格
@@ -305,47 +314,91 @@ template<typename T> void draw(const WithMinWidth<T>& w);
 	inline void draw(const Dyn& w) { w.widget.draw(); }
 
 	namespace detail {
-		// 渲染一个分格：占 track 像素（水平格传宽，垂直格传高），另一维填满。
-		// fixed 格的尺寸语义在设计像素（em 缩放，见 fixed/fixedPx），拉伸格不变
+		// 渲染一个分格：track 为外层算好的实际像素（约束/收缩/em 都在外层完成，
+		// 账目同源），水平格传宽、垂直格传高，另一维填满
 		template<typename T>
 		void drawCell(const SplitCell<T>& cell, bool horizontal, float track) {
-			const float real = cell.stretch ? track
-				: (cell.absolute ? track : em(track));
 			const ImVec2 sz = horizontal
-				? ImVec2(real, 0.0f)
-				: ImVec2(0.0f, real);
+				? ImVec2(track, 0.0f)
+				: ImVec2(0.0f, track);
 			if(ImGui::BeginChild(cell.id.c_str(), sz, ImGuiChildFlags_Border)) {
 				draw(cell.child);
 			}
 			ImGui::EndChild();
 		}
+
+		// fixed 格理想值：preferred（em 缩放）先按 maxFrac 封顶、再由 min 托底——
+		// min 是硬下限（CSS flexbox 同语义：min-width 优先于 max-width），
+		// 容器再窄也不低于文字可读底线
+		template<typename T>
+		float clampCell(const SplitCell<T>& cell, float avail) {
+			const float pref = cell.absolute ? cell.size : em(cell.size);
+			const float mn = em(cell.minPx);
+			const float mx = cell.maxFrac * avail;
+			const float v = pref > mx ? mx : pref;
+			return v < mn ? mn : v;
+		}
+
+		// 截断文本至指定显示宽（含 "..."）；不超宽则原样返回（LabelEllipsis / Sidebar 共用）
+		inline std::string ellipsize(const std::string& text, float avail) {
+			const ImVec2 full = ImGui::CalcTextSize(text.c_str());
+			if(full.x <= avail) return text;
+			const float ell = ImGui::CalcTextSize("...").x;
+			const float budget = avail - ell;
+			size_t lo = 0, hi = text.size();   // lo 可行、hi 不可行
+			while(lo < hi) {
+				const size_t mid = (lo + hi + 1) / 2;
+				if(ImGui::CalcTextSize(text.c_str(), text.c_str() + mid).x <= budget) lo = mid;
+				else hi = mid - 1;
+			}
+			return text.substr(0, lo) + "...";
+		}
 	}
 
+	// 水平弹性分格：fixed 格先按 clamp(em(pref), em(min), maxFrac×avail) 得理想值，
+	// 超出容器时按 flexbox shrink 语义向 min 均匀收缩（k=保留比例）；
+	// stretch 格按权重瓜分剩余（floor 0）。全程 em 后的实际像素记账——修复
+	// 旧版 fixedSum 用设计值、drawCell 再 em 的双重缩放账目错位（stretch 超发越界）
 	template<typename... Ts>
 	void draw(const HSplit<Ts...>& w) {
 		const float avail = ImGui::GetContentRegionAvail().x;
 		const float gap = ImGui::GetStyle().ItemSpacing.x;
-
-		// 两遍：先求 fixed 总量与权重和，再逐格分配
-		float fixedSum = 0.0f, weightSum = 0.0f;
 		std::size_t nCells = 0;
+		float weightSum = 0.0f;
+
+		float desiredSum = 0.0f, minSum = 0.0f;
 		std::apply([&](const auto&... cs) {
 			const auto one = [&](const auto& c) {
-				if(c.stretch) weightSum += c.size;
-				else fixedSum += c.size;
 				++nCells;
+				if(c.stretch) { weightSum += c.size; return; }
+				desiredSum += detail::clampCell(c, avail);
+				minSum += em(c.minPx);
 			};
 			(one(cs), ...);
 		}, w.cells);
 
-		const float stretchTotal = avail - fixedSum - (float)(nCells > 1 ? nCells - 1 : 0) * gap;
+		const float gaps = (float)(nCells > 1 ? nCells - 1 : 0) * gap;
+		const float need = desiredSum + gaps - avail;            // 超出量
+		const float shrinkable = desiredSum - minSum;            // 可收缩总量
+		const bool shrink = need > 0.0f && shrinkable > 0.0f;
+		const float k = shrink ? std::max(0.0f, 1.0f - need / shrinkable) : 1.0f;
+		const float finalFixed = shrink ? minSum + shrinkable * k : desiredSum;
+		const float stretchTotal = avail - finalFixed - gaps;
+
 		std::size_t idx = 0;
 		std::apply([&](const auto&... cs) {
 			const auto one = [&](const auto& c) {
 				if(idx > 0) ImGui::SameLine(0.0f, gap);
-				const float track = c.stretch
-					? (weightSum > 0.0f ? stretchTotal * (c.size / weightSum) : 0.0f)
-					: c.size;
+				float track;
+				if(c.stretch) {
+					track = (weightSum > 0.0f && stretchTotal > 0.0f)
+						? stretchTotal * (c.size / weightSum) : 0.0f;
+				}
+				else {
+					const float des = detail::clampCell(c, avail);
+					const float mn = em(c.minPx);
+					track = shrink ? std::max(mn, mn + (des - mn) * k) : des;
+				}
 				detail::drawCell(c, true, track);
 				++idx;
 			};
@@ -353,28 +406,45 @@ template<typename T> void draw(const WithMinWidth<T>& w);
 		}, w.cells);
 	}
 
+	// 垂直弹性分格：与 HSplit 同构（min/preferred/maxFrac + shrink），方向为上到下
 	template<typename... Ts>
 	void draw(const VSplit<Ts...>& w) {
 		const float avail = ImGui::GetContentRegionAvail().y;
 		const float gap = ImGui::GetStyle().ItemSpacing.y;
-
-		float fixedSum = 0.0f, weightSum = 0.0f;
 		std::size_t nCells = 0;
+		float weightSum = 0.0f;
+
+		float desiredSum = 0.0f, minSum = 0.0f;
 		std::apply([&](const auto&... cs) {
 			const auto one = [&](const auto& c) {
-				if(c.stretch) weightSum += c.size;
-				else fixedSum += c.size;
 				++nCells;
+				if(c.stretch) { weightSum += c.size; return; }
+				desiredSum += detail::clampCell(c, avail);
+				minSum += em(c.minPx);
 			};
 			(one(cs), ...);
 		}, w.cells);
 
-		const float stretchTotal = avail - fixedSum - (float)(nCells > 1 ? nCells - 1 : 0) * gap;
+		const float gaps = (float)(nCells > 1 ? nCells - 1 : 0) * gap;
+		const float need = desiredSum + gaps - avail;
+		const float shrinkable = desiredSum - minSum;
+		const bool shrink = need > 0.0f && shrinkable > 0.0f;
+		const float k = shrink ? std::max(0.0f, 1.0f - need / shrinkable) : 1.0f;
+		const float finalFixed = shrink ? minSum + shrinkable * k : desiredSum;
+		const float stretchTotal = avail - finalFixed - gaps;
+
 		std::apply([&](const auto&... cs) {
 			const auto one = [&](const auto& c) {
-				const float track = c.stretch
-					? (weightSum > 0.0f ? stretchTotal * (c.size / weightSum) : 0.0f)
-					: c.size;
+				float track;
+				if(c.stretch) {
+					track = (weightSum > 0.0f && stretchTotal > 0.0f)
+						? stretchTotal * (c.size / weightSum) : 0.0f;
+				}
+				else {
+					const float des = detail::clampCell(c, avail);
+					const float mn = em(c.minPx);
+					track = shrink ? std::max(mn, mn + (des - mn) * k) : des;
+				}
 				detail::drawCell(c, false, track);
 			};
 			(one(cs), ...);
@@ -389,22 +459,8 @@ template<typename T> void draw(const WithMinWidth<T>& w);
 	}
 
 	inline void draw(const LabelEllipsis& w) {
-		const float avail = ImGui::GetContentRegionAvail().x;
-		const ImVec2 full = ImGui::CalcTextSize(w.text.c_str());
-		if(full.x <= avail) {
-			ImGui::TextUnformatted(w.text.c_str());
-			return;
-		}
-		// 超宽：二分截断 + 省略号（省略号自身占宽预扣）
-		const float ell = ImGui::CalcTextSize("...").x;
-		const float budget = avail - ell;
-		size_t lo = 0, hi = w.text.size();   // lo 可行、hi 不可行
-		while(lo < hi) {
-			const size_t mid = (lo + hi + 1) / 2;
-			if(ImGui::CalcTextSize(w.text.c_str(), w.text.c_str() + mid).x <= budget) lo = mid;
-			else hi = mid - 1;
-		}
-		ImGui::Text("%.*s...", (int)lo, w.text.c_str());
+		ImGui::TextUnformatted(detail::ellipsize(w.text,
+			ImGui::GetContentRegionAvail().x).c_str());
 	}
 
 	template<typename T>
