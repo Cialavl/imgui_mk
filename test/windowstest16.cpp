@@ -61,6 +61,9 @@ int main() {
 	bool selRow = false;
 	std::vector<float> history;
 	ImTextureID tex{};
+	int menuClicks = 0;
+	std::vector<std::vector<std::string>> rows{{"甲", "1"}, {"乙", "2"}, {"丙", "3"}};
+	static constexpr const char* kCols[] = {"名称", "数值"};
 	static constexpr const char* kItems[] = {"选项甲", "选项乙", "选项丙"};
 
 	// VBox{A(40x30), B(60x40)} spacing=8 → measure: w=60 h=30+40+8=78
@@ -113,6 +116,36 @@ int main() {
 	panel2.child<2>().self.count = 3;
 	panel2.child<3>().self.label = "树";
 	panel2.child<3>().self.defaultOpen = true;
+
+	// 批次C 容器：菜单栏 + 折叠 + 面板 + 表格
+	Mk::wg::Menu<Mk::wg::MenuItem, Mk::wg::MenuItem> fileMenu;
+	fileMenu.self.label = "文件";
+	fileMenu.child<0>().self.label = "打开";
+	fileMenu.child<0>().self.onClick = [&] { ++menuClicks; };
+	fileMenu.child<1>().self.label = "退出";
+	fileMenu.child<1>().self.onClick = [&] { ++menuClicks; };
+	Mk::wg::Collapsing collapsing;
+	collapsing.self.label = "折叠容器（默认展开）";
+	collapsing.self.flags = ImGuiTreeNodeFlags_DefaultOpen;
+	Mk::wg::Label collLabel;
+	collLabel.self.setText("折叠内容");
+	collapsing.node.add(collLabel.node);
+
+	Mk::wg::Panel<Mk::wg::Label, Mk::wg::SliderF> panelF;
+	panelF.self.title = "浮动面板";
+	panelF.child<0>().self.setText("面板内");
+	panelF.child<1>().self.label = "音量"; panelF.child<1>().self.value = &volume;
+
+	Mk::wg::VBox<Mk::wg::TextTable, Mk::wg::FnTable> tables;
+	tables.child<0>().self.id = "tt";
+	tables.child<0>().self.headers = kCols; tables.child<0>().self.headerCount = 2;
+	tables.child<0>().self.rows = &rows;
+	tables.child<1>().self.id = "ft";
+	tables.child<1>().self.headers = kCols; tables.child<1>().self.headerCount = 2;
+	tables.child<1>().self.rowCount = 3;
+	tables.child<1>().self.cell = [](int r, int c) {
+		return std::to_string(r) + "," + std::to_string(c);
+	};
 
 	// 批次B 显示面板：纹理（程序生成 8x8 棋盘）
 	static unsigned char px[8 * 8 * 4];
@@ -222,6 +255,12 @@ int main() {
 
 		// 显示面板布局（另列）
 		display.layout(Mk::wg::Rect{400, 600, 340, 420});
+
+		// 批次C 容器布局
+		fileMenu.layout(Mk::wg::Rect{20, 60, 200, 40});
+		collapsing.layout(Mk::wg::Rect{20, 110, 300, 80});
+		panelF.layout(Mk::wg::Rect{500, 60, 240, 100});
+		tables.layout(Mk::wg::Rect{20, 220, 400, 120});
 
 		// 桥接节点布局（fui 视图 + 绘制函数）
 		fuiNode.layout(Mk::wg::Rect{680, 360, 300, 60});

@@ -695,4 +695,211 @@ namespace Mk::wg {
 	};
 	using PlotLines = Control<PlotLinesImpl, DefaultStyle>;
 
+
+	// ============ 容器类（批次C：fui 容器控件对象化）============
+
+	// —— Collapsing（可折叠容器，展开才渲染子；flags 传 DefaultOpen）——
+	struct CollapsingImpl {
+		std::string label;
+		ImGuiTreeNodeFlags flags = 0;
+		Size measureImpl(Node& n, const Size& avail) {
+			Size total{0, 0};
+			for(auto* c : n.children) {
+				if(!c) continue;
+				Size s = c->measure(avail);
+				total.h += s.h;
+			}
+			return Size{avail.w, total.h + 24.0f};
+		}
+		void arrangeImpl(Node& n, const Rect& r) {
+			float y = r.y + 24.0f;
+			for(auto* c : n.children) {
+				if(!c) continue;
+				Size s = c->measure(Size{r.w, r.h - (y - r.y)});
+				c->arrange(Rect{r.x, y, s.w, s.h});
+				y += s.h;
+			}
+		}
+		void renderImpl(Node& n) {
+			if(ImGui::CollapsingHeader(label.c_str(), flags)) {
+				for(auto* c : n.children) {
+					if(!c) continue;
+					ImGui::SetCursorPos(ImVec2(c->bounds.x - n.bounds.x,
+						c->bounds.y - n.bounds.y));
+					c->draw();
+				}
+			}
+		}
+	};
+	using Collapsing = Control<CollapsingImpl, DefaultStyle>;
+
+	// —— Panel（浮动面板：宿主内可拖动，ImGui::Begin/End）——
+	template<typename... Ts>
+	struct PanelImpl;
+	template<typename... Ts>
+	struct PanelData {
+		std::string title;
+	};
+	template<typename... Ts>
+	using Panel = Control<PanelData<Ts...>, DefaultStyle, Ts...>;
+
+	template<typename... Ts>
+	Size measureImpl(PanelData<Ts...>&, Node& n, const Size& avail) {
+		Size total{0, 0};
+		for(auto* c : n.children) {
+			if(!c) continue;
+			Size s = c->measure(avail);
+			total.w = std::max(total.w, s.w);
+			total.h += s.h;
+		}
+		return total;
+	}
+	template<typename... Ts>
+	void arrangeImpl(PanelData<Ts...>&, Node& n, const Rect& r) {
+		float y = r.y;
+		for(auto* c : n.children) {
+			if(!c) continue;
+			Size s = c->measure(Size{r.w, r.h - (y - r.y)});
+			c->arrange(Rect{r.x, y, s.w, s.h});
+			y += s.h;
+		}
+	}
+	template<typename... Ts>
+	void renderImpl(PanelData<Ts...>& self, Node& n) {
+		ImGui::Begin(self.title.c_str(), nullptr, 0);
+		for(auto* c : n.children) {
+			if(!c) continue;
+			ImGui::SetCursorPos(ImVec2(c->bounds.x, c->bounds.y));
+			c->draw();
+		}
+		ImGui::End();
+	}
+
+	// —— MenuBar / Menu / MenuItem（菜单栏，放树首；标签名存 node.id）——
+	struct MenuItemImpl {
+		std::string label;
+		std::function<void()> onClick;
+		void renderImpl(Node&) {
+			if(ImGui::MenuItem(label.c_str()) && onClick) onClick();
+		}
+		Size measureImpl(Node&, const Size&) { return Size{120.0f, 22.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+	};
+	using MenuItem = Control<MenuItemImpl, DefaultStyle>;
+
+	template<typename... Ts>
+	struct MenuImpl;
+	template<typename... Ts>
+	struct MenuData {
+		std::string label;
+	};
+	template<typename... Ts>
+	using Menu = Control<MenuData<Ts...>, DefaultStyle, Ts...>;
+
+	template<typename... Ts>
+	Size measureImpl(MenuData<Ts...>&, Node& n, const Size& avail) {
+		Size total{0, 0};
+		for(auto* c : n.children) {
+			if(!c) continue;
+			Size s = c->measure(avail);
+			total.h += s.h;
+		}
+		return total;
+	}
+	template<typename... Ts>
+	void arrangeImpl(MenuData<Ts...>&, Node& n, const Rect& r) {
+		float y = r.y;
+		for(auto* c : n.children) {
+			if(!c) continue;
+			Size s = c->measure(Size{r.w, r.h - (y - r.y)});
+			c->arrange(Rect{r.x, y, s.w, s.h});
+			y += s.h;
+		}
+	}
+	template<typename... Ts>
+	void renderImpl(MenuData<Ts...>& self, Node& n) {
+		if(ImGui::BeginMenu(self.label.c_str())) {
+			for(auto* c : n.children) {
+				if(!c) continue;
+				c->draw();
+			}
+			ImGui::EndMenu();
+		}
+	}
+
+	template<typename... Ts>
+	struct MenuBarImpl;
+	template<typename... Ts>
+	struct MenuBarData {};
+	template<typename... Ts>
+	using MenuBar = Control<MenuBarData<Ts...>, DefaultStyle, Ts...>;
+
+	template<typename... Ts>
+	Size measureImpl(MenuBarData<Ts...>&, Node&, const Size&) { return Size{0.0f, 24.0f}; }
+	template<typename... Ts>
+	void arrangeImpl(MenuBarData<Ts...>&, Node&, const Rect&) {}
+	template<typename... Ts>
+	void renderImpl(MenuBarData<Ts...>&, Node& n) {
+		if(ImGui::BeginMainMenuBar()) {
+			for(auto* c : n.children) {
+				if(!c) continue;
+				c->draw();
+			}
+			ImGui::EndMainMenuBar();
+		}
+		// 菜单栏是浮顶独立窗口：宿主光标下移，防重叠
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetFrameHeight());
+	}
+
+	// —— TextTable（数据驱动表格，rows 绑定外部 vector）——
+	struct TextTableImpl {
+		std::string id;
+		const char* const* headers = nullptr;
+		int headerCount = 0;
+		const std::vector<std::vector<std::string>>* rows = nullptr;
+		Size measureImpl(Node&, const Size& avail) { return Size{avail.w, 80.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) {
+			if(!headers || !rows) return;
+			if(!ImGui::BeginTable(id.c_str(), headerCount, ImGuiTableFlags_Borders)) return;
+			for(int i = 0; i < headerCount; ++i) ImGui::TableSetupColumn(headers[i]);
+			ImGui::TableHeadersRow();
+			for(const auto& row : *rows) {
+				ImGui::TableNextRow();
+				for(int i = 0; i < headerCount; ++i) {
+					ImGui::TableNextColumn();
+					if((int)row.size() > i) ImGui::TextUnformatted(row[i].c_str());
+				}
+			}
+			ImGui::EndTable();
+		}
+	};
+	using TextTable = Control<TextTableImpl, DefaultStyle>;
+
+	// —— FnTable（泛型表格，cellFn(row,col) 返回字符串）——
+	struct FnTableImpl {
+		std::string id;
+		const char* const* headers = nullptr;
+		int headerCount = 0;
+		int rowCount = 0;
+		std::function<std::string(int, int)> cell;
+		Size measureImpl(Node&, const Size& avail) { return Size{avail.w, 80.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) {
+			if(!headers || !cell) return;
+			if(!ImGui::BeginTable(id.c_str(), headerCount, ImGuiTableFlags_Borders)) return;
+			for(int i = 0; i < headerCount; ++i) ImGui::TableSetupColumn(headers[i]);
+			ImGui::TableHeadersRow();
+			for(int r = 0; r < rowCount; ++r) {
+				ImGui::TableNextRow();
+				for(int c = 0; c < headerCount; ++c) {
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted(cell(r, c).c_str());
+				}
+			}
+			ImGui::EndTable();
+		}
+	};
+	using FnTable = Control<FnTableImpl, DefaultStyle>;
+
 }
