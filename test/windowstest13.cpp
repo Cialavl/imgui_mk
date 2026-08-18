@@ -43,6 +43,10 @@ inline void draw(const StyleProbe& p) {
 	p.spX = ImGui::GetStyle().ItemSpacing.x;
 }
 
+// 字号探针：读当前烘焙字号（rescale / 宽度档位验证）
+struct FontSizeProbe { float& out; };
+inline void draw(const FontSizeProbe& p) { p.out = ImGui::GetFontSize(); }
+
 // 输入框宽度探针：InputText 后读 item 实宽（widthFrac 1.0 断言）
 struct InputWidthProbe { float& out; };
 inline void draw(const InputWidthProbe& p) {
@@ -69,6 +73,8 @@ int main() {
 	ImVec4 bg{0, 0, 0, 0};
 	float menuCursorY = 0, menuH = 0;
 	float hostPadX = 0, styleSpX = 0;
+	float fontSizeProbe = 0;
+	float f31 = 0, f61 = 0, f85 = 0, f105 = 0;
 
 	// 换浅色主题：验证窗口级应用
 	mainWindow.setTheme(Mk::fui::Theme::light());
@@ -81,6 +87,7 @@ int main() {
 		draw(menuBar(menu("文件", menuItem("条目", [] {}))));
 		draw(MenuOffsetProbe{menuCursorY, menuH});
 		draw(StyleProbe{hostPadX, styleSpX});
+		draw(FontSizeProbe{fontSizeProbe});
 
 		// hsplit：fixed(240) + stretch(1) + fixed(200)，间距 8
 		draw(hsplit(
@@ -95,6 +102,25 @@ int main() {
 				SpacingProbe{spOutside},
 				BgProbe{bg})),
 			fixed("R", 200.0f, WidthProbe{wFixedR})));
+
+		// —— 字号自适应驱动（树尾：读当帧探针值）——
+		// 帧 30 请求 24px（下一帧生效）→ 帧 31 探针应读到 24；
+		// 帧 60 请求回 18 → 帧 61 读到 18
+		if(frames == 30) mainWindow.getWindow().rescale(24.0f);
+		if(frames == 60) mainWindow.getWindow().rescale(18.0f);
+		// 帧 80 开启宽度档位 + 拉宽到 2200（≥2000 → bucket 1.5 → 18×1.5=27）
+		if(frames == 80) {
+			mainWindow.getWindow().setAutoScaleFont(true);
+			glfwSetWindowSize(mainWindow.getHandle(), 2200, 900);
+		}
+		// 帧 100 恢复 1000 宽（bucket 1.0 → 回 18）
+		if(frames == 100) {
+			glfwSetWindowSize(mainWindow.getHandle(), 1000, 600);
+		}
+		if(frames == 31) f31 = fontSizeProbe;
+		if(frames == 61) f61 = fontSizeProbe;
+		if(frames == 85) f85 = fontSizeProbe;
+		if(frames == 105) f105 = fontSizeProbe;
 
 		if(frames >= 120) {
 			glfwSetWindowShouldClose(mainWindow.getHandle(), true);
@@ -120,6 +146,10 @@ int main() {
 	const bool okInput = inputW >= 400.0f;   // 占满 ≈ 中格可用宽
 	// 菜单栏底边 = 视口顶(0) + menuH；宿主光标必须在底边之下（0.5px 容差）
 	const bool okMenu = (menuCursorY >= menuH - 0.5f);
+	// 字号自适应：rescale 请求下一帧生效（24→18 往返）；宽度档位 2200→27px、回 1000→18px
+	const bool okRescale = about(f31, 24.0f) && about(f61, 18.0f);
+	const bool okAutoUp = (f85 >= 22.0f);
+	const bool okAutoDown = about(f105, 18.0f);
 	const bool okExit = (mainWindow.getHandle() == nullptr);
 
 	std::cout << "frames=" << frames
@@ -130,10 +160,13 @@ int main() {
 		<< " spOut=" << spOutside
 		<< " inputW=" << inputW
 		<< " bg=(" << bg.x << "," << bg.y << "," << bg.z << ")"
-		<< " menuY=" << menuCursorY << " menuH=" << menuH << std::endl;
+		<< " menuY=" << menuCursorY << " menuH=" << menuH
+		<< " f31=" << f31 << " f61=" << f61
+		<< " f85=" << f85 << " f105=" << f105 << std::endl;
 
 	const bool pass = okFrames && okFixedL && okFixedR && okStretchW && okStyledSp
-		&& okOutsideSp && okBg && okInput && okMenu && okExit;
+		&& okOutsideSp && okBg && okInput && okMenu
+		&& okRescale && okAutoUp && okAutoDown && okExit;
 	std::cout << (pass ? "PASS" : "FAIL")
 		<< ": 帧数 " << okFrames
 		<< ", 左定宽 " << okFixedL
@@ -144,6 +177,9 @@ int main() {
 		<< ", 浅色主题 " << okBg
 		<< ", 输入占满 " << okInput
 		<< ", 菜单不重叠 " << okMenu
+		<< ", 字号重烘焙 " << okRescale
+		<< ", 档位升 " << okAutoUp
+		<< ", 档位降 " << okAutoDown
 		<< ", 干净关闭 " << okExit << std::endl;
 	return pass ? 0 : 1;
 }

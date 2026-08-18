@@ -3,8 +3,10 @@
 #include <imgui_mk/mkui.h>
 #include <imgui_mk/ui/widget.h>
 #include <imgui_mk/ui/fui_style.h>
+#include <algorithm>
 #include <functional>
 #include <memory>
+#include <utility>
 
 namespace Mk {
 
@@ -19,8 +21,90 @@ namespace Mk {
 			// 每帧 UI 回调（组件注入窗口内容，如主窗口组件）
 			std::function<void()> m_UserUI;
 
+			// —— 运行时字号自适应状态（见 rescale/processAdaptiveScaling）——
+			fui::Theme m_Theme;                       // 当前已应用主题（字号保持实际烘焙值）
+			float m_BaseFontSize = 0.0f;              // 逻辑基准字号（构造字号 / 构造时 contentScale）
+			float m_ContentScale = 1.0f;              // 当前显示器缩放（跨屏时由回调更新）
+			float m_LastBakedSize = 0.0f;             // 实际烘焙字号（档位比对基准）
+			float m_PendingScale = 0.0f;              // >0：contentScale 回调置位，帧内安全处理
+			float m_PendingRescale = -1.0f;             // >0：请求重烘焙（帧内安全时机执行）
+			bool m_AutoScaleFont = false;             // 自适应总开关（B 跨屏 DPI + C 宽度档位）
+			std::function<bool(float)> m_FontLoader;  // 字号 → 装入字体图集；空 = 默认 CJK 链
+
 			~Impl() {
 				close();
+			}
+
+			// 默认字体链：按字号加载中文（雅黑→黑体→宋体），全量 CJK 字形。
+			// ImGui 默认字体仅含 ASCII，中文会渲染成“?”；全部缺失时退回默认字体
+			static bool defaultFontLoader(float fontSize) {
+				ImGuiIO& io = ImGui::GetIO();
+				static const char* cjkFonts[] = {
+					"C:\\Windows\\Fonts\\msyh.ttc",   // 微软雅黑
+					"C:\\Windows\\Fonts\\simhei.ttf", // 黑体
+					"C:\\Windows\\Fonts\\simsun.ttc", // 宋体
+				};
+				for(const char* path : cjkFonts) {
+					if(io.Fonts->AddFontFromFileTTF(path, fontSize, nullptr,
+						   io.Fonts->GetGlyphRangesChineseFull())) {
+						return true;
+					}
+				}
+				return false;
+			}
+
+			// 请求重烘焙：任意时机可调（含 UI 回调内），实际执行延迟到下一帧
+			// render 顶部（NewFrame 之前）——回调内立即销毁字体纹理会让本帧
+			// RenderDrawData 引用已删除的 GL 纹理
+			void requestRescale(float fontSize) {
+				if(fontSize <= 0.0f) return;
+				m_PendingRescale = fontSize;
+			}
+
+			// 重烘焙字体图集并按新字号重应用主题（几何随字号自动等比）。
+			// 须在 GL 上下文 + ImGui 上下文均为本窗口时调用（render 顶部满足）。
+			// 注意：全量 CJK 图集重烘焙有约 0.3~0.5s 一次性卡顿（量化档位已把频率降到最低）
+			void doRescale(float fontSize) {
+				if(!m_Handle || !m_ImGuiContext) return;
+				glfwMakeContextCurrent(m_Handle);
+				ImGui::SetCurrentContext(m_ImGuiContext);
+				ImGuiIO& io = ImGui::GetIO();
+				io.Fonts->Clear();   // 全量重置（含 ConfigData）：ClearFonts 不清配置，重复 Add 会触发 ImGui 断言
+				if(m_FontLoader) m_FontLoader(fontSize);
+				else defaultFontLoader(fontSize);
+				// 销毁旧字体纹理：GL 后端在下一次 NewFrame 检测到空纹理会自动重建
+				ImGui_ImplOpenGL3_DestroyFontsTexture();
+				m_Theme.fontSize = fontSize;
+				m_LastBakedSize = fontSize;
+				m_PendingRescale = -1.0f;
+				fui::applyTheme(m_ImGuiContext, m_Theme);
+			}
+
+			// 帧内自适应处理（render 顶部，上下文已安全切到本窗口）：
+			//   B 跨屏/系统 DPI：回调置 m_PendingScale → 窗口尺寸同步缩放 + 触发重烘焙
+			//   C 宽度档位：按窗口宽量化（<900:0.75 <1400:1.0 <2000:1.25 其余:1.5），
+			//      目标字号 = 基准 × 档位 × contentScale，与烘焙值不符才重烘焙（防抖动）
+			void processAdaptiveScaling() {
+				if(m_PendingRescale > 0.0f) {
+					doRescale(m_PendingRescale);
+				}
+				if(m_PendingScale > 0.0f) {
+					const float k = m_PendingScale / m_ContentScale;
+					m_ContentScale = m_PendingScale;
+					m_PendingScale = 0.0f;
+					int w = 0, h = 0;
+					glfwGetWindowSize(m_Handle, &w, &h);
+					glfwSetWindowSize(m_Handle, (int)(w * k), (int)(h * k));
+				}
+				if(!m_AutoScaleFont) return;
+				int w = 0, h = 0;
+				glfwGetWindowSize(m_Handle, &w, &h);
+				const float bucket =
+					w < 900 ? 0.75f : w < 1400 ? 1.0f : w < 2000 ? 1.25f : 1.5f;
+				const float target = m_BaseFontSize * bucket * m_ContentScale;
+				if(target != m_LastBakedSize) {
+					doRescale(target);
+				}
 			}
 
 			// 真正关闭窗口：销毁 GLFW 窗口并清理 ImGui 后端/上下文。
@@ -57,6 +141,8 @@ namespace Mk {
 
 				glfwMakeContextCurrent(m_Handle);
 				ImGui::SetCurrentContext(m_ImGuiContext);
+
+				processAdaptiveScaling();   // B/C 字号自适应（重烘焙须在 NewFrame 前）
 
 				int display_w = 0, display_h = 0;
 				glfwGetFramebufferSize(m_Handle, &display_w, &display_h);
@@ -130,6 +216,13 @@ namespace Mk {
 				ImGui::SetCurrentContext(impl->m_ImGuiContext);
 				ImGui_ImplGlfw_CursorPosCallback(win, x, y);
 			}
+			// 跨屏拖动/系统缩放变化：只记录新比例（回调线程/时机不安全，
+			// 不碰 GL 与 ImGui），下一帧 render 顶部统一处理
+			static void ContentScaleCallback(GLFWwindow* win, float xscale, float) {
+				auto impl = static_cast<Impl*>(glfwGetWindowUserPointer(win));
+				if(!impl || !impl->m_AutoScaleFont || xscale <= 0.0f) return;
+				impl->m_PendingScale = xscale;
+			}
 		};
 
 		window(const char* title, int width, int height) : m_Impl(std::make_shared<Impl>()) {
@@ -144,30 +237,20 @@ namespace Mk {
 			ImGui::SetCurrentContext(impl.m_ImGuiContext);
 
 			// 全局默认主题（setDefaultTheme 须在首个窗口创建前调用；此处读取烘焙）
-			const fui::Theme& theme = fui::defaultTheme();
+			impl.m_Theme = fui::defaultTheme();
+			const fui::Theme& theme = impl.m_Theme;
 
-			// 加载中文字体：ImGui 默认字体仅含 ASCII，中文会渲染成“?”。
-			// 依次尝试常见 Windows 中文字体（微软雅黑/黑体/宋体），成功一个即止；
-			// 全部缺失时退回默认字体（英文不受影响）
-			{
-				ImGuiIO& io = ImGui::GetIO();
-				static const char* cjkFonts[] = {
-					"C:\\Windows\\Fonts\\msyh.ttc",   // 微软雅黑
-					"C:\\Windows\\Fonts\\simhei.ttf", // 黑体
-					"C:\\Windows\\Fonts\\simsun.ttc", // 宋体
-				};
-				for(const char* path : cjkFonts) {
-					if(io.Fonts->AddFontFromFileTTF(
-						   path, theme.fontSize, nullptr,
-						   io.Fonts->GetGlyphRangesChineseFull())) {
-						break;
-					}
-				}
-			}
+			// 按主题字号加载默认字体链（中文全量字形，见 defaultFontLoader）
+			Impl::defaultFontLoader(theme.fontSize);
+
+			// 自适应状态初始化：逻辑基准 = 构造字号 / 构造时显示器缩放
+			//（scaledForMonitor 预乘过的字号在此被剥离，档位计算不会双重缩放）
+			impl.m_ContentScale = fui::dpiScale();
+			impl.m_BaseFontSize = theme.fontSize / impl.m_ContentScale;
+			impl.m_LastBakedSize = theme.fontSize;
 
 			// 应用默认主题（几何随 fontSize 等比），可用 setTheme 换肤
 			fui::applyTheme(impl.m_ImGuiContext, theme);
-			ImGuiIO& io = ImGui::GetIO();
 
 			// 初始化ImGui的OpenGL3后端
 			ImGui_ImplGlfw_InitForOpenGL(impl.m_Handle, true);
@@ -178,6 +261,7 @@ namespace Mk {
 			glfwSetKeyCallback(impl.m_Handle, Impl::KeyCallback);
 			glfwSetCharCallback(impl.m_Handle, Impl::CharCallback);
 			glfwSetCursorPosCallback(impl.m_Handle, Impl::CursorPosCallback);
+		glfwSetWindowContentScaleCallback(impl.m_Handle, Impl::ContentScaleCallback);
 
 			// 创建窗口后自动注册到全局引擎（引擎与调用方共享窗口状态）
 			Mk::mkui<window>::RegistrationWindow().Registration(m_Impl);
@@ -199,10 +283,42 @@ namespace Mk {
 			}
 		}
 
-		// 切换本窗口主题（每窗口独立 ImGui 上下文，可各持一套皮肤）
+		// 切换本窗口主题（每窗口独立 ImGui 上下文，可各持一套皮肤）。
+		// 换肤不换字号：字体位图不重建，几何按当前烘焙字号推导
 		void setTheme(const fui::Theme& theme) {
 			if(m_Impl && m_Impl->m_Handle) {
-				fui::applyTheme(m_Impl->m_ImGuiContext, theme);
+				m_Impl->m_Theme = theme;
+				m_Impl->m_Theme.fontSize = m_Impl->m_LastBakedSize;
+				fui::applyTheme(m_Impl->m_ImGuiContext, m_Impl->m_Theme);
+			}
+		}
+
+		// —— 运行时字号自适应 API ——
+
+		// 手动重烘焙：按新字号重建字体图集并重应用主题（几何等比联动）。
+		// 任意时机可调（含 UI 回调内），下一帧生效
+		void rescale(float fontSize) {
+			if(m_Impl) {
+				m_Impl->requestRescale(fontSize);
+			}
+		}
+
+		// 自适应总开关（默认关，测试保持确定性）：开启后——
+		//   跨屏拖动/系统缩放变化时字号与窗口尺寸同步重标定；
+		//   窗口宽度跨过档位阈值（900/1400/2000）时字号量化升降
+		void setAutoScaleFont(bool on) {
+			if(m_Impl) {
+				m_Impl->m_AutoScaleFont = on;
+			}
+		}
+
+		// 自定义字体装入链（字号 → 装入图集，返回是否成功）。
+		// 设置后立即按当前字号重烘焙一次（替换初始默认链）。
+		// loader 须在调用方保持有效；后续所有 rescale 都走它
+		void setFontLoader(std::function<bool(float)> loader) {
+			if(m_Impl && loader) {
+				m_Impl->m_FontLoader = std::move(loader);
+				m_Impl->requestRescale(m_Impl->m_LastBakedSize);
 			}
 		}
 
@@ -244,4 +360,15 @@ namespace Mk {
 	private:
 		std::shared_ptr<Impl> m_Impl;
 	};
+
+	// 窗口默认尺寸 = 主显示器工作区百分比（上限 maxW×maxH）：
+	// 小屏不超出工作区、大屏饱满；取不到显示器信息时退回上限值
+	inline std::pair<int, int> workAreaSize(float fracW, float fracH, int maxW, int maxH) {
+		GLFWmonitor* m = glfwGetPrimaryMonitor();
+		if(!m) return {maxW, maxH};
+		int wx = 0, wy = 0, ww = 0, wh = 0;
+		glfwGetMonitorWorkarea(m, &wx, &wy, &ww, &wh);
+		if(ww <= 0 || wh <= 0) return {maxW, maxH};
+		return {std::min(maxW, (int)(ww * fracW)), std::min(maxH, (int)(wh * fracH))};
+	}
 } // namespace Mk

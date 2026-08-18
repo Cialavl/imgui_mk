@@ -27,23 +27,34 @@ void makeChecker(unsigned char* px) {
 } // namespace
 
 int main() {
-	// DPI 感知（应用显式 opt-in，测试代码不启用以保持像素断言确定性）：
-	// 默认主题字号与窗口尺寸按主显示器缩放，几何随字号自动等比
+	// DPI + 全动态自适应（应用显式 opt-in，测试代码不启用以保持像素断言确定性）：
+	//   字号 = 基准 18 × 显示器缩放（启动时）× 宽度档位/跨屏变化（运行时）
+	//   窗口尺寸 = 主显示器工作区百分比（小屏不超界、大屏饱满）
 	Mk::fui::setDefaultTheme(Mk::fui::scaledForMonitor(Mk::fui::Theme::dark()));
-	const float dpi = Mk::fui::dpiScale();
+	const auto [galW, galH] = Mk::workAreaSize(0.75f, 0.8f, 1440, 880);
 
-	Mk::MainWindow<> gallery("mkui Widget Gallery",
-		(int)(1440.0f * dpi), (int)(880.0f * dpi));
+	Mk::MainWindow<> gallery("mkui Widget Gallery", galW, galH);
 
-	// 等宽字体装入画廊图集：此刻字体纹理尚未构建（首帧才烘焙），零重建成本
-	gallery::gMono = ImGui::GetIO().Fonts->AddFontDefault();
+	// 自定义字体链：中文（默认链）+ 等宽代码字体（ProggyClean 13px 位图字体，
+	// 不随档位缩放——非整数倍缩放会糊，DPI 大屏上代码字相对略小，可接受）。
+	// 设置后立即按当前字号重烘焙一次，此后所有 rescale 都走这条链
+	gallery.getWindow().setFontLoader([](float fontSize) {
+		if(!Mk::window::Impl::defaultFontLoader(fontSize)) return false;
+		gallery::gMono = ImGui::GetIO().Fonts->AddFontDefault();
+		return true;
+	});
+
+	// 运行时自适应：跨屏拖动/系统缩放变化 + 窗口宽度档位（900/1400/2000）
+	gallery.getWindow().setAutoScaleFont(true);
 
 	gallery::State s;
 	s.win = &gallery;
 
 	// —— 第二顶层窗口：Inspector（多窗口联动）。与画廊共享全部外置状态；
 	// 点 X 仅隐藏（关闭回调拦截否决），画廊关闭（引擎销毁）后下一帧跟随退出
-	Mk::window inspector("Inspector", (int)(420.0f * dpi), (int)(640.0f * dpi));
+	const auto [insW, insH] = Mk::workAreaSize(0.3f, 0.7f, 420, 640);
+	Mk::window inspector("Inspector", insW, insH);
+	inspector.setAutoScaleFont(true);
 	s.inspectorHandle = inspector.getHandle();
 	if(s.inspectorHandle) {
 		glfwSetWindowCloseCallback(s.inspectorHandle, [](GLFWwindow* w) {
