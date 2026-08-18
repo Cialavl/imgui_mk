@@ -27,3 +27,44 @@ endif()
 add_subdirectory(tutorials)
 
 add_subdirectory(test)
+
+# ============ 安装到 C:\Cpp_Libs 的静态库包（find_package(mkui) 可发现）============
+# 部署布局：
+#   include/imgui_mk/...  include/Mainwindow.h ...   （三个目标的头文件树）
+#   include/imgui/...  include/glad/...
+#   lib/mkui.lib  lib/imgui.lib  lib/glad.lib
+#   lib/cmake/mkui/mkuiConfig.cmake + mkuiTargets.cmake（导出 Mk::mkui / Mk::imgui / Mk::glad）
+# 消费方：set(CMAKE_PREFIX_PATH "C:/Cpp_Libs/mkui") 后 find_package(mkui REQUIRED)；
+# glfw3 与 Assimp 由消费方环境提供（与仓库自身一致）
+include(CMakePackageConfigHelpers)
+set(mkui_VERSION 0.1.0)
+
+install(TARGETS imgui_mk imgui glad
+    EXPORT mkuiTargets
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin)
+
+install(DIRECTORY imgui_mk/include/ DESTINATION include)
+install(DIRECTORY imgui/include/    DESTINATION include)
+install(DIRECTORY glad/include/     DESTINATION include)
+
+install(EXPORT mkuiTargets
+    FILE mkuiTargets.cmake
+    NAMESPACE Mk::
+    DESTINATION lib/cmake/mkui)
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/mkuiConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/mkuiConfig.cmake"
+    INSTALL_DESTINATION lib/cmake/mkui)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/mkuiConfigVersion.cmake"
+    VERSION ${mkui_VERSION}
+    COMPATIBILITY SameMajorVersion)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/mkuiConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/mkuiConfigVersion.cmake"
+    DESTINATION lib/cmake/mkui)

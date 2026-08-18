@@ -1,0 +1,19 @@
+# mkuiConfig.cmake.in —— 部署到 C:\Cpp_Libs（无 conan 痕迹）
+# 消费方先配置 glfw3 与 Assimp（与仓库自身一致）：
+#   find_package(mkui REQUIRED) → 目标 Mk::mkui（含传递 include/依赖）
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(glfw3 REQUIRED)
+find_dependency(Assimp REQUIRED)
+
+include("${CMAKE_CURRENT_LIST_DIR}/mkuiTargets.cmake")
+
+# 便捷别名：Mk::mkui → 顶层库目标（导出名 Mk::imgui_mk）
+if(NOT TARGET Mk::mkui)
+    add_library(Mk::mkui INTERFACE IMPORTED)
+    set_target_properties(Mk::mkui PROPERTIES
+        INTERFACE_LINK_LIBRARIES Mk::imgui_mk)
+endif()
+
+check_required_components(mkui)

@@ -8,4 +8,6 @@ target_link_libraries(imgui PUBLIC assimp::assimp)
 
 
 
-target_include_directories(imgui PUBLIC include)
+target_include_directories(imgui PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)

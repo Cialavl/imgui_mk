@@ -62,6 +62,7 @@ target_link_libraries(test15 PRIVATE imgui_mk)
 include(CTest)
 if(BUILD_TESTING)
     include(FetchContent)
+    set(INSTALL_GTEST OFF CACHE BOOL "gtest install off (mkui package)" FORCE)
     FetchContent_Declare(googletest
         URL https://github.com/google/googletest/releases/download/v1.16.0/googletest-1.16.0.tar.gz
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
