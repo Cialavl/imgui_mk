@@ -902,4 +902,209 @@ namespace Mk::wg {
 	};
 	using FnTable = Control<FnTableImpl, DefaultStyle>;
 
+
+	// ============ 弹窗与颜色（批次D：fui popups 对象化）============
+	// 标志触发式：open 置位当帧 OpenPopup 后自动回落；内容每帧渲染
+	// 直到子回调 CloseCurrentPopup()
+
+	template<typename... Ts>
+	struct PopupImpl;
+	template<typename... Ts>
+	struct PopupData {
+		std::string id;
+		bool* open = nullptr;
+	};
+	template<typename... Ts>
+	using Popup = Control<PopupData<Ts...>, DefaultStyle, Ts...>;
+
+	template<typename... Ts>
+	Size measureImpl(PopupData<Ts...>&, Node& n, const Size& avail) {
+		Size total{0, 0};
+		for(auto* c : n.children) {
+			if(!c) continue;
+			Size s = c->measure(avail);
+			total.w = std::max(total.w, s.w);
+			total.h += s.h;
+		}
+		return total;
+	}
+	template<typename... Ts>
+	void arrangeImpl(PopupData<Ts...>&, Node& n, const Rect& r) {
+		float y = r.y;
+		for(auto* c : n.children) {
+			if(!c) continue;
+			Size s = c->measure(Size{r.w, r.h - (y - r.y)});
+			c->arrange(Rect{r.x, y, s.w, s.h});
+			y += s.h;
+		}
+	}
+	template<typename... Ts>
+	void renderImpl(PopupData<Ts...>& self, Node& n) {
+		if(self.open && *self.open) {
+			ImGui::OpenPopup(self.id.c_str());
+			*self.open = false;
+		}
+		if(ImGui::BeginPopup(self.id.c_str())) {
+			for(auto* c : n.children) {
+				if(!c) continue;
+				c->draw();
+			}
+			ImGui::EndPopup();
+		}
+	}
+
+	template<typename... Ts>
+	struct PopupModalImpl;
+	template<typename... Ts>
+	struct PopupModalData {
+		std::string id;
+		bool* open = nullptr;
+		ImGuiWindowFlags flags = 0;
+	};
+	template<typename... Ts>
+	using PopupModal = Control<PopupModalData<Ts...>, DefaultStyle, Ts...>;
+
+	template<typename... Ts>
+	Size measureImpl(PopupModalData<Ts...>&, Node& n, const Size& avail) {
+		Size total{0, 0};
+		for(auto* c : n.children) {
+			if(!c) continue;
+			Size s = c->measure(avail);
+			total.h += s.h;
+		}
+		return total;
+	}
+	template<typename... Ts>
+	void arrangeImpl(PopupModalData<Ts...>&, Node& n, const Rect& r) {
+		float y = r.y;
+		for(auto* c : n.children) {
+			if(!c) continue;
+			Size s = c->measure(Size{r.w, r.h - (y - r.y)});
+			c->arrange(Rect{r.x, y, s.w, s.h});
+			y += s.h;
+		}
+	}
+	template<typename... Ts>
+	void renderImpl(PopupModalData<Ts...>& self, Node& n) {
+		if(self.open && *self.open) {
+			ImGui::OpenPopup(self.id.c_str());
+			*self.open = false;
+		}
+		if(ImGui::BeginPopupModal(self.id.c_str(), nullptr, self.flags)) {
+			for(auto* c : n.children) {
+				if(!c) continue;
+				c->draw();
+			}
+			ImGui::EndPopup();
+		}
+	}
+
+	// —— 颜色编辑/拾取器（std::array<float,N>* 绑定）——
+	struct ColorEdit3Impl {
+		std::string label;
+		std::array<float, 3>* color = nullptr;
+		Size measureImpl(Node&, const Size&) { return Size{260.0f, 24.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(color) ImGui::ColorEdit3(label.c_str(), color->data()); }
+	};
+	using ColorEdit3 = Control<ColorEdit3Impl, DefaultStyle>;
+
+	struct ColorEdit4Impl {
+		std::string label;
+		std::array<float, 4>* color = nullptr;
+		Size measureImpl(Node&, const Size&) { return Size{260.0f, 24.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(color) ImGui::ColorEdit4(label.c_str(), color->data()); }
+	};
+	using ColorEdit4 = Control<ColorEdit4Impl, DefaultStyle>;
+
+	struct ColorPicker3Impl {
+		std::string label;
+		std::array<float, 3>* color = nullptr;
+		Size measureImpl(Node&, const Size&) { return Size{260.0f, 240.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(color) ImGui::ColorPicker3(label.c_str(), color->data()); }
+	};
+	using ColorPicker3 = Control<ColorPicker3Impl, DefaultStyle>;
+
+	struct ColorPicker4Impl {
+		std::string label;
+		std::array<float, 4>* color = nullptr;
+		Size measureImpl(Node&, const Size&) { return Size{260.0f, 240.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(color) ImGui::ColorPicker4(label.c_str(), color->data()); }
+	};
+	using ColorPicker4 = Control<ColorPicker4Impl, DefaultStyle>;
+
+	// —— CheckboxFlags（位标志，int* + mask）——
+	struct CheckboxFlagsImpl {
+		std::string label;
+		int* flags = nullptr;
+		int mask = 1;
+		Size measureImpl(Node&, const Size&) { return Size{160.0f, 22.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(flags) ImGui::CheckboxFlags(label.c_str(), flags, mask); }
+	};
+	using CheckboxFlags = Control<CheckboxFlagsImpl, DefaultStyle>;
+
+	// ============ 装饰件（批次D：fui 修饰器对象化）============
+	// 装饰件 = 包装子节点的控件（子经运行时 add 挂入）
+
+	// —— Tooltip（悬停提示）——
+	struct TooltipImpl {
+		std::string text;
+		void renderImpl(Node& n) {
+			for(auto* c : n.children) { if(c) c->draw(); }
+			if(ImGui::IsItemHovered()) ImGui::SetTooltip("%s", text.c_str());
+		}
+		Size measureImpl(Node& n, const Size& avail) {
+			Size total{0, 0};
+			for(auto* c : n.children) { if(c) { Size s = c->measure(avail); total = s; } }
+			return total;
+		}
+		void arrangeImpl(Node& n, const Rect& r) {
+			for(auto* c : n.children) { if(c) c->arrange(r); }
+		}
+	};
+	using Tooltip = Control<TooltipImpl, DefaultStyle>;
+
+	// —— Colored（颜色作用域包裹）——
+	struct ColoredImpl {
+		ImGuiCol idx = ImGuiCol_Text;
+		ImVec4 color{1.0f, 1.0f, 1.0f, 1.0f};
+		void renderImpl(Node& n) {
+			ImGui::PushStyleColor(idx, color);
+			for(auto* c : n.children) { if(c) c->draw(); }
+			ImGui::PopStyleColor();
+		}
+		Size measureImpl(Node& n, const Size& avail) {
+			Size total{0, 0};
+			for(auto* c : n.children) { if(c) { Size s = c->measure(avail); total = s; } }
+			return total;
+		}
+		void arrangeImpl(Node& n, const Rect& r) {
+			for(auto* c : n.children) { if(c) c->arrange(r); }
+		}
+	};
+	using Colored = Control<ColoredImpl, DefaultStyle>;
+
+	// —— Indent（缩进包裹）——
+	struct IndentImpl {
+		float amount = 20.0f;
+		void renderImpl(Node& n) {
+			ImGui::Indent(amount);
+			for(auto* c : n.children) { if(c) c->draw(); }
+			ImGui::Unindent(amount);
+		}
+		Size measureImpl(Node& n, const Size& avail) {
+			Size total{0, 0};
+			for(auto* c : n.children) { if(c) { Size s = c->measure(avail); total = s; } }
+			return total;
+		}
+		void arrangeImpl(Node& n, const Rect& r) {
+			for(auto* c : n.children) { if(c) c->arrange(r); }
+		}
+	};
+	using Indent = Control<IndentImpl, DefaultStyle>;
+
 }

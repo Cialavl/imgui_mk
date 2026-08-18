@@ -62,6 +62,11 @@ int main() {
 	std::vector<float> history;
 	ImTextureID tex{};
 	int menuClicks = 0;
+	bool popupOpen = false, modalOpen = false;
+	std::array<float, 3> rgb{0.9f, 0.3f, 0.2f};
+	std::array<float, 4> rgba{0.2f, 0.6f, 0.9f, 1.0f};
+	std::array<float, 3> pick{0.4f, 0.6f, 0.8f};
+	int bitFlags = 0b101;
 	std::vector<std::vector<std::string>> rows{{"甲", "1"}, {"乙", "2"}, {"丙", "3"}};
 	static constexpr const char* kCols[] = {"名称", "数值"};
 	static constexpr const char* kItems[] = {"选项甲", "选项乙", "选项丙"};
@@ -146,6 +151,46 @@ int main() {
 	tables.child<1>().self.cell = [](int r, int c) {
 		return std::to_string(r) + "," + std::to_string(c);
 	};
+
+	// 批次D 弹窗/颜色/位标志/装饰件
+	Mk::wg::VBox<Mk::wg::Button, Mk::wg::Button, Mk::wg::ColorEdit3,
+		Mk::wg::ColorEdit4, Mk::wg::ColorPicker3, Mk::wg::CheckboxFlags,
+		Mk::wg::CheckboxFlags, Mk::wg::CheckboxFlags, Mk::wg::Tooltip,
+		Mk::wg::Colored, Mk::wg::Indent> popups;
+	popups.child<0>().self.setLabel("打开弹窗");
+	popups.child<0>().self.onClick = [&] { popupOpen = true; };
+	popups.child<1>().self.setLabel("打开模态");
+	popups.child<1>().self.onClick = [&] { modalOpen = true; };
+	popups.child<2>().self.label = "RGB";   popups.child<2>().self.color = &rgb;
+	popups.child<3>().self.label = "RGBA";  popups.child<3>().self.color = &rgba;
+	popups.child<4>().self.label = "拾取";  popups.child<4>().self.color = &pick;
+	popups.child<5>().self.label = "位A";   popups.child<5>().self.flags = &bitFlags;
+	popups.child<5>().self.mask = 1;
+	popups.child<6>().self.label = "位B";   popups.child<6>().self.flags = &bitFlags;
+	popups.child<6>().self.mask = 2;
+	popups.child<7>().self.label = "位C";   popups.child<7>().self.flags = &bitFlags;
+	popups.child<7>().self.mask = 4;
+	popups.child<8>().self.text = "悬停提示";
+	Mk::wg::Label tipTarget; tipTarget.self.setText("悬停看我");
+	popups.child<8>().node.add(tipTarget.node);
+	popups.child<9>().self.color = ImVec4(0.4f, 0.9f, 0.6f, 1.0f);
+	Mk::wg::Label colTarget; colTarget.self.setText("绿色文字（colored 包裹）");
+	popups.child<9>().node.add(colTarget.node);
+	popups.child<10>().self.amount = 24.0f;
+	Mk::wg::Label indTarget; indTarget.self.setText("缩进的文本");
+	popups.child<10>().node.add(indTarget.node);
+
+	// 弹窗内容（独立节点，经运行时 add 挂入）
+	Mk::wg::Popup<> popupNode;
+	popupNode.self.id = "wgpop";
+	popupNode.self.open = &popupOpen;
+	Mk::wg::Label popLabel; popLabel.self.setText("wg 弹窗内容");
+	popupNode.node.add(popLabel.node);
+	Mk::wg::PopupModal<> modalNode;
+	modalNode.self.id = "wgmodal";
+	modalNode.self.open = &modalOpen;
+	Mk::wg::Label modLabel; modLabel.self.setText("wg 模态弹窗");
+	modalNode.node.add(modLabel.node);
 
 	// 批次B 显示面板：纹理（程序生成 8x8 棋盘）
 	static unsigned char px[8 * 8 * 4];
@@ -255,6 +300,14 @@ int main() {
 
 		// 显示面板布局（另列）
 		display.layout(Mk::wg::Rect{400, 600, 340, 420});
+
+		// 弹窗触发（帧 60）
+		if(frames == 60) popupOpen = true;
+
+		// 批次D 布局
+		popups.layout(Mk::wg::Rect{760, 600, 260, 420});
+		popupNode.layout(Mk::wg::Rect{0, 0, 200, 80});
+		modalNode.layout(Mk::wg::Rect{0, 0, 200, 80});
 
 		// 批次C 容器布局
 		fileMenu.layout(Mk::wg::Rect{20, 60, 200, 40});
