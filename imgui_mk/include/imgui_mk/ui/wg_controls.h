@@ -2,8 +2,10 @@
 #include <imgui_mk/ui/wg.h>
 #include <array>
 #include <cstdio>
+#include <cfloat>
 #include <cmath>
 #include <string>
+#include <vector>
 
 // Mk::wg 核心控件集：容器（本文件）与原子控件（见下）。
 // 每个控件 = 自己的模板 struct（数据+功能函数）经 Control 组合，零继承。
@@ -579,5 +581,118 @@ namespace Mk::wg {
 		}
 	};
 	using ListBox = Control<ListBoxImpl, DefaultStyle>;
+
+
+	// ============ 显示类原子（批次B：fui 显示控件对象化）============
+
+	// —— TextColored / TextWrapped / BulletText / LabelText ——
+	struct TextColoredImpl {
+		std::string text;
+		ImVec4 color{1.0f, 1.0f, 1.0f, 1.0f};
+		Size measureImpl(Node&, const Size&) { ImVec2 s = ImGui::CalcTextSize(text.c_str()); return Size{s.x, s.y}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { ImGui::TextColored(color, "%s", text.c_str()); }
+	};
+	using TextColored = Control<TextColoredImpl, DefaultStyle>;
+
+	struct TextWrappedImpl {
+		std::string text;
+		Size measureImpl(Node&, const Size& avail) {
+			ImGui::PushTextWrapPos(avail.w);
+			ImVec2 s = ImGui::CalcTextSize(text.c_str());
+			ImGui::PopTextWrapPos();
+			return Size{avail.w, s.y};
+		}
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { ImGui::TextWrapped("%s", text.c_str()); }
+	};
+	using TextWrapped = Control<TextWrappedImpl, DefaultStyle>;
+
+	struct BulletTextImpl {
+		std::string text;
+		Size measureImpl(Node&, const Size&) { ImVec2 s = ImGui::CalcTextSize(text.c_str()); return Size{s.x + 16.0f, s.y}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { ImGui::BulletText("%s", text.c_str()); }
+	};
+	using BulletText = Control<BulletTextImpl, DefaultStyle>;
+
+	struct LabelTextImpl {
+		std::string label;
+		std::string text;
+		Size measureImpl(Node&, const Size&) { return Size{220.0f, 24.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { ImGui::LabelText(label.c_str(), "%s", text.c_str()); }
+	};
+	using LabelText = Control<LabelTextImpl, DefaultStyle>;
+
+	// —— Selectable（可选行，bool* 绑定）——
+	struct SelectableImpl {
+		std::string label;
+		bool* selected = nullptr;
+		Size measureImpl(Node&, const Size& avail) { return Size{avail.w > 0 ? avail.w : 160.0f, 22.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { if(selected) ImGui::Selectable(label.c_str(), selected); }
+	};
+	using Selectable = Control<SelectableImpl, DefaultStyle>;
+
+	// —— Separator / SeparatorText ——
+	struct SeparatorImpl {
+		Size measureImpl(Node&, const Size&) { return Size{0.0f, 12.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { ImGui::Separator(); }
+	};
+	using Separator = Control<SeparatorImpl, DefaultStyle>;
+
+	struct SeparatorTextImpl {
+		std::string label;
+		Size measureImpl(Node&, const Size&) { return Size{0.0f, 24.0f}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) { ImGui::SeparatorText(label.c_str()); }
+	};
+	using SeparatorText = Control<SeparatorTextImpl, DefaultStyle>;
+
+	// —— Image / ImageButton（ImTextureID + size）——
+	struct ImageImpl {
+		ImTextureID tex{};
+		ImVec2 size{64, 64};
+		Size measureImpl(Node&, const Size&) { return Size{size.x, size.y}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node& n) {
+			ImGui::SetCursorPos(ImVec2(n.bounds.x, n.bounds.y));
+			ImGui::Image(tex, size);
+		}
+	};
+	using Image = Control<ImageImpl, DefaultStyle>;
+
+	struct ImageButtonImpl {
+		std::string id;
+		ImTextureID tex{};
+		ImVec2 size{64, 64};
+		std::function<void()> onClick;
+		Size measureImpl(Node&, const Size&) { return Size{size.x, size.y}; }
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) {
+			if(ImGui::ImageButton(id.c_str(), tex, size) && onClick) onClick();
+		}
+	};
+	using ImageButton = Control<ImageButtonImpl, DefaultStyle>;
+
+	// —— PlotLines（折线，绑定 const vector<float>*）——
+	struct PlotLinesImpl {
+		std::string label;
+		const std::vector<float>* values = nullptr;
+		ImVec2 size{0.0f, 60.0f};
+		Size measureImpl(Node&, const Size& avail) {
+			return Size{size.x > 0 ? size.x : avail.w, size.y};
+		}
+		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
+		void renderImpl(Node&) {
+			if(values && !values->empty()) {
+				ImGui::PlotLines(label.c_str(), values->data(), (int)values->size(),
+					0, nullptr, FLT_MAX, FLT_MAX, size);
+			}
+		}
+	};
+	using PlotLines = Control<PlotLinesImpl, DefaultStyle>;
 
 }

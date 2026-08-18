@@ -7,6 +7,7 @@
 #include <cmath>`n#include <iostream>
 #include <array>
 #include <memory>
+#include <vector>
 
 namespace {
 
@@ -57,6 +58,9 @@ int main() {
 	std::array<float, 2> fv2{1.5f, 2.5f};
 	bool radioA = false;
 	int radioSel = 1, listSel = 0;
+	bool selRow = false;
+	std::vector<float> history;
+	ImTextureID tex{};
 	static constexpr const char* kItems[] = {"选项甲", "选项乙", "选项丙"};
 
 	// VBox{A(40x30), B(60x40)} spacing=8 → measure: w=60 h=30+40+8=78
@@ -109,6 +113,29 @@ int main() {
 	panel2.child<2>().self.count = 3;
 	panel2.child<3>().self.label = "树";
 	panel2.child<3>().self.defaultOpen = true;
+
+	// 批次B 显示面板：纹理（程序生成 8x8 棋盘）
+	static unsigned char px[8 * 8 * 4];
+	for(int y = 0; y < 8; ++y) for(int x = 0; x < 8; ++x) {
+		unsigned char v = ((x + y) % 2) ? 200 : 60;
+		px[(y * 8 + x) * 4 + 0] = v; px[(y * 8 + x) * 4 + 1] = v;
+		px[(y * 8 + x) * 4 + 2] = v; px[(y * 8 + x) * 4 + 3] = 255;
+	}
+	tex = Mk::fui::loadTextureRGBA(px, 8, 8);
+	Mk::wg::VBox<Mk::wg::TextColored, Mk::wg::TextWrapped, Mk::wg::BulletText,
+		Mk::wg::LabelText, Mk::wg::Selectable, Mk::wg::Separator, Mk::wg::SeparatorText,
+		Mk::wg::Image, Mk::wg::ImageButton, Mk::wg::PlotLines> display;
+	display.child<0>().self.text = "彩色文本";
+	display.child<0>().self.color = ImVec4(1.0f, 0.8f, 0.2f, 1.0f);
+	display.child<1>().self.text = "自动换行的长文本：wg 显示控件对象化后与 fui 同语义，数据+函数在控件内部。";
+	display.child<2>().self.text = "圆点项";
+	display.child<3>().self.label = "属性"; display.child<3>().self.text = "值";
+	display.child<4>().self.label = "可选中行"; display.child<4>().self.selected = &selRow;
+	display.child<6>().self.label = "分隔标题";
+	display.child<7>().self.tex = tex; display.child<7>().self.size = ImVec2(48, 48);
+	display.child<8>().self.id = "imgbtn"; display.child<8>().self.tex = tex;
+	display.child<8>().self.size = ImVec2(48, 48);
+	display.child<9>().self.label = "曲线"; display.child<9>().self.values = &history;
 
 	// 批次A 输入类面板
 	Mk::wg::VBox<Mk::wg::InputInt, Mk::wg::InputFloat, Mk::wg::InputDouble,
@@ -189,6 +216,12 @@ int main() {
 		// 原子面板布局（帧 20 起稳定）
 		panel.layout(Mk::wg::Rect{20, 360, 300, 200});
 		panel2.layout(Mk::wg::Rect{360, 360, 300, 200});
+
+		history.push_back(0.5f + 0.5f * std::sin(frames * 0.05f));
+		if(history.size() > 100) history.erase(history.begin());
+
+		// 显示面板布局（另列）
+		display.layout(Mk::wg::Rect{400, 600, 340, 420});
 
 		// 桥接节点布局（fui 视图 + 绘制函数）
 		fuiNode.layout(Mk::wg::Rect{680, 360, 300, 60});
