@@ -44,8 +44,6 @@ add_executable(test11 windowstest11.cpp)
 target_link_libraries(test11 PRIVATE imgui_mk)
 
 # mkui 控件画廊：双库（OOP + 函数式）全量交互展示（手动关窗退出）
-add_executable(test12 windowstest12.cpp)
-target_link_libraries(test12 PRIVATE imgui_mk)
 
 # 主题与自适应布局验证：hsplit 权重/widthFrac/styled 作用域/setTheme（120 帧 PASS 退出码 0）
 add_executable(test13 windowstest13.cpp)
