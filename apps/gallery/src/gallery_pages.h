@@ -59,11 +59,13 @@ inline void draw(const Sidebar& sb) {
 struct FrameLabel { int& frames; };
 inline void draw(const FrameLabel& f) { ImGui::Text("Frame %d", f.frames); }
 
-// 演示页骨架：标题 + 一句说明 + 分隔线
+// 演示页骨架：标题（单行）+ 说明（自动折行，窄面板不裁切）+ 分隔线
 struct DemoHead { const char* title; const char* desc; };
 inline void draw(const DemoHead& h) {
 	ImGui::TextUnformatted(h.title);
+	ImGui::PushTextWrapPos(0.0f);   // 0 = 填满行宽自动折行：说明长句右端不再被裁
 	ImGui::TextDisabled("%s", h.desc);
+	ImGui::PopTextWrapPos();
 	ImGui::Separator();
 }
 
@@ -207,7 +209,8 @@ inline void draw(const CodeBlock& b) {
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, bg);
 
 	if(gMono) ImGui::PushFont(gMono);
-	if(ImGui::BeginChild("code", ImGui::GetContentRegionAvail(), ImGuiChildFlags_Border)) {
+	if(ImGui::BeginChild("code", ImGui::GetContentRegionAvail(), ImGuiChildFlags_Border,
+					ImGuiWindowFlags_HorizontalScrollbar)) {   // 超宽代码行横向滚动，右端不硬裁
 		// 行号列宽：总行数位数个 '9' 的宽（等宽字体下稳定）
 		const size_t totalLines = 1 + (size_t)std::count(b.code.begin(), b.code.end(), '\n');
 		char wbuf[16];
