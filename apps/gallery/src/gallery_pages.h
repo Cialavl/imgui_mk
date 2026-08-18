@@ -6,8 +6,10 @@
 #include <imgui_mk/ui/fui.h>
 #include "snippets.h"
 
+#include <algorithm>
 #include <array>
 #include <bitset>
+#include <cstdio>
 #include <cstring>
 #include <memory>
 #include <span>
@@ -65,23 +67,187 @@ inline void draw(const DemoHead& h) {
 	ImGui::Separator();
 }
 
-// 代码块：等宽字体逐行显示（子窗口带边框可滚动）
+// —— 代码着色扫描：五类段，行内状态机 + 跨行块注释状态 ——
+
+struct CodeSeg { const char* begin; const char* end; int kind; };
+// kind: 0 默认 1 关键字 2 字符串 3 数字 4 注释
+
+inline bool codeIdentChar(char ch) {
+	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_';
+}
+inline bool codeDigitChar(char ch) { return ch >= '0' && ch <= '9'; }
+
+inline bool codeKeyword(std::string_view w) {
+	static constexpr std::string_view kW[] = {
+		"Mk", "fui", "std", "auto", "const", "constexpr", "return", "if", "else",
+		"for", "while", "float", "double", "bool", "int", "void", "struct", "class",
+		"static", "namespace", "true", "false", "nullptr", "ImVec2", "ImVec4",
+		"template", "typename",
+	};
+	for(auto k : kW) {
+		if(k == w) return true;
+	}
+	return false;
+}
+
+// 扫描一行 [p,end)：块注释状态经 inBlock 跨行传递；段追加进 out（每行复用）
+inline void scanCodeLine(const char* p, const char* end, bool& inBlock,
+	std::vector<CodeSeg>& out) {
+	out.clear();
+	const auto push = [&](const char* b, const char* e, int kind) {
+		if(b < e) out.push_back({b, e, kind});
+	};
+	while(p < end) {
+		if(inBlock) {   // 块注释内：找 */
+			const char* q = p;
+			while(q + 1 < end && !(q[0] == '*' && q[1] == '/')) ++q;
+			if(q + 1 < end) {
+				push(p, q + 2, 4);
+				inBlock = false;
+				p = q + 2;
+			}
+			else {
+				push(p, end, 4);
+				return;
+			}
+			continue;
+		}
+		if(p + 1 < end && p[0] == '/' && p[1] == '/') {   // 行注释
+			push(p, end, 4);
+			return;
+		}
+		if(p + 1 < end && p[0] == '/' && p[1] == '*') {   // 块注释开始
+			const char* q = p + 2;
+			while(q + 1 < end && !(q[0] == '*' && q[1] == '/')) ++q;
+			if(q + 1 < end) {
+				push(p, q + 2, 4);
+				p = q + 2;
+			}
+			else {
+				push(p, end, 4);
+				inBlock = true;
+				return;
+			}
+			continue;
+		}
+		if(*p == '"') {   // 字符串字面量（处理 \ 转义，未闭合容忍到行尾）
+			const char* q = p + 1;
+			while(q < end) {
+				if(*q == '\\') {
+					q += 2;
+					continue;
+				}
+				if(*q == '"') {
+					++q;
+					break;
+				}
+				++q;
+			}
+			if(q > end) q = end;
+			push(p, q, 2);
+			p = q;
+			continue;
+		}
+		if(codeIdentChar(*p)) {   // 标识符/关键字
+			const char* q = p;
+			while(q < end && (codeIdentChar(*q) || codeDigitChar(*q))) ++q;
+			push(p, q, codeKeyword(std::string_view(p, (size_t)(q - p))) ? 1 : 0);
+			p = q;
+			continue;
+		}
+		if(codeDigitChar(*p)) {   // 数字字面量（含 . 与 f 后缀）
+			const char* q = p;
+			while(q < end && (codeDigitChar(*q) || *q == '.' || *q == 'f')) ++q;
+			push(p, q, 3);
+			p = q;
+			continue;
+		}
+		// 其它字符（括号/运算符/空白）：合并为默认段直到下一个特殊起点
+		const char* q = p;
+		while(q < end && !codeIdentChar(*q) && *q != '"' && *q != '/' && !codeDigitChar(*q)) ++q;
+		push(p, q, 0);
+		p = q;
+	}
+}
+
+// 代码块：等宽字体 + 五色语法着色 + 行号列 + 深一档底色 + Copy 按钮。
+// 着色颜色不写死：关键字/注释取自当前主题（accent/灰），字符串/数字固定色调、
+// alpha 跟主题文本——深浅主题切换后自动协调
 struct CodeBlock { std::string_view code; };
 inline void draw(const CodeBlock& b) {
-	const ImVec2 avail = ImGui::GetContentRegionAvail();
+	const ImGuiStyle& st = ImGui::GetStyle();
+	const ImVec4 baseText = st.Colors[ImGuiCol_Text];
+	const ImVec4 accent = st.Colors[ImGuiCol_TabActive];   // applyTheme 映射为主题 accent
+	const ImVec4 gray = st.Colors[ImGuiCol_TextDisabled];
+	const auto segColor = [&](int kind) -> ImVec4 {
+		switch(kind) {
+		case 1: return accent;
+		case 2: return ImVec4(0.55f, 0.85f, 0.58f, baseText.w);   // 字符串：绿
+		case 3: return ImVec4(0.95f, 0.70f, 0.45f, baseText.w);   // 数字：橙
+		case 4: return gray;
+		default: return baseText;
+		}
+	};
+
+	// Copy 按钮（右对齐，UI 字体）：整段（含换行）进剪贴板
+	const ImVec2 avail0 = ImGui::GetContentRegionAvail();
+	{
+		const float w = ImGui::CalcTextSize("Copy").x + st.FramePadding.x * 2.0f;
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail0.x - w);
+		if(ImGui::SmallButton("Copy")) {
+			ImGui::SetClipboardText(std::string(b.code).c_str());
+		}
+	}
+
+	// 代码子窗口：底色向文本色混合 6%（深色主题变亮一档、浅色变暗一档，两主题通用）
+	ImVec4 bg = st.Colors[ImGuiCol_ChildBg];
+	bg.x += (baseText.x - bg.x) * 0.06f;
+	bg.y += (baseText.y - bg.y) * 0.06f;
+	bg.z += (baseText.z - bg.z) * 0.06f;
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, bg);
+
 	if(gMono) ImGui::PushFont(gMono);
-	if(ImGui::BeginChild("codeblock", avail, ImGuiChildFlags_Border)) {
+	if(ImGui::BeginChild("code", ImGui::GetContentRegionAvail(), ImGuiChildFlags_Border)) {
+		// 行号列宽：总行数位数个 '9' 的宽（等宽字体下稳定）
+		const size_t totalLines = 1 + (size_t)std::count(b.code.begin(), b.code.end(), '\n');
+		char wbuf[16];
+		std::snprintf(wbuf, sizeof wbuf, "%zu", totalLines);
+		const std::string probe((size_t)std::strlen(wbuf), '9');
+		const float numW = ImGui::CalcTextSize(probe.c_str()).x + ImGui::GetStyle().FramePadding.x;
+
+		char numBuf[16];
+		int lineNo = 1;
+		bool inBlock = false;
+		std::vector<CodeSeg> segs;
 		const char* p = b.code.data();
 		const char* end = p + b.code.size();
 		while(p < end) {
 			const char* eol = (const char*)std::memchr(p, '\n', (size_t)(end - p));
 			if(!eol) eol = end;
-			ImGui::TextUnformatted(p, eol);
+			scanCodeLine(p, eol, inBlock, segs);
 			p = eol + 1;
+
+			// 行号（右对齐灰字）
+			std::snprintf(numBuf, sizeof numBuf, "%d", lineNo++);
+			const float tw = ImGui::CalcTextSize(numBuf).x;
+			ImGui::SetCursorPosX(st.WindowPadding.x + numW - tw);
+			ImGui::TextColored(gray, "%s", numBuf);
+			ImGui::SameLine(0.0f, ImGui::GetStyle().ItemSpacing.x);
+
+			// 着色段无缝拼接
+			for(size_t i = 0; i < segs.size(); ++i) {
+				if(i > 0) ImGui::SameLine(0.0f, 0.0f);
+				ImGui::TextColored(segColor(segs[i].kind), "%.*s",
+					(int)(segs[i].end - segs[i].begin), segs[i].begin);
+			}
+			if(segs.empty()) {
+				ImGui::TextUnformatted("");   // 空行占位
+			}
 		}
 	}
 	ImGui::EndChild();
 	if(gMono) ImGui::PopFont();
+	ImGui::PopStyleColor();
 }
 
 // 主从列表：Selectable 单选，点击写回选中下标

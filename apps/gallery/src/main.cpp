@@ -35,12 +35,15 @@ int main() {
 
 	Mk::MainWindow<> gallery("mkui Widget Gallery", galW, galH);
 
-	// 自定义字体链：中文（默认链）+ 等宽代码字体（ProggyClean 13px 位图字体，
-	// 不随档位缩放——非整数倍缩放会糊，DPI 大屏上代码字相对略小，可接受）。
+	// 自定义字体链：中文（默认链）+ 等宽代码字体。ProggyClean 是内嵌矢量 TTF，
+	// SizePixels 任意尺寸光栅化都清晰——代码字随 UI 字号联动（×0.85 略小一级，
+	// 层级分明），rescale/档位/跨屏重烘焙时同步重挂。
 	// 设置后立即按当前字号重烘焙一次，此后所有 rescale 都走这条链
 	gallery.getWindow().setFontLoader([](float fontSize) {
 		if(!Mk::window::Impl::defaultFontLoader(fontSize)) return false;
-		gallery::gMono = ImGui::GetIO().Fonts->AddFontDefault();
+		ImFontConfig cfg;
+		cfg.SizePixels = fontSize * 0.85f;
+		gallery::gMono = ImGui::GetIO().Fonts->AddFontDefault(&cfg);
 		return true;
 	});
 
