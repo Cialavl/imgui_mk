@@ -4,6 +4,9 @@
 #include <Mainwindow.h>
 #include <imgui_mk/ui/widget.h>
 #include <imgui_mk/ui/fui.h>
+#include <imgui_mk/ui/wg.h>
+#include <imgui_mk/ui/wg_controls.h>
+#include <imgui_mk/ui/wg_bridge.h>
 #include "snippets.h"
 
 #include <algorithm>
@@ -308,6 +311,24 @@ private:
 	int m_Count = 0;
 };
 
+// wg 宿主控件（fui ADL）：把长期存活的 wg 根节点嵌入 fui 页面。
+// 每帧 layout（measure/arrange 两遍 + draw）——wg 对象树在 main 创建一次，
+// 这里是"渲染桥"
+struct WgHost {
+	Mk::wg::Node* root = nullptr;
+	Mk::wg::Rect host{0, 0, 0, 0};
+	WgHost() = default;
+	WgHost(Mk::wg::Node* r, const Mk::wg::Rect& h) : root(r), host(h) {}
+};
+void draw(const WgHost& h) {
+	if(h.root) h.root->layout(h.host);
+}
+
+// 工厂：WgHost(node) —— 避免模板实参位置圆括号构造的解析歧义
+inline WgHost makeHost(Mk::wg::Node* n) {
+	return WgHost(n, Mk::wg::Rect{0, 0, 0, 0});
+}
+
 // ============ 共享状态（函数式：视图每帧重建，状态全部外置于此）============
 
 struct State {
@@ -350,6 +371,13 @@ struct State {
 	bool fileBinary = false, fileMissing = false;
 
 	Mk::MainWindow<>* win = nullptr;
+
+	// —— wg 模板控件演示树根（main 组装一次，每帧 WgHost 渲染）——
+	Mk::wg::Node* wgTreeLife = nullptr;
+	Mk::wg::Node* wgTreeLayout = nullptr;
+	Mk::wg::Node* wgTreeAtoms = nullptr;
+	Mk::wg::Node* wgTreeContainers = nullptr;
+	Mk::wg::Node* wgTreeBridge = nullptr;
 	GLFWwindow* inspectorHandle = nullptr;
 
 	// OOP 侧对象（存活期覆盖 run()）
@@ -427,6 +455,12 @@ inline constexpr SidebarEntry kSidebar[] = {
 	{"Open local file", false},              // 36
 	{"Theme", true},
 	{"Theme & adaptive", false},             // 37
+	{"wg 模板控件", true},
+	{"wg 对象树与生命周期", false},          // 38
+	{"wg 布局（模板组合）", false},          // 39
+	{"wg 原子控件", false},                  // 40
+	{"wg 容器控件", false},                  // 41
+	{"wg ↔ fui 桥接", false},                // 42
 };
 
 // ============ 页面工厂：标题/说明 + 上演示下代码 ============
@@ -799,8 +833,43 @@ inline void drawPreview(State& s) {
 				vsplit(
 					fixed("se", em(40.0f), labelText("E", "fixed 40")),
 					stretch("sf", 1.0f, labelText("F", "stretch 1")))),
-			snips::kTheme))
-	));
+				snips::kTheme)),
+
+								// ==== wg 模板控件（38..42）：手写页（WgHost 属 wg 体系，绕过 page 模板）====
+				when(s.sel == 38, vbox(6.0f,
+					DemoHead{"wg 对象树与生命周期", "wg：模板 struct 控件组合 + draw 驱动生命周期"},
+					makeHost(s.wgTreeLife),
+					separatorText("Code"),
+					CodeBlock{R"(VBox<Button, Label> box; box.add(btn.node);)"})),
+
+				when(s.sel == 39, vbox(6.0f,
+					DemoHead{"wg 布局", "wg：模板参数传入组合（tuple 子控件）+ 显式 bounds 布局两遍"},
+					makeHost(s.wgTreeLayout),
+					separatorText("Code"),
+					CodeBlock{R"(VBox<HBox<Label, Label>, SliderF, CheckBox> box;)"})),
+
+				when(s.sel == 40, vbox(6.0f,
+					DemoHead{"wg 原子控件", "wg：Label/Button/SliderF/CheckBox/InputText/Combo 等对象化原子"},
+					makeHost(s.wgTreeAtoms),
+					separatorText("Code"),
+					CodeBlock{R"(atomsBox.child<2>().self.value = &volume;)"})),
+
+				when(s.sel == 41, vbox(6.0f,
+					DemoHead{"wg 容器控件", "wg：Collapsing/Panel/SubWindow/TabBar 等对象化容器"},
+					makeHost(s.wgTreeContainers),
+					separatorText("Code"),
+					CodeBlock{R"(Collapsing c; c.self.flags = DefaultOpen;)"})),
+
+				when(s.sel == 42, vbox(6.0f,
+					DemoHead{"wg ↔ fui 桥接", "wg 树内嵌每帧重建的 fui 视图（FuiView/FnRender）"},
+					makeHost(s.wgTreeBridge),
+					separatorText("Code"),
+					CodeBlock{R"(FuiView<F> v(maker); s.wgTreeBridge = &v.node;)"}))
+
+				
+				
+				
+							));
 }
 
 inline void draw(const Preview& p) { drawPreview(p.s); }

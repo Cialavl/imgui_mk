@@ -2,6 +2,9 @@
 // 浮动面板/三个弹窗）+ 文件对话框轮询。演示页本体见 gallery_pages.h，
 // 代码片段见 snippets.h。交互式应用：菜单 File/Exit 或直接关窗退出。
 #include "gallery_pages.h"
+#include <imgui_mk/ui/wg.h>
+#include <imgui_mk/ui/wg_controls.h>
+#include <imgui_mk/ui/wg_bridge.h>
 
 #include <cmath>
 #include <filesystem>
@@ -95,7 +98,65 @@ int main() {
 		gallery::State::RevMaker{s});
 	s.oopBox.add(*s.adapter);
 
-	GLFWwindow* handle = gallery.getHandle();
+	// —— 组装 wg 演示树（main 局部长期存活；State.wgTreeX 指向其 node，WgHost 渲染）——
+	// 38 对象树与生命周期：VBox 组合 + 运行时 add 叶子 + 按钮更新计数
+	Mk::wg::VBox<Mk::wg::Button, Mk::wg::Label> lifeBox;
+	Mk::wg::Button addLeafBtn;   addLeafBtn.self.setLabel("添加 wg 叶子");
+	Mk::wg::Label leafCount;     leafCount.self.setText("叶子 0");
+	lifeBox.add(addLeafBtn.node);
+	lifeBox.add(leafCount.node);
+	int leafNo = 0;
+	addLeafBtn.self.onClick = [&] { ++leafNo; leafCount.self.setText(("叶子 " + std::to_string(leafNo)).c_str()); };
+	s.wgTreeLife = &lifeBox.node;
+
+	// 39 布局：VBox 内嵌 HBox（模板组合）+ 滑块/复选
+	Mk::wg::VBox<Mk::wg::HBox<Mk::wg::Label, Mk::wg::Label>, Mk::wg::SliderF, Mk::wg::CheckBox> layoutBox;
+	layoutBox.child<0>().child<0>().self.setText("左");
+	layoutBox.child<0>().child<1>().self.setText("右");
+	layoutBox.child<1>().self.label = "音量";  layoutBox.child<1>().self.value = &s.volume;
+	layoutBox.child<2>().self.label = "静音";  layoutBox.child<2>().self.checked = &s.mute;
+	s.wgTreeLayout = &layoutBox.node;
+
+	// 40 原子：文本/输入/滑块/复选/进度/下拉/标签值
+	Mk::wg::VBox<Mk::wg::Label, Mk::wg::InputText<>, Mk::wg::SliderF, Mk::wg::CheckBox,
+		Mk::wg::ProgressBar, Mk::wg::Combo, Mk::wg::LabelText> atomsBox;
+	atomsBox.child<0>().self.setText("wg 原子控件演示");
+	atomsBox.child<1>().self.label = "文本";
+	atomsBox.child<2>().self.label = "滑块";  atomsBox.child<2>().self.value = &s.volume;
+	atomsBox.child<3>().self.label = "开关";  atomsBox.child<3>().self.checked = &s.mute;
+	atomsBox.child<4>().self.fraction = &s.volume;
+	atomsBox.child<5>().self.label = "下拉";  atomsBox.child<5>().self.current = &s.comboSel;
+	atomsBox.child<5>().self.items = s.kItems;  atomsBox.child<5>().self.count = 3;
+	atomsBox.child<6>().self.label = "帧";    atomsBox.child<6>().self.text = std::to_string(s.frames);
+	s.wgTreeAtoms = &atomsBox.node;
+
+	// 41 容器：折叠 + 数据表 + 函数表
+	Mk::wg::VBox<Mk::wg::Collapsing, Mk::wg::TextTable, Mk::wg::FnTable> containersBox;
+	containersBox.child<0>().self.label = "折叠区";
+	containersBox.child<0>().self.flags = ImGuiTreeNodeFlags_DefaultOpen;
+	Mk::wg::Label folded; folded.self.setText("折叠内容");
+	containersBox.child<0>().node.add(folded.node);
+	containersBox.child<1>().self.id = "wgtable";
+	containersBox.child<1>().self.headers = s.kItems; containersBox.child<1>().self.headerCount = 3;
+	containersBox.child<1>().self.rows = &s.rows;
+	containersBox.child<2>().self.id = "wgfn";
+	containersBox.child<2>().self.headers = s.kItems; containersBox.child<2>().self.headerCount = 3;
+	containersBox.child<2>().self.rowCount = 2;
+	containersBox.child<2>().self.cell = [](int r, int c) {
+		return std::to_string(r) + "," + std::to_string(c);
+	};
+	s.wgTreeContainers = &containersBox.node;
+
+	// 42 桥接：wg 树内嵌 fui 视图（每帧重建）
+	auto wgBridgeMaker = [&] {
+		return Mk::fui::hbox(8.0f,
+			Mk::fui::label("fui 视图（每帧重建）"),
+			Mk::fui::labelText("音量", std::to_string(s.volume).substr(0, 4)));
+	};
+	Mk::wg::FuiView<decltype(wgBridgeMaker)> bridgeNode(wgBridgeMaker);
+	s.wgTreeBridge = &bridgeNode.node;
+
+	GLFWwindow* handle = gallery.getHandle();   // 菜单 Exit 回调用
 
 	gallery.setUI([&] {
 		// 动画驱动

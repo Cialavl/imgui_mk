@@ -33,6 +33,8 @@ namespace Mk::wg {
 
 	struct Rect {
 		float x = 0.0f, y = 0.0f, w = 0.0f, h = 0.0f;
+		Rect() = default;
+		Rect(float xx, float yy, float ww, float hh) : x(xx), y(yy), w(ww), h(hh) {}
 	};
 
 	// ============ 样式（组合件，默认值来自当前 ImGui 样式）============
