@@ -1,80 +1,153 @@
-// 教程 07：布局系统演进。文档：lessons/lesson-07-layout.md
-// 四个版本并排对照：绝对像素 → hsplit/vsplit → em 设计像素 → min/atMost 约束。
-// 顶栏实时显示窗口宽度；§7.3 需要拖窗口跨宽度档位观察字号变化（本程序开启自适应）。
+// 教程 07：布局系统。文档：lessons/lesson-07-layout.md
+// 唯一布局控件 Layout（mode 切换 V/H/Wrap/Grid/SplitH/SplitV/Overlay）——
+// 四个版本对照：原始固定宽 → SplitH 权重分格 → 字号等比（em）→ 约束分格。
+// 分格是填充型容器：layout(host) 保留 host 尺寸；setFixed 尺寸为设计像素（em 缩放）。
 #include <imgui_mk/window.h>
 #include <imgui_mk/mkui.h>
 #include <Mainwindow.h>
-#include <imgui_mk/ui/fui.h>
+#include <imgui_mk/ui/wg.h>
+#include <imgui_mk/ui/wg_controls.h>
+#include <imgui_mk/ui/wg_style.h>
 #include <array>
 #include <string>
 
 int main() {
-	// 工作区比例尺寸 + 字号/宽度双自适应：本课的"实验器材"
-	Mk::fui::setDefaultTheme(Mk::fui::scaledForMonitor(Mk::fui::Theme::dark()));
+	// 应用级尺寸 + 字号/间距双动态自适应（"实操窗口"）
+	Mk::wg::setDefaultTheme(Mk::wg::scaledForMonitor(Mk::wg::Theme::dark()));
 	const auto [w, h] = Mk::workAreaSize(0.9f, 0.9f, 1280, 900);
-	Mk::MainWindow<> mainWindow("教程07：布局系统演进（拖窗口宽度做实验！）", w, h);
+	Mk::MainWindow<> mainWindow("教程07：布局系统（拖大窗口宽度做实验！）", w, h);
 	mainWindow.getWindow().setAutoScaleFont(true);
 
 	static constexpr const char* kVersions[] = {
-		"v1 绝对像素", "v2 hsplit", "v3 em/fixedPx 对照", "v4 约束三栏",
-	};   // §6.6-1 items 须长期存活（不能用临时 init-list）
-	int sel = 0;    // 版本切换（0..3 对应 §7.1..§7.4）
+		"v1 原始固定宽", "v2 Layout SplitH", "v3 字号等比（em）", "v4 约束分格",
+	};
+	int sel = 0;
 	std::array<char, 64> v4buf{};
 	int frames = 0;
 
+	// —— 四个版本的演示树（When 切换可见性，全部常驻内存；子先声明）——
+	// v1：固定宽度子窗口
+	Mk::wg::SubWindow<> v1a, v1b, v1c;
+	Mk::wg::Label l1a, l1b, l1c;
+	l1a.self.setName("固定 250 宽");
+	l1b.self.setName("自适应（挤压后文字溢出）");
+	l1c.self.setName("固定 200");
+	v1a.node.idname = "v1a";  v1a.self.width = 250.0f;  v1a.self.height = 200.0f;
+	v1a.node.add(l1a.node);
+	v1b.node.idname = "v1b";  v1b.self.width = 0.0f;    v1b.self.height = 200.0f;
+	v1b.node.add(l1b.node);
+	v1c.node.idname = "v1c";  v1c.self.width = 200.0f;  v1c.self.height = 200.0f;
+	v1c.node.add(l1c.node);
+	Mk::wg::Layout v1;
+	v1.self.mode = Mk::wg::LayoutMode::H;
+	v1.node.add(v1a.node);
+	v1.node.add(v1b.node);
+	v1.node.add(v1c.node);
+
+	// v2：SplitH 权重分格
+	Mk::wg::Label l2a, l2b, l2c;
+	l2a.self.setName("导航\nfixed 150");
+	l2b.self.setName("主区 stretch 权重 2");
+	l2c.self.setName("侧区 stretch 权重 1");
+	Mk::wg::setFixed(l2a.node, 150.0f);
+	Mk::wg::setStretch(l2b.node, 2.0f);
+	Mk::wg::setStretch(l2c.node, 1.0f);
+	Mk::wg::Layout v2;
+	v2.self.mode = Mk::wg::LayoutMode::SplitH;
+	v2.node.add(l2a.node);
+	v2.node.add(l2b.node);
+	v2.node.add(l2c.node);
+
+	// v3：SplitV + em 字号等比工具栏
+	Mk::wg::Button tbA1, tbA2, tbA3, tbB1, tbB2, tbB3;
+	tbA1.self.setName("新");  tbA2.self.setName("开");  tbA3.self.setName("存");
+	tbB1.self.setName("新");  tbB2.self.setName("开");  tbB3.self.setName("存");
+	Mk::wg::Layout barA, barB;
+	barA.self.mode = Mk::wg::LayoutMode::H;
+	barA.node.add(tbA1.node);
+	barA.node.add(tbA2.node);
+	barA.node.add(tbA3.node);
+	barB.self.mode = Mk::wg::LayoutMode::H;
+	barB.node.add(tbB1.node);
+	barB.node.add(tbB2.node);
+	barB.node.add(tbB3.node);
+	Mk::wg::Label l3c;
+	l3c.self.setName("主区内容");
+	Mk::wg::setFixed(barA.node, 44.0f);   // 设计像素：随字号等比缩放
+	Mk::wg::setFixed(barB.node, 44.0f);
+	Mk::wg::setStretch(l3c.node, 1.0f);
+	Mk::wg::Layout v3;
+	v3.self.mode = Mk::wg::LayoutMode::SplitV;
+	v3.node.add(barA.node);
+	v3.node.add(barB.node);
+	v3.node.add(l3c.node);
+
+	// v4：min/maxFrac 约束分格
+	Mk::wg::Label l4a;
+	l4a.self.setName("侧栏\npreferred 250\nmin 150\natMost 35%");
+	Mk::wg::Label l4main;
+	l4main.self.setName("主区 weight 1");
+	Mk::wg::InputText<64> v4input;
+	v4input.self.name = "占满输入";
+	Mk::wg::Layout v4main;
+	v4main.self.mode = Mk::wg::LayoutMode::V;
+	v4main.node.add(l4main.node);
+	v4main.node.add(v4input.node);
+	Mk::wg::setFixed(l4a.node, 250.0f, 150.0f, 0.35f);   // 收缩下限 150 / 上限 35%
+	Mk::wg::setStretch(v4main.node, 1.0f);
+	Mk::wg::Layout v4;
+	v4.self.mode = Mk::wg::LayoutMode::SplitH;
+	v4.node.add(l4a.node);
+	v4.node.add(v4main.node);
+
+	// 顶部仪表 + 版本切换（When 包裹版本树，隐藏时不布局不渲染）
+	Mk::wg::SeparatorText gauge;
+	gauge.self.name = "实验仪表：拖窗口右边缘变宽，观察各版本行为";
+	Mk::wg::LabelText ltW, ltFont, ltFrame;
+	ltW.self.name = "窗口宽";
+	ltFont.self.name = "字号";
+	ltFrame.self.name = "帧";
+	Mk::wg::Layout gaugeRow;
+	gaugeRow.self.mode = Mk::wg::LayoutMode::H;
+	gaugeRow.node.add(ltW.node);
+	gaugeRow.node.add(ltFont.node);
+	gaugeRow.node.add(ltFrame.node);
+	Mk::wg::RadioGroup verSel;
+	verSel.self.items = kVersions;
+	verSel.self.count = 4;
+	verSel.self.current = &sel;
+
+	Mk::wg::When<Mk::wg::Layout> w1, w2, w3, w4;
+	w1.node.add(v1.node);
+	w2.node.add(v2.node);
+	w3.node.add(v3.node);
+	w4.node.add(v4.node);
+
+	Mk::wg::Label vNote;
+	vNote.self.setName("v1 固定宽在窄窗口溢出；v2 分格按权重分配；v3 尺寸随字号等比（em）；"
+		"v4 有 min/maxFrac 约束");
+
+	Mk::wg::Layout root;
+	root.self.mode = Mk::wg::LayoutMode::V;
+	root.node.add(gauge.node);
+	root.node.add(gaugeRow.node);
+	root.node.add(verSel.node);
+	root.node.add(w1.node);
+	root.node.add(w2.node);
+	root.node.add(w3.node);
+	root.node.add(w4.node);
+	root.node.add(vNote.node);
+
 	mainWindow.setUI([&] {
 		++frames;
-		using namespace Mk::fui;
-
-		// 顶栏：实验仪表（当前窗口宽度——拖动时观察）
-		draw(vbox(6.0f,
-			separatorText("实验仪表：拖动窗口右边缘改变宽度，观察下面各区"),
-			hbox(16.0f,
-				labelText("窗口宽", std::to_string((int)ImGui::GetMainViewport()->Size.x)),
-				labelText("字号", std::to_string((int)ImGui::GetFontSize())),
-				labelText("帧", std::to_string(frames))),
-			radioGroup(kVersions, sel),
-
-			// —— §7.1 第一版：绝对像素（暴露：拖窄窗口侧栏吃屏）——
-			when(sel == 0, vbox(4.0f,
-				textColored("拖窄窗口：侧栏 250px 纹丝不动，内容区被挤没",
-					ImVec4(0.9f, 0.5f, 0.3f, 1)),
-				hbox(0.0f,
-					subwindow("v1 侧栏(绝对250)", ImVec2(250, 200), true, label("固定 250 像素")),
-					subwindow("v1 内容", ImVec2(0, 200), true, label("自适应（被挤压的受害者）")),
-					subwindow("v1 右栏(绝对200)", ImVec2(200, 200), true, label("固定 200"))))),
-
-			// —— §7.2 第二版：hsplit/stretch（改善：不再溢出；遗留：侧栏占比仍涨）——
-			when(sel == 1, vbox(4.0f,
-				textColored("拖窄窗口：内容区优雅收缩，但侧栏占比越来越大 → 引出 v4",
-					ImVec4(0.9f, 0.7f, 0.3f, 1)),
-				hsplit(
-					fixed("v2nav", 150.0f, label("导航\nfixed 150")),
-					stretch("v2main", 2.0f, label("主区 stretch 权重 2")),
-					stretch("v2side", 1.0f, label("侧 stretch 权重 1"))))),
-
-			// —— §7.3 第三版：em vs fixedPx（拖窗口跨 2000 档位看字号变化）——
-			when(sel == 2, vbox(4.0f,
-				textColored("拖窗口跨过 2000px（字号档位切换）：上排 fixed 跟随字号，下排 fixedPx 被裁",
-					ImVec4(0.7f, 0.9f, 0.5f, 1)),
-				vsplit(
-					fixed("v3a", 44.0f, hbox(4.0f,   // 设计像素：随字号
-						button("新", [] {}), button("打", [] {}), button("存", [] {}))),
-					fixedPx("v3b", 44.0f, hbox(4.0f,  // 真像素：字号一大按钮被裁
-						button("新", [] {}), button("打", [] {}), button("存", [] {}))),
-					stretch("v3c", 1.0f, label("对照区"))))),
-
-			// —— §7.4 第四版：min/atMost 约束三栏（终版：三层各司其职）——
-			when(sel == 3, vbox(4.0f,
-				textColored("侧栏带约束：宽窗 250 / 中窗至多 35% / 极窄 150 兜底",
-					ImVec4(0.5f, 0.9f, 0.7f, 1)),
-				hsplit(
-					fixed("v4sb", 250.0f, label("侧栏\npreferred 250\nmin 150\natMost 35%"))
-						.min(150.0f).atMost(0.35f),
-					stretch("v4main", 1.0f, vbox(4.0f,
-						label("主区（weight 1）"),
-						widthFrac(1.0f, inputText("占满内容区", v4buf)))))))));
-
+		ltW.self.value = std::to_string((int)ImGui::GetMainViewport()->Size.x);
+		ltFont.self.value = std::to_string((int)ImGui::GetFontSize());
+		ltFrame.self.value = std::to_string(frames);
+		w1.self.show = (sel == 0);
+		w2.self.show = (sel == 1);
+		w3.self.show = (sel == 2);
+		w4.self.show = (sel == 3);
+		root.layout(Mk::wg::Rect{20, 20, 1240, 860});
 	});
 
 	Mk::mkui<Mk::window>::run();

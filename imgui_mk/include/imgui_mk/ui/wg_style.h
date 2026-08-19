@@ -1,20 +1,18 @@
 #pragma once
 #include <imgui_mk/windowRendereren.h>
-#include <imgui_mk/ui/fui_core.h>
 #include <utility>
 
-// 函数式控件库·主题模块：Theme 纯值类型（颜色 + 几何），预设与链式派生。
+// Mk::wg 主题模块：Theme 纯值类型（颜色 + 几何），预设与链式派生。
 // 应用粒度两层：
 //   窗口级  applyTheme(ctx, theme) / window::setTheme(theme)
 //           —— 每窗口独立 ImGui 上下文，天然按窗口异肤
-//   子树级  styled(theme, view) 修饰器 —— PushStyleColor/Var 包裹作用域
-//           styleVar(var, value, view) 单变量粒度
+//   子树级  Styled 控件（wg_controls.h）—— PushStyleColor/Var 包裹作用域
 //
-// 几何中的 itemSpacing 即全局控件间距：容器 vbox/hbox 的 spacing < 0（默认）
+// 几何中的 itemSpacing 即全局控件间距：VBox/HBox 的 spacing < 0（默认）
 // 本就回落到 ImGui style，因此主题一改、所有容器间距跟随，无需逐处配置。
 // 几何随 fontSize 等比联动（见 Theme 字段与 applyTheme）；字体位图本身在窗口创建时按 fontSize 烘焙，setTheme 运行时切换不重建图集。
 
-namespace Mk::fui {
+namespace Mk::wg {
 
 	// ============ Theme：纯值 ============
 
@@ -174,23 +172,17 @@ namespace Mk::fui {
 		c[ImGuiCol_ModalWindowDimBg] = ImVec4(0.10f, 0.10f, 0.12f, 0.55f);
 	}
 
-	// ============ 子树作用域修饰器 ============
-
-	// 主题作用域换肤：Push 全部主题色 + 几何，子树渲染后配对 Pop。
-	// 典型用途：局部 accent 覆盖、紧凑/宽松区域（withItemSpacing 派生）
-	template<typename T>
-	struct Styled {
-		Theme theme;
-		T child;
-	};
-
-	template<typename T>
-	void draw(const Styled<T>& w);
+	// ============ 默认主题与 DPI ============
 
 	namespace detail {
-		// push 主题（26 色 + 3 变量）；draw(Styled) 内 Pop 数量与此配对，改动时两边同步
-		inline int pushTheme(const Theme& t) {
-			ImGuiStyle& s = ImGui::GetStyle();
+		// 全局默认主题槽（函数局部 static，跨 TU 合一；窗口构造时读取）
+		inline Theme& defaultThemeSlot() {
+			static Theme t = Theme::dark();
+			return t;
+		}
+
+		// push 主题（26 色 + 3 变量）；Styled 控件（wg_controls.h）内 Pop 数量与此配对
+		inline void pushTheme(const Theme& t) {
 			ImGui::PushStyleColor(ImGuiCol_Text, t.text);
 			ImGui::PushStyleColor(ImGuiCol_TextDisabled, t.textDisabled);
 			ImGui::PushStyleColor(ImGuiCol_WindowBg, t.windowBg);
@@ -225,73 +217,8 @@ namespace Mk::fui {
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
 				ImVec2(t.itemSpacingX >= 0.0f ? t.itemSpacingX : 0.58f * t.fontSize,
 					t.itemSpacingY >= 0.0f ? t.itemSpacingY : 0.34f * t.fontSize));
-			(void)s;
-			return 0;
 		}
-	}
-
-	template<typename T>
-	void draw(const Styled<T>& w) {
-		detail::pushTheme(w.theme);
-		draw(w.child);
-		ImGui::PopStyleColor(26);
-		ImGui::PopStyleVar(3);
-	}
-
-	// 单样式变量作用域（float 或 ImVec2 重载由 ImGui 的 PushStyleVar 双签名分流）
-	template<typename T>
-	struct StyleVarF {
-		ImGuiStyleVar idx;
-		float value;
-		T child;
-	};
-	template<typename T>
-	struct StyleVarV {
-		ImGuiStyleVar idx;
-		ImVec2 value;
-		T child;
-	};
-
-	template<typename T> void draw(const StyleVarF<T>& w);
-	template<typename T> void draw(const StyleVarV<T>& w);
-
-	template<typename T>
-	void draw(const StyleVarF<T>& w) {
-		ImGui::PushStyleVar(w.idx, w.value);
-		draw(w.child);
-		ImGui::PopStyleVar();
-	}
-	template<typename T>
-	void draw(const StyleVarV<T>& w) {
-		ImGui::PushStyleVar(w.idx, w.value);
-		draw(w.child);
-		ImGui::PopStyleVar();
-	}
-
-	// ============ 工厂 ============
-
-	template<typename T>
-	auto styled(Theme theme, T child) {
-		return Styled<std::decay_t<T>>{std::move(theme), std::move(child)};
-	}
-	template<typename T>
-	auto styleVar(ImGuiStyleVar idx, float value, T child) {
-		return StyleVarF<std::decay_t<T>>{idx, value, std::move(child)};
-	}
-	template<typename T>
-	auto styleVar(ImGuiStyleVar idx, const ImVec2& value, T child) {
-		return StyleVarV<std::decay_t<T>>{idx, value, std::move(child)};
-	}
-
-	// ============ 默认主题与 DPI ============
-
-	namespace detail {
-		// 全局默认主题槽（函数局部 static，跨 TU 合一；窗口构造时读取）
-		inline Theme& defaultThemeSlot() {
-			static Theme t = Theme::dark();
-			return t;
-		}
-	}
+	} // namespace detail
 
 	// 当前全局默认主题（未设置过则 dark@18）
 	inline const Theme& defaultTheme() { return detail::defaultThemeSlot(); }
@@ -323,4 +250,4 @@ namespace Mk::fui {
 		return r;
 	}
 
-}
+} // namespace Mk::wg

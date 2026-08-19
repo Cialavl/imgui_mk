@@ -1,67 +1,25 @@
-# 统一测试整合：GUI 示例（test / test2 / test3，兼作 GUI 冒烟测试目标）+ gtest 单元测试
+# wg-only 测试整合：GUI 示例（引擎冒烟 + wg 控件体系验证）+ gtest 单元测试
 # 注意：CMake 4 启用 CTest 后保留目标名 "test"，因此 CTest 只能开在本子目录
 
-# GUI 示例目标（源码平铺在本目录）
+# —— GUI 示例：引擎/窗口层（交互式或自动关窗）——
 add_executable(test windowstest.cpp)
-target_link_libraries(test PRIVATE imgui_mk)
-
 add_executable(test2 windowstest2.cpp)
-target_link_libraries(test2 PRIVATE imgui_mk)
-
 add_executable(test3 windowstest3.cpp)
-target_link_libraries(test3 PRIVATE imgui_mk)
 
-# 控件树验证示例：自动渲染约 90 帧后关闭，退出码 0 表示通过
-add_executable(test4 windowstest4.cpp)
-target_link_libraries(test4 PRIVATE imgui_mk)
+# —— wg 控件体系验证（自动关窗，退出码 0 = 通过）——
+add_executable(test16 windowstest16.cpp)   # 容器布局/生命周期确定性断言
+add_executable(test17 windowstest17.cpp)   # 全控件渲染 soak
+add_executable(test18 windowstest18.cpp)   # 双顶层窗口联动
+add_executable(test19 windowstest19.cpp)   # 主题切换/rescale/作用域
+add_executable(test20 windowstest20.cpp)   # 分格布局（Fixed/Stretch/em）断言
+add_executable(test21 windowstest21.cpp)   # 布局嵌套全量（容器/分格/子窗口互嵌 + origin 不变量）
+add_executable(test22 windowstest22.cpp)   # 原子控件实测几何（真实 item 矩形 vs bounds）
 
-# 控件树示例：演示 setWidget 挂载、布局容器、动态增删子控件（交互式，手动关窗退出）
-add_executable(test5 windowstest5.cpp)
-target_link_libraries(test5 PRIVATE imgui_mk)
+foreach(tgt test test2 test3 test16 test17 test18 test19 test20 test21 test22)
+    target_link_libraries(${tgt} PRIVATE imgui_mk)
+endforeach()
 
-# 嵌套多窗口示例：双顶层窗口 + 三层嵌套子窗口 + 跨窗口数据联动（交互式，全关退出）
-add_executable(test6 windowstest6.cpp)
-target_link_libraries(test6 PRIVATE imgui_mk)
-
-# 函数式控件树验证：每帧重建视图值 + 修饰器 + ADL 扩展 + 双向桥，120 帧 PASS 退出码 0
-add_executable(test7 windowstest7.cpp)
-target_link_libraries(test7 PRIVATE imgui_mk)
-
-# 批次1：函数式输入控件验证（120 帧 PASS 退出码 0）
-add_executable(test8 windowstest8.cpp)
-target_link_libraries(test8 PRIVATE imgui_mk)
-
-# 批次2：函数式显示反馈控件验证（120 帧 PASS 退出码 0）
-add_executable(test9 windowstest9.cpp)
-target_link_libraries(test9 PRIVATE imgui_mk)
-
-# 批次3：函数式结构容器验证（120 帧 PASS 退出码 0）
-add_executable(test10 windowstest10.cpp)
-target_link_libraries(test10 PRIVATE imgui_mk)
-
-# 批次4：函数式弹窗与高级控件验证（120 帧 PASS 退出码 0）
-add_executable(test11 windowstest11.cpp)
-target_link_libraries(test11 PRIVATE imgui_mk)
-
-# mkui 控件画廊：双库（OOP + 函数式）全量交互展示（手动关窗退出）
-
-# 主题与自适应布局验证：hsplit 权重/widthFrac/styled 作用域/setTheme（120 帧 PASS 退出码 0）
-add_executable(test13 windowstest13.cpp)
-target_link_libraries(test13 PRIVATE imgui_mk)
-
-# 文字溢出自适应验证：fixed em 化/fixedPx/em2/labelEllipsis/withMinWidth（120 帧 PASS 退出码 0）
-add_executable(test14 windowstest14.cpp)
-target_link_libraries(test14 PRIVATE imgui_mk)
-
-# flexbox 约束分格验证：min/preferred/maxFrac 矩阵 + 账目平衡（120 帧 PASS 退出码 0）
-add_executable(test15 windowstest15.cpp)
-target_link_libraries(test15 PRIVATE imgui_mk)
-
-# wg 模板 struct 控件体系验证（基座/布局/生命周期/样式，120 帧 PASS 退出码 0）
-add_executable(test16 windowstest16.cpp)
-target_link_libraries(test16 PRIVATE imgui_mk)
-
-# 单元测试：gtest（FetchContent 源码构建，随各配置自动匹配 CRT/ASan 标志）
+# —— 单元测试：gtest（FetchContent 源码构建，随各配置自动匹配 CRT/ASan 标志）——
 # 单测源码命名 *_test.cpp（与示例 windowstest*.cpp 区分）
 include(CTest)
 if(BUILD_TESTING)
@@ -72,14 +30,9 @@ if(BUILD_TESTING)
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
     FetchContent_MakeAvailable(googletest)
     file(GLOB unit_srcs CONFIGURE_DEPENDS *_test.cpp)
-    # passman 单测依赖 passman_core（仅 Release /MD 树存在）；其余树剔除其源文件
-    if(NOT TARGET passman_core)
-        list(FILTER unit_srcs EXCLUDE REGEX "passman_test\\.cpp$")
-    endif()
     add_executable(unit_tests ${unit_srcs})
     target_link_libraries(unit_tests PRIVATE imgui_mk GTest::gtest_main)
-    if(TARGET passman_core)
-        target_link_libraries(unit_tests PRIVATE passman_core)
-    endif()
     add_test(NAME unit_tests COMMAND unit_tests)
 endif()
+
+

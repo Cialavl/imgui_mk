@@ -16,8 +16,7 @@ mkui 是 C++23 的 GUI 库，封装 ImGui（ Dear ImGui 1.91）+ GLFW + OpenGL�
 - **OpenGL 3** 负责实际渲染。
 
 mkui 在这三者之上做了三件事：窗口生命周期管理（`Mk::window`）、
-多窗口引擎循环（`Mk::mkui`）、两套控件库（OOP 树 `Mk::ui` 与函数式 `Mk::fui`，
-第 03、04 课起分别讲授）。
+多窗口引擎循环（`Mk::mkui`）、模板控件体系（`Mk::wg`：无继承的模板 struct 控件 + 组合壳 `Control`，第 03 课起讲授）。
 
 ## §0.2 环境要求
 
@@ -136,3 +135,4 @@ ImGui::Text("鼠标：%.0f, %.0f", io.MousePos.x, ...);      // 鼠标坐标实�
 - `imgui_mk/include/imgui_mk/window.h` 构造函数：看"自动注册"那行注释。
 - `imgui_mk/include/imgui_mk/mkui.h`：`run()` 全文不足 40 行，值得通读。
 - 下一课：窗口的生与死——为什么"关闭"在 mkui 里是个需要认真对待的话题。
+

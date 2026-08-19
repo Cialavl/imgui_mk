@@ -1,119 +1,77 @@
-# 第 06 课：完整控件集巡礼
+# 第 06 课：控件目录巡礼
 
-配套程序：`src/tutorial06_catalog.cpp`——一个程序装下全部常用控件，
-按"输入 / 显示 / 容器 / 弹窗"四区组织，本文按区逐项讲契约。
+配套程序：`src/tutorial06_catalog.cpp`。一站式过一遍 wg 的常用控件，
+以及"树外常驻"的菜单栏与弹窗。
 
-## §6.1 输入控件：一切皆引用绑定
-
-输入类控件的统一哲学：**绑定外部变量，交互直接写回**。
-items 类（radioGroup/combo/listBox）的字符串数组由调用方持有
-（`static constexpr` 数组或长期存活容器），存活期覆盖 run()。
-
-| 控件 | 绑定 | 备注 |
-|---|---|---|
-| `inputText("标签", buf)` | `std::array<char,N>&` | 容量编译期可知；配合 `withMinWidth/widthFrac` 控宽 |
-| `inputInt/inputFloat/inputDouble` | `int&/float&/double&` | |
-| `inputInt2/inputFloat2` | `std::array<T,2>&` | vec2 场景 |
-| `dragF/dragI` | 数值引用 + speed/min/max | 拖拽改值 |
-| `slider("标签", v, mn, mx)` | `float&` | 还有 sliderInt/sliderAngle |
-| `radioGroup(items, current)` | `int&` | 单选组 |
-| `combo/listBox("标签", current, items)` | `int&` + items span | 选中下标 |
-
-配套程序 §6.1 区每个控件都接了实时回显（labelText 显示绑定变量当前值）——
-改任何输入，回显同帧变化，这是"绑定"最直观的证明。
-
-## §6.2 显示控件：状态外置的只读视图
-
-| 控件 | 数据来源 | 备注 |
-|---|---|---|
-| `label(text)` / `labelEllipsis(text)` | 持字符串副本 | ellipsis 版超宽截断（§5.1） |
-| `textColored(text, color)` / `textWrapped(text)` / `bulletText(text)` | 副本 | 变体样式 |
-| `labelText("名", "值")` | 两段副本 | 属性表风格 |
-| `progressBar(fraction, size, overlay)` | `float&` | 绑定引用可被逻辑侧驱动 |
-| `selectable("行", selected)` | `bool&` | 选中态外置 |
-| `plotLines("名", values, size)` | `const std::vector<float>&` | 历史曲线；逻辑侧 push 数据 |
-| `image(tex, size)` / `imageButton(id, tex, size, cb)` | `ImTextureID` | 纹理经 `loadTextureRGBA` 上传 |
-| `separator()` / `separatorText("标题")` | — | 分隔 |
-
-纹理辅助（`fui_display.h`）：
+## §6.1 输入类
 
 ```cpp
-ImTextureID tex = Mk::fui::loadTextureRGBA(rgbaPixels, w, h);  // 上传
-Mk::fui::deleteTexture(tex);                                    // 释放（GL 上下文存活期间）
+Mk::wg::InputText<64>  text;   text.self.label = "文本";
+Mk::wg::InputInt       i;      i.self.value = &iVal;
+Mk::wg::InputFloat     f;      f.self.value = &fVal;
+Mk::wg::InputFloat2    v2;     v2.self.value = &fv;      // std::array<float,2>*
+Mk::wg::DragF          drag;   drag.self.value = &drag;  drag.self.speed = 0.01f;
+Mk::wg::SliderF        slide;  slide.self.value = &slideV;
+Mk::wg::RadioGroup     rg;     rg.self.items = kItems; rg.self.count = 3; rg.self.current = &radio;
+Mk::wg::Combo          combo;  combo.self.current = &comboSel; combo.self.items = kItems; combo.self.count = 3;
+Mk::wg::ListBox        list;   list.self.current = &listSel;   list.self.items = kItems; list.self.count = 3;
 ```
 
-## §6.3 容器：结构即布局
+要点：`items` 必须长期存活（配套程序用 `static constexpr` 数组）；
+`current` 是选中下标（`int*`）。
 
-第 03 课讲过 OOP 容器；函数式同款（子视图变参收入 tuple）：
-`vbox/hbox/group/collapsing/subwindow`，以及进阶容器
-`tabBar/tab`（仅激活页渲染）、`textTable`（数据驱动表格）、
-`fnTable`（cell 函数泛型表格）、`menuBar/menu/menuItem`（菜单栏，
-注意放 UI 树开头——它画完后把宿主光标下移，避免与内容重叠）、
-`panel`（宿主内可拖动浮动面板）。
+## §6.2 显示类
 
 ```cpp
-// fnTable：单元格是函数，数据来源任意（本课程序的表格区）
-fnTable("表", kHeaders, 3, [](int r, int c) {
-    return std::format("r{}c{}", r, c);
-});
+Mk::wg::ProgressBar pb;   pb.self.fraction = &progress;
+Mk::wg::Selectable  sl;   sl.self.selected = &rowSel;
+Mk::wg::PlotLines   pl;   pl.self.values = &history;   // const vector<float>*
 ```
 
-`textTable` 绑定 `const std::vector<std::vector<std::string>>&`——
-逻辑侧改 vector，表格内容每帧跟随（配套程序演示实时刷新的表）。
+`history` 由逻辑侧每帧 push 并裁剪（配套程序帧循环里做），PlotLines
+只读绑定——显示控件不持有数据。
 
-## §6.4 弹窗与颜色：标志触发式
-
-popup 的设计：**bool 标志触发**——置位当帧 `OpenPopup` 后自动回落；
-弹窗内容每帧渲染，直到某个回调里 `CloseCurrentPopup()`（gallery 的
-`ClosePopupButton` 控件就是干这个的）。
+## §6.3 容器：TabBar 与表格
 
 ```cpp
-bool aboutOpen = false;
-button("关于", [&]{ aboutOpen = true; });      // 触发
-popup("about", aboutOpen,                      // 内容（每帧）
-    label("..."),
-    CloseButton{});                            // 自定义控件：点了就关
+Mk::wg::TabBar<Mk::wg::Tab<Mk::wg::TextTable>, Mk::wg::Tab<Mk::wg::FnTable>> tabs;
+tabs.self.id = "tabs6";
+tabs.child<0>().node.id = "数据表";          // 页名存 node.id
+tabs.child<0>().child<0>().self.rows = &rows; // TextTable：数据驱动
+tabs.child<1>().child<0>().self.cell = [](int r, int c) {
+    return std::to_string(r) + "," + std::to_string(c);
+};                                            // FnTable：单元格函数
 ```
 
-模态版 `popupModal(id, open, flags, 子视图...)` 阻塞宿主交互。
-**注意**：模态打开会强制关闭已打开的普通弹窗（ImGui 模态独占语义）——
-不要同时常驻两者。
+TabBar 只渲染激活页；Tab 的页名就是其 `node.id`。
 
-颜色控件绑定 `std::array<float,3|4>`：`colorEdit3/4`（紧凑编辑）、
-`colorPicker3/4`（完整拾取器）。`checkboxFlags("名", flags, mask)`
-绑定 `int&` 按位切换——位标志面板的标配。
+## §6.4 弹窗：标志触发式
 
-## §6.5 一个真实面板的组装节奏
+```cpp
+Mk::wg::Popup<Mk::wg::Label, CloseButton> pop;
+pop.self.id = "about6";
+pop.self.open = &aboutOpen;   // 置 true 当帧 OpenPopup，随后自动回落
+pop.child<1>().self.label = "关闭";
+```
 
-配套程序最后一块"综合区"按真实开发节奏组装：
+`PopupModal` 是模态变体（阻挡宿主交互）。关闭按钮必须调用
+`ImGui::CloseCurrentPopup()`（配套程序的 `CloseButton` 控件）。
 
-1. 先摆骨架（vbox + 分区 separatorText）；
-2. 填输入（滑块/勾选/下拉，全部绑定状态）；
-3. 接显示（进度/曲线回显状态）；
-4. 包修饰（when 控制高级区、disabled 控制关联项）；
-5. 挂弹窗（about/settings 触发按钮 + popup 内容）。
+## §6.5 菜单栏：树外常驻
 
-## §6.6 常见错误
+菜单栏不属于主体树——它在窗口顶部独立布局：
 
-1. **items 数组是局部变量**：`combo` 收到的 span 指向已析构的栈数组。
-   items 必须 static/全局/长期存活。
-2. **plotLines 的 vector 在 setUI 里每帧重建再填**：能跑但浪费；
-   正确姿势是外置 vector + 逻辑侧 push/裁剪（滚动窗口）。
-3. **menuBar 放树中间**：光标下移发生在它画完的位置——放最开头。
-4. **弹窗想"打开时做一次性初始化"**：popup 内容每帧执行！一次性逻辑
-   放触发按钮回调里（置位标志旁边），别放弹窗内。
-5. **模态+普通弹窗同时常驻**：见 §6.4，模态会关掉普通弹窗。
+```cpp
+Mk::wg::MenuBar<Mk::wg::Menu<Mk::wg::MenuItem>> menuTree;
+menuTree.child<0>().self.label = "文件";
+menuTree.child<0>().child<0>().self.label = "关于";
+menuTree.child<0>().child<0>().self.onClick = [&] { aboutOpen = true; };
+// 每帧：menuTree.layout({0, 0, w, 24});
+```
 
-## §6.7 练习
+## 练习
 
-1. 给综合区加一个 ListBox 选择"主题预设"（假数据即可），选中项显示在
-   labelText。
-2. plotLines 区：把 sin 换成两个 sin 叠加，观察曲线形状。
-3. 挑战：点表格某行弹出该行详情 popup（提示：fnTable 的 cell 函数里
-   无法直接放 Selectable——改用 textTable + 行前 button，或自定义 cell 控件）。
-
-## §6.8 进一步阅读
-
-- `apps/gallery/src/gallery_pages.h`：38 个演示页 = 本课的完全体。
-- 附录 A：全部 API 的速查表。
-- 下一课：布局系统——让控件在窗口大小/字号变化时依然优雅。
+1. 给目录加一个 `CheckboxFlags` 三连（位 A/B/C 绑定同一个 `int`）。
+2. 把 FnTable 的 cell 改成返回"第 r 行第 c 列"的中文。
+3. 观察 TabBar：切页后另一页的控件状态是否保留？（控件是常驻对象，
+   状态在绑定变量里，天然保留。）

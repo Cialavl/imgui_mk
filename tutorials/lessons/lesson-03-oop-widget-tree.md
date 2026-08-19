@@ -1,135 +1,98 @@
-# 第 03 课：OOP 控件树
+# 第 03 课：wg 模板对象树
 
-配套程序：`src/tutorial03_oop_tree.cpp`。前两课我们手写 ImGui 调用，
-当代码量增长，需要结构化手段——第一套是 OOP 控件树（`Mk::ui`）。
+配套程序：`src/tutorial03_oop_tree.cpp`。从本课起讲授 mkui 唯一的控件体系
+`Mk::wg`：**无继承的模板 struct 控件**，经组合壳 `Control` 组装成树。
 
-## §3.1 Widget：统一 draw() 入口
+## §3.1 控件 = 模板 struct（数据 + 功能函数）
+
+经典 OOP 用"继承 + 虚函数"做多态；wg 反过来：**控件就是自己的模板
+struct**——数据成员（字符串、绑定指针、回调）与功能函数（render/measure/
+arrange 等）都在同一个 struct 里，零继承、零虚表：
 
 ```cpp
-class Widget {
-public:
-    void draw();                       // 唯一公共渲染入口（非虚！）
-    virtual void render() = 0;         // 子类实现这里（protected）
-    Widget& add(Widget& child);        // 挂子控件（裸引用，不接管所有权）
-    bool remove(Widget& child);        // 摘除（墓碑，见 §3.4）
-    void setVisible(bool);             // 子树整体隐藏
-    void setEnabled(bool);             // 子树整体禁用（灰化）
+struct ButtonImpl {
+    std::string label;
+    std::function<void()> onClick;
+
+    void renderImpl(Node& n) { ... }        // 画自己
+    Size measureImpl(Node&, const Size&);   // 求期望尺寸
+    void arrangeImpl(Node&, const Rect&);   // 记录 bounds
 };
+using Button = Mk::wg::Control<ButtonImpl, Mk::wg::DefaultStyle>;
 ```
 
-关键设计：`draw()` 是非虚的公共入口，它统一做三件事后委托给虚函数
-`render()`：
+配套程序里的自定义 `StatusDriver` 就是这种形态：render 时驱动整棵树的
+逻辑（刷新状态文本、同步 `settings->visible`）。
 
-```text
-draw()
- ├─ 不可见 → 整棵子树直接跳过
- ├─ PushID(this) → 以对象地址隔离 ID（同名按钮不再冲突）
- ├─ 禁用 → BeginDisabled() 包裹
- └─ render()   ← 你的实现
-```
+## §3.2 组合壳 Control：编译期子节点
 
-这保证了**任何控件都免费获得**可见性/禁用/ID 隔离，子类不必重复实现。
+`Control<Self, Style, Ts...>` 持有四样东西：
 
-## §3.2 组装一棵树
-
-配套程序组装的树（声明顺序 = 组装顺序，全部是 main 栈上的长期对象）：
-
-```text
-VBox root
-├─ Label status            （每帧 setText 更新文本）
-├─ HBox toolRow
-│   ├─ Button add("添加")
-│   └─ Button del("删除")
-├─ CheckBox visibleBox     （控制下面整组）
-├─ Group settings
-│   ├─ SliderF vol("音量", volume)     ← 引用绑定外部 float
-│   └─ CheckBox muteBox("静音", mute)  ← 引用绑定外部 bool
-└─ SubWindow panel("列表子窗口")
-    └─ VBox listZone      （动态增删区，§3.4）
-```
-
-挂载只需一行（`window.h` 的便捷 API）：
+- `self`：控件数据（上面的 struct 实例）；
+- `node`：类型擦除的树节点（`Mk::wg::Node`）；
+- `style`：样式件（push/pop 作用域）；
+- `children`：`std::tuple<Ts...>`——**子控件经模板参数传入**，编译期组合。
 
 ```cpp
-mainWindow.setWidget(root);   // 等价 setUI([&]{ root.draw(); })
+Mk::wg::VBox<StatusDriver, Mk::wg::Label,
+    Mk::wg::HBox<Mk::wg::Button, Mk::wg::Button, Mk::wg::Button>,
+    Mk::wg::VBox<Mk::wg::Label, Mk::wg::SliderF, Mk::wg::CheckBox>,
+    Mk::wg::SubWindow<>> root;
 ```
 
-## §3.3 数据绑定：控件持外部引用
+`child<I>()` 按编译期下标访问子控件（`.self` 拿数据、`.node` 拿节点）。
+配合索引读写即可在 `main` 里集中配置整棵树（见配套程序的配置段）。
 
-OOP 控件的"记忆"不在控件里，在你的变量里：
+## §3.3 Node：类型擦除行为表
+
+`Node` 不是基类，而是一个**持有函数指针的普通结构体**：
 
 ```cpp
-float volume = 0.6f;
-Mk::ui::SliderF vol("音量", volume, 0.0f, 1.0f);
-//                        ^^^^^^ 引用绑定：拖滑块直接写回 volume
+void (*m_Render)(Node&);
+Size (*m_Measure)(Node&, const Size&);
+void (*m_Arrange)(Node&, const Rect&);
+// 生命周期：m_OnCreate / m_OnDestroy / m_OnShow / m_OnHide
 ```
 
-逻辑侧（比如一个每帧回调）改 `volume`，下一帧滑块自动跟随——
-两个方向（UI→状态、状态→UI）由同一条引用打通，无需任何同步代码。
+`node.bind<Self>()` 在构造时按 `Self` 类型填充行为表：
+`ControlTraits<Self>` 用 `if constexpr` 探测成员函数（成员优先 →
+ADL 自由函数 → 缺省兜底）。渲染、布局、生命周期都走这张表——
+**添加新控件只需写 struct，库不需要任何改动**（第 12 课详述）。
 
-**契约**：被绑定的变量存活期必须覆盖 `run()`（第 02 课规矩的特例）。
-配套程序全部状态都在 `main` 栈上，天然满足。
+## §3.4 运行时增删：墓碑机制
 
-## §3.4 动态树：墓碑机制
-
-列表项随时增删是刚需。难点：增删经常发生在**渲染过程中**（按钮回调
-就是渲染的一部分），直接改容器会踩坏正在进行的遍历。
-
-mkui 的解法是**墓碑**：
-
-- `remove(child)`：槽位置空（nullptr），正在渲染的迭代跳过空槽——
-  **回调里调用安全**；
-- `add(child)`：渲染中追加的孩子本帧不画（数量快照），下一帧生效；
-- 每次遍历开始前压实（清掉墓碑槽位）。
-
-配套程序"添加/删除"按钮的回调里直接调 `listZone.add/remove`，
-配一个 `std::unique_ptr` 池持有列表项所有权（控件树本身只存引用）。
+模板组合是编译期的；动态列表用运行时 `add/remove`：
 
 ```cpp
-pool.push_back(std::make_unique<Mk::ui::Label>(...));
-listZone.add(*pool.back());      // 渲染中调用，安全
-listZone.remove(*pool.back());   // 同上
-pool.pop_back();                 // 所有权池收缩，控件随之析构
+pool.push_back(std::make_unique<Mk::wg::Label>(...));  // 拥有权池
+root.child<4>().node.add(pool.back()->node);           // 渲染回调内 add 安全
+root.child<4>().node.remove(pool.back()->node);        // 置空槽位（墓碑），不搬移
 ```
 
-## §3.5 容器速览
+`remove` 只把槽位置 `nullptr`，不在回调中搬移 vector——这就是"渲染回调内
+增删全程安全"的来源；`compact()`（或下一次 `findById`）才真正清理空槽。
 
-| 容器 | 布局语义 |
-|---|---|
-| `VBox(spacing)` | 子控件从上到下；spacing<0 用主题默认 |
-| `HBox(spacing)` | 从左到右同一行 |
-| `Group` | 打包成整体（不产生边框）参与外部布局 |
-| `CollapsibleHeader(label, flags)` | 可折叠区，收起时子树不渲染 |
-| `SubWindow(id, size, border)` | 嵌套子窗口（BeginChild），独立滚动 |
+## §3.5 布局与渲染入口
 
-`SubWindow` 的 id/size/border 都有运行时 setter；布局尺寸语义
-（em、约束）在第 07 课统一深化。
+```cpp
+mainWindow.setUI([&] {
+    root.layout(Mk::wg::Rect{20, 20, 1240, 760});   // measure → arrange → draw
+});
+```
 
-## §3.6 setWidget vs 手写 setUI
+`layout(host)` 是应用侧唯一入口：先 measure 求期望尺寸，再 arrange 由父
+容器分配 bounds，最后 draw 渲染。控件树在 `main` 组装一次、长期存活，
+每帧只做布局与渲染。
 
-`setWidget(root)` 就是 `setUI([&]{ root.draw(); })` 的语法糖——
-树在 run 期间长期存活（栈上/成员里），每帧被遍历重画。
-所以 OOP 树 = "构造一次的结构 + 每帧的立即模式渲染"，两者并不矛盾：
-树提供的是**代码组织结构**，不是保留模式的控件驻留。
+## §3.6 可见性控制
 
-## §3.7 常见错误
+`Node::visible = false` 整段子树跳过渲染（但仍参与布局测量为 0）；
+`Node::enabled = false` 用 `ImGui::BeginDisabled` 包裹子树（灰色但可见）。
+配套程序的"显示/隐藏设置区"按钮只改布尔，Driver 每帧同步到节点。
 
-1. **控件是局部临时对象**：`root.add(Mk::ui::Label("x"));` 挂了个
-   析构掉的临时——树里是悬垂引用。控件必须长期存活（main 栈/成员/池）。
-2. **绑定临时变量**：`Mk::ui::SliderF("v", float{0.5f}, ...)` 绑了个
-   字面量临时。绑定目标必须长期存活。
-3. **忘调 setWidget/setUI**：树组装好了但没挂到窗口——什么都看不见。
-4. **同容器两个同名控件**：有 PushID(this) 兜底其实**不冲突**了，
-   但同名仍影响可读性；改个有意义的名字。
+## 练习
 
-## §3.8 练习
-
-1. 给配套程序加一个"清空列表"按钮（提示：`clearChildren()` + 清池）。
-2. 把 `settings.setVisible(false)` 接到一个新按钮上，观察整组消失。
-3. 挑战：`SubWindow` 里再嵌一个 `CollapsibleHeader`——树可以任意深。
-
-## §3.9 进一步阅读
-
-- `imgui_mk/include/imgui_mk/ui/widget.h`：本课全部内容的权威源（300 行）。
-- `test/windowstest4.cpp`：本课程序的断言版（120 帧自动验证）。
-- 下一课：另一种工程化——控件不是对象而是每帧的值，函数式库登场。
+1. 在工具栏 HBox 里加第四个按钮，`child<I>()` 下标顺延后重新配置。
+2. 把"删除末项"改成"删除选中项"（给列表项加点击回调）。
+3. 观察：把 `remove` 换成 `clear()`，再在回调里添加新项，会发生什么？
+   （墓碑槽被清空后 add 正常追加。）

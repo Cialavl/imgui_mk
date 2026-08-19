@@ -1,127 +1,97 @@
-# 第 07 课：布局系统——从绝对像素到弹性约束（演进式）
+# 第 07 课：布局系统
 
-配套程序：`src/tutorial07_layout.cpp`。本课**不直接教结论**，而是带你
-重走一遍 mkui 布局系统的演进路——每一版先看到它"能跑"，再亲手暴露
-它"在哪里坏掉"，最后看下一版如何解决。理解了因果，API 就不用背了。
+配套程序：`src/tutorial07_layout.cpp`。wg 的布局是**两遍布局**
+（measure → arrange），加上**分格容器**（HSplit/VSplit）与
+**em 设计像素**，四个版本逐层演进。
 
-## §7.1 第一版：绝对像素（ naive ）
-
-最直觉的写法——子窗口用绝对像素尺寸：
+## §7.1 两遍布局：measure / arrange / draw
 
 ```cpp
-draw(hbox(0.0f,
-    subwindow("侧栏", ImVec2(250, 0), true, ...),    // 侧栏 250 像素
-    subwindow("内容", ImVec2(0, 0), true, ...)));    // 内容自适应（0=填满）
+root.layout(Mk::wg::Rect{20, 20, 1240, 860});
 ```
 
-配套程序 §7.1 区就是这个三栏：左 250 / 中自适应 / 右 200。
-**现在拖窄窗口试试**——侧栏纹丝不动，占比越来越大，内容区被挤成一条缝；
-拖到 500px 以下时侧栏吃掉半个屏幕。
+`layout(host)` 内部三步：
 
-> 病因：250 是"按我当时屏幕调好的魔法数"。窗口尺寸一变，比例就崩。
+1. `measure(avail)`：自底向上求期望尺寸（内容高度、文本宽度……）；
+2. `arrange(rect)`：自顶向下分配 bounds（VBox 纵向叠加、HBox 横向排列）；
+3. `draw()`：按 bounds 定位渲染。
 
-## §7.2 第二版：比例分配（hsplit/vsplit 登场）
+容器（VBox/HBox/Group）在 arrange 时对每个子节点"measure 再给矩形"。
+非填充型节点 `layout` 会用测量尺寸覆盖 host；**分格是填充型容器**：
+`Node::fill` 置位后 layout 保留 host 尺寸原样交给 arrange（见 §7.2）。
 
-mkui 的弹性分格容器，把"分配"从尺寸参数里拿了出来：
+## §7.2 分格：HSplit / VSplit + Fixed / Stretch
 
 ```cpp
-draw(hsplit(
-    fixed("nav",   150.0f, ...),     // 固定格
-    stretch("main",  1.0f, ...),     // 弹性格：按权重瓜分剩余
-    fixed("side",  220.0f, ...)));
+Mk::wg::HSplit<Mk::wg::Fixed<Mk::wg::Label>,
+    Mk::wg::Stretch<Mk::wg::Label>, Mk::wg::Stretch<Mk::wg::Label>> v2;
+v2.child<0>().self.size = 150.0f;   // 固定：设计像素（em 缩放）
+v2.child<1>().self.weight = 2.0f;   // 弹性：按权重瓜分剩余
+v2.child<2>().self.weight = 1.0f;
 ```
 
-- `fixed(id, size, child)`：固定尺寸的格（内容以 BeginChild 承载）；
-- `stretch(id, weight, child)`：权重格——所有 stretch 瓜分
-  `avail − Σfixed − 间距`，按 weight 比例分（两个 stretch 权重 2:1
-  就按 2:1 分）；
-- `vsplit` 是垂直版（工具栏/主区/状态栏的标准结构）。
+分配规则（flexbox 语义）：
 
-配套程序 §7.2 区：三栏改成 hsplit。拖窄窗口——**内容区收缩、侧栏不动**，
-比 §7.1 好（至少不会溢出），但侧栏占比还是越来越大。病根没变：
-fixed 的 150 还是绝对数。
+- Fixed 格先 `clamp(em(size), em(minPx), maxFrac × 可用)` 得理想值；
+- 超出容器时按 shrink 比例向 min 均匀收缩（`minPx` 保护可读性）；
+- Stretch 格按 `weight / Σweight` 瓜分剩余（可为 0）。
 
-## §7.3 第三版：em 设计像素——尺寸跟着字号走
+子格角色经 `Node::role`（CellRole）在 measure 时填入，分格 arrange 读取
+——类型擦除下的零继承通道。
 
-下一层问题不只是窗口宽度，还有**字号**。库里所有 fixed 尺寸其实是
-"按 18px 基准字号调好的**设计像素**"：
+## §7.3 em：设计像素随字号等比
+
+`em(designPx) = designPx × 当前字号 / 18`。控件尺寸按 18px 基准设计，
+字号升档/DPI 变化时全部等比：
 
 ```cpp
-em(250)        // = 250 × 当前字号/18 —— 字号升到 27px 时自动变 375
-em2(200, 20)   // ImVec2 版
+v3.child<0>().self.size = 44.0f;   // 工具栏高：随字号缩放
 ```
 
-`fixed()` 的尺寸参数默认按设计像素解释（内部做 em 缩放），
-`fixedPx()` 是真像素逃生舱（罕用）。配套程序 §7.3 区并排两个工具栏：
-一个 `fixed("tb", 44, ...)`、一个 `fixedPx("tb2", 44, ...)`，
-**拖窗口跨过 2000px 宽度档位**（gallery/教程程序开了字号自适应）——
-44 设计像素的工具栏跟着字号变高，44 真像素的纹丝不动、内容被裁。
+对比 v1 的"固定 250 宽"：字号变大时 v1 的几何不变，v3 的几何联动。
+配套程序开自动自适应（`setAutoScaleFont(true)`），拖窗口宽度即可观察
+档位跳变。
 
-> 字号 ×1.5 时：控件（按钮高度由字号决定）变大了，固定像素的容器没变
-> → 文字溢出。em 化之后**文字与容器同比放大**，比例恒定。
-
-## §7.4 第四版：min / atMost 约束——侧栏的"礼让"
-
-em 解决了"随字号缩放"，但 §7.2 遗留的问题还在：窗口拖窄时侧栏不肯让。
-最终答案是 flexbox 式三层约束：
+## §7.4 约束：minPx / maxFrac
 
 ```cpp
-fixed("sidebar", 250.0f, ...)    // preferred：设计像素（空间够时按它）
-      .min(150.0f)               // 空间不足时最低收缩到这里（文字可读底线）
-      .atMost(0.35f)             // 最多占容器可用宽 35%（防独占）
+v4.child<0>().self.size = 250.0f;
+v4.child<0>().self.minPx = 150.0f;    // 收缩下限
+v4.child<0>().self.maxFrac = 0.35f;   // 占容器上限 35%
 ```
 
-分配算法（两遍）：
+空间充足时按 preferred 250；窗口变窄先向 150 收缩；再窄按 35% 封顶——
+侧栏既不会无限膨胀也不会挤爆主区。
 
-```text
-desired = clamp(em(preferred), em(min), atMost×avail)
-超出容器 → 按 flexbox shrink 语义向 min 均匀收缩（保留比例 k）
-stretch 格瓜分剩余
+## §7.5 版本切换：When 包裹整棵版本树
+
+四个版本各是一棵独立的树，用 `When` 包裹后挂进主树；`sel` 决定哪个
+可见（不可见的 When 不布局、不渲染，零开销）：
+
+```cpp
+root.child<3>().node.add(v1.node);
+// ...
+root.child<3>().self.show = (sel == 0);
 ```
 
-三层各自负责：**min 管文字底线 / preferred 管理想比例 / atMost 管礼让上限**。
-"以文字为主还是以控件为主"的矛盾就此消解——文字决定下限，
-设计比例决定理想值，容器决定实际值。
+## §7.6 Wrap / Grid 与任意嵌套
 
-配套程序 §7.4 区就是带约束的三栏；程序每帧在顶栏显示当前窗口宽与
-侧栏实宽，你可以验证：
+除分格外还有两种布局容器：
 
-| 窗口宽 | 侧栏实宽 | 生效约束 |
-|---|---|---|
-| ≥ ~950 | 250 | preferred |
-| 中等 | 0.35×可用宽 | atMost |
-| 很窄 | 150 | min（再窄不破，条目 ellipsis 兜底） |
+```cpp
+Mk::wg::Wrap<Lbl, Lbl, Lbl> w;        // 流式：超宽自动换行（行高 = 行内最高子）
+Mk::wg::Grid<3, Lbl, Lbl, Lbl, Lbl> g; // 网格：3 列均分宽，行数按子数自增
+```
 
-## §7.5 宽度修饰器与 fill 家族
+**嵌套坐标系**：控件渲染在"当前窗口"坐标空间。容器嵌容器（VBox>HBox>Split…）
+共享父空间；SubWindow/Panel/弹窗开启新空间，内部坐标以自身为原点重起算
+（`Node::origin` 由父容器逐层传播）。因此"容器嵌容器、容器嵌子窗口、
+分格嵌子窗口"任意组合都正确——把一棵独立根树嵌入某控件时，host 起点传
+该控件的 `node.origin` 即可（gallery 的 PageHost 就是范例）。
 
-- `widthFrac(f, v)`（§5.4）与 hsplit 配合：内容区里的输入框
-  `widthFrac(1.0)` 精确占满内容区——容器宽度变化它自动跟随；
-- `withMinWidth(px)` 同样是设计像素语义；
-- `fill()/fillW(h)/fillH(w)`：subwindow 尺寸的语义化别名
-  （替代手写 `ImVec2(0,0)`）。
+## 练习
 
-## §7.6 常见错误
+1. 给 v2 的固定格加 `minPx = 100`，拖窄窗口观察收缩行为。
+2. 把 v3 的工具栏改成 `em(88)` 双倍高，验证字号联动。
+3. 新开一个版本 v5：HSplit 里嵌 VSplit（先横后竖），体会任意嵌套。
 
-1. **fixedPx 滥用**：99% 场景要的是 em；fixedPx 只用于对齐外部资源
-   （如图固定 64×64 纹理）。
-2. **min 写成像素心态忘了它也 em 缩放**：min(150) 在 27px 字号下是 225。
-   这是特性不是 bug——文字底线本来就该随字号涨。
-3. **atMost 与 min 打架**（min > atMost×avail）：min 是硬下限、优先
-   （CSS flexbox 同语义）——极窄时可能超过 35%，这是刻意的。
-4. **stretch 权重全 0**：瓜分结果为 0，格子消失；至少给一个非零权重。
-
-## §7.7 练习
-
-1. §7.2 区：把两个 stretch 的权重从 2:1 改成 3:1，观察分配变化。
-2. §7.4 区：把 atMost 改成 0.2、min 改成 180——验证表格三个档位
-   如何移动。
-3. 挑战：给 vsplit 的工具栏加 `.min(em 心算一下)`，让极矮窗口里
-   工具栏按钮不被裁。
-
-## §7.8 进一步阅读
-
-- `imgui_mk/include/imgui_mk/ui/fui_core.h` 的 HSplit 分配算法
-  （两遍 + shrink，40 行，注释完整）；
-- `test/windowstest15.cpp`：本课约束矩阵的确定性断言版
-  （1000→250 / 600→202 / 380→150）；
-- 下一课：主题系统与全动态自适应——字号本身如何被决定。

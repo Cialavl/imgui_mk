@@ -1,98 +1,61 @@
-# 第 10 课：双库互操作——dyn() 与 asWidget()
+# 第 10 课：桥接与动态树
 
-配套程序：`src/tutorial10_bridges.cpp`。mkui 两套控件库（OOP 树 `Mk::ui`
-与函数式 `Mk::fui`）不是二选一——它们能在**同一窗口、同一棵树**里互嵌。
-本课讲两条桥和选型。
+配套程序：`src/tutorial10_bridges.cpp`。单一体系下仍需两种"桥"：
+**动态列表**（运行时增删）与 **FnRender**（裸 ImGui 绘制桥接成节点）。
 
-## §10.1 为什么需要桥
+## §10.1 动态列表：拥有权池 + 墓碑增删
 
-| | OOP 树 | 函数式树 |
-|---|---|---|
-| 控件对象 | 长期存活 | 每帧临时值 |
-| 强项 | 动态增删（墓碑）、长期状态 | 声明式、组合子、修饰器 |
-
-真实界面往往两者都要：一个**固定骨架**（函数式声明很漂亮）里嵌一段
-**动态列表**（OOP 墓碑增删最稳）。两条桥让选择不必非此即彼。
-
-## §10.2 正向桥：dyn(oopWidget)——函数式树里嵌 OOP 子树
+模板组合是编译期的，动态列表必须走运行时通道：
 
 ```cpp
-Mk::ui::VBox listZone;                        // OOP 动态列表（长期存活）
-// ... 按钮回调里 listZone.add/remove（墓碑安全，第 03 课）...
+std::vector<std::unique_ptr<Mk::wg::Label>> pool;   // 拥有权池
+Mk::wg::SubWindow<> listZone;                        // 列表容器（无模板子）
 
-// 函数式树里嵌入：
-Mk::fui::draw(Mk::fui::vbox(8.0f,
-    Mk::fui::button("添加", onAdd),
-    Mk::fui::subwindow("列表", ImVec2(0, 150), true,
-        Mk::fui::dyn(listZone))));            // ← 桥：把 OOP 树当子视图画
+// 添加：渲染回调内 add 安全
+pool.push_back(std::make_unique<Mk::wg::Label>(("wg 项 #" + ...).c_str()));
+root.child<2>().node.add(pool.back()->node);
+
+// 删除：置空槽位（墓碑），不搬移 vector
+root.child<2>().node.remove(pool.back()->node);
+pool.pop_back();
 ```
 
-`dyn(w)` 返回一个轻量包装，其 `draw` 直接调用 `w.draw()`——
-OOP 控件的可见性/禁用/墓碑机制原样工作。配套程序 §10.2 区：
-函数式按钮驱动 OOP 列表增删，列表项在子窗口里实时增减。
+`remove` 触发已绘制节点的 `onDestroy` 生命周期回调；槽位留 `nullptr`
+直到下一次 `compact`——**在渲染回调里增删全程安全**。
 
-## §10.3 反向桥：asWidget(maker)——OOP 树里嵌函数式视图
+## §10.2 FnRender：裸 ImGui 绘制桥
 
-OOP 树挂载的是 `ui::Widget` 子类；函数式视图是临时值。适配器把
-"每帧构造函数式视图"包装成 OOP 控件：
+有些绘制（进度条、自定义绘制序列）直接写裸 ImGui 更自然。FnRender
+把它桥接为 wg 节点：
 
 ```cpp
-Mk::ui::VBox oopBox;                                  // OOP 容器
-auto adapter = Mk::fui::asWidget([&] {                // 适配器（长期存活）
-    return Mk::fui::hbox(8.0f,
-        Mk::fui::label("函数式视图"),
-        Mk::fui::button("点我", [&]{ ++clicks; }));
-});
-oopBox.add(adapter);                                   // 当普通 OOP 控件挂载
+struct CounterDrawerImpl {
+    int* clicks = nullptr;
+    void operator()() {
+        if(clicks) ImGui::Text("FnRender 内裸绘制：点击 %d 次", *clicks);
+    }
+};
+Mk::wg::FnRender<CounterDrawerImpl> fnView;
+fnView.self.fn = CounterDrawerImpl{&clicks};
+root.child<4>().self.fn = CounterDrawerImpl{&clicks};   // 或直接进树
 ```
 
-适配器 `render()` 每帧调用 maker 并绘制返回值——**保持"每帧重建"语义**：
-maker 捕获的状态每帧新鲜生效。配套程序 §10.3 区：OOP 容器里嵌了一段
-函数式 hbox（含 label + 按钮），与纯 OOP 控件并排。
+`FnRender<F>` 的 measure 占满可用宽、高度 0——渲染内容由 `fn()` 决定。
+可默认构造的 callable 才能作为 tuple 子控件（配套程序的
+`CounterDrawerImpl` 用指针成员满足）。
 
-## §10.4 选型决策树
+## §10.3 数据镜像：跨位置联动
 
-```text
-这个区域的内容
-├─ 结构固定、描述密集（骨架/面板/设置表单） → 函数式（容器+修饰器）
-├─ 运行时频繁增删同构项（列表/日志）       → OOP（墓碑）或函数式+外置状态
-│     └─ 增删发生在渲染回调内？             → OOP（墓碑专为此时序设计）
-├─ 局部换肤/条件显示/宽度约束             → 函数式修饰器（第 05、07 课）
-└─ 长期存活的自定义复合控件               → OOP 子类或 asWidget 包装
+配套程序的"镜像"练习：点击后把列表长度写进 `mirrorCount`，下方
+`When` 条件渲染提示——数据（数量）经普通变量流动，视图（When）只读：
+
+```cpp
+root.child<6>().self.text = std::to_string(mirrorCount);
+root.child<7>().self.show = mirrorCount > 0;
 ```
 
-配套程序 §10.4 区给了一段带注释的"决策练习"：左侧 OOP 动态列表、
-右侧函数式声明区，中间按钮互换两者数据（列表项同步到函数式区）——
-直观感受两种范式的边界。
+## 练习
 
-## §10.5 桥的代价与注意
-
-- **dyn 的 OOP 对象必须长期存活**（第 03 课契约）——函数式树本身
-  每帧重建，桥只是"每次画它"，不接管所有权。
-- **asWidget 的 maker 捕获也要长期存活**：捕获的变量（包括 lambda 的
-  引用）必须活过 run()。适配器对象本身也要长期存活（它被 add 进 OOP 树，
-  树持引用）。
-- 两层桥嵌套任意：dyn 里放 asWidget、asWidget 的 maker 里再 dyn——
-  理论上可以，实际别过度嵌套（可读性优先）。
-
-## §10.6 常见错误
-
-1. **asWidget 的适配器是临时对象**：`oopBox.add(Mk::fui::asWidget([&]{...}));`
-   挂了个马上析构的临时 → 悬垂。适配器必须长期存活（命名局部/成员）。
-2. **maker 捕获了 setUI 内的临时**：同样悬垂（第 02 课规矩的变体）。
-3. **dyn 里的 OOP 对象在 run() 前析构**：树里存的是引用。
-4. **以为桥会转移所有权**：都不会——引用语义贯穿两库。
-
-## §10.7 练习
-
-1. 配套程序 §10.2：给列表加"清空"（OOP `clearChildren` + 池清空）。
-2. §10.3：让 maker 返回 `styled(...)` 修饰器包裹的视图——验证修饰器在
-   OOP 容器里照样工作。
-3. 挑战：做一个混合面板——函数式 vbox 骨架里，左半是 dyn(OOP 列表)、
-   右半是 asWidget(函数式仪表盘)，数据双向同步。
-
-## §10.8 进一步阅读
-
-- `apps/gallery` "Bridges" 分区两页：dyn 动态列表 + asWidget 反向嵌。
-- `test/windowstest7.cpp`：两条桥的确定性验证（120 帧断言）。
-- 下一课：本地文件对话框——异步状态机与 worker 线程。
+1. 给列表项加"点击高亮"（`Selectable` + `selected` 指针池）。
+2. 用 FnRender 画一段自定义进度条（叠加两个矩形）。
+3. 把"镜像"改成反向：从 FnRender 里写回 `mirrorCount`。

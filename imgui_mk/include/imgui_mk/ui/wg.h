@@ -77,16 +77,47 @@ namespace Mk::wg {
 
 	// ============ Node：类型擦除对象树节点（非基类）============
 
+	// ===== Qt 式尺寸协议 =====
+	// Policy：尺寸策略（QSizePolicy 子集）。Fixed=只用 hint；Minimum=hint 可增大；
+	// Maximum=hint 可缩小；Preferred=可增可减（默认）；Expanding=可增可减且抢剩余；Ignored=可压到 min。
+	struct Policy {
+		enum Kind : unsigned char { Fixed, Minimum, Maximum, Preferred, Expanding, Ignored };
+		Kind h = Preferred, v = Preferred;
+		constexpr bool canGrow(Kind k) const { return k == Minimum || k == Preferred || k == Expanding; }
+		constexpr bool canShrink(Kind k) const { return k == Maximum || k == Preferred || k == Expanding || k == Ignored; }
+		constexpr bool wantsExpand(Kind k) const { return k == Expanding; }
+	};
+
+	// 显式覆盖（优先于控件 hint/policy）：负值 = 未设置
+	struct SizeOverrides {
+		float minW = -1, minH = -1, maxW = -1, maxH = -1;   // 尺寸钳制（像素）
+		float prefW = -1, prefH = -1;                       // hint 覆盖（setPrefSize；min/max 独立生效）
+		float fixedW = -1, fixedH = -1;                     // 锁定尺寸（setFixedSize/Width/Height）
+	};
+
+	// 布局条目角色（addWidget(w, stretch) 传入；仅本层布局可见）
+	struct ItemRole {
+		float stretch = 0.0f;   // 拉伸权重（Qt addWidget(w, stretch)）；0 = 按策略分配
+		bool hasRole = false;
+	};
+
 	struct Node;
 	template<typename T> struct ControlTraits;
 
 	struct Node {
 		Node* parent = nullptr;
 		std::vector<Node*> children;     // 运行时对象树（墓碑增删，动态兜底）
-		std::string id;
+		std::vector<Node*> m_Pending;    // deferred add queue (flushed at layout start)
+		int m_LayoutDepth = 0;           // >0 while inside layout/draw
+		std::string idname;             // 身份标识：findById 查找键 / 容器（Tab 页名等）ImGui ID 来源
 		bool visible = true, enabled = true;
 		Rect bounds;                     // 父容器 arrange 分配
 		void* owner = nullptr;           // 指向拥有它的控件对象（无继承的转型通道）
+		ItemRole role;                // 布局条目角色（stretch 权重；addWidget 第 2 参）
+		SizeOverrides overrides;      // 显式尺寸覆盖（setFixedWidth/min/max...）
+		bool fill = false;                // 填充型容器（分格）：layout 保留 host 尺寸而非内容尺寸
+		ImVec2 origin{0.0f, 0.0f};        // 绘制原点（当前窗口坐标空间）：父容器 draw 子节点前设置，
+		                                  // 根节点由 layout() 设为 host 左上角；子窗口类容器切换坐标空间后重起算
 
 		// —— 类型擦除行为表（函数指针，bind<Self>() 时由类型萃取填充）——
 		void (*m_Render)(Node&) = nullptr;
@@ -96,6 +127,12 @@ namespace Mk::wg {
 		void (*m_OnDestroy)(Node&) = nullptr;
 		void (*m_OnShow)(Node&) = nullptr;
 		void (*m_OnHide)(Node&) = nullptr;
+		// Qt 式尺寸协议函数指针（bind 时与旧协议一并绑定）
+		Size (*m_SizeHint)(Node&) = nullptr;
+		Size (*m_MinHint)(Node&) = nullptr;
+		Policy (*m_Policy)(Node&) = nullptr;
+		bool (*m_HasHFW)(Node&) = nullptr;
+		float (*m_HFW)(Node&, float) = nullptr;
 
 		// 类型分发绑定：按 T 萃取能力填充行为表
 		template<typename T>
@@ -108,13 +145,20 @@ namespace Mk::wg {
 		void arrange(const Rect& r);
 		// 一步布局 + 渲染（应用每帧调用：root.layout(hostRect)）
 		void layout(const Rect& host);
+		// Qt 式尺寸查询（类外实现；求解器用）
+		Size hint();
+		Size minHint();
+		Policy getPolicy();
+		bool hasHFW();
+		float hfw(float w);
 
 		// —— 树操作（墓碑语义：渲染回调内增删安全）——
+		void flushPending();   // 应用延迟 add（measure/arrange/draw/layout 开头调用）
 		void add(Node& child);
 		void remove(Node& child);
 		void clear();
 
-		Node* findById(const std::string& want);
+		Node* findByIdname(const std::string& want);   // 按 idname 递归查找（顺带 compact）
 
 	private:
 		bool m_Hooked = false;       // 生命周期：首次 draw 前置位
@@ -125,10 +169,45 @@ namespace Mk::wg {
 	// ============ 类型萃取 + 类型分发：ControlTraits<T> ============
 
 	namespace detail {
+	// 全局渲染深度（thread_local）：任何 layout/draw 进行中 > 0（渲染期检测）
+	inline thread_local int g_RenderDepth = 0;
+		// —— 引擎读数小助手（应用层免直连 ImGui IO）——
+		inline float fps() { return ImGui::GetIO().Framerate; }
+		inline bool ctrlHeld() { return ImGui::GetIO().KeyCtrl; }
+		inline bool keyPressed(ImGuiKey key) { return ImGui::IsKeyPressed(key, false); }
+		// —— 嵌套坐标空间传播（绘制原点）——
+		// 渲染发生在"当前窗口"坐标空间：SetCursorPos 取当前窗口局部坐标。
+		// 子窗口类容器（SubWindow/Panel/弹窗/菜单）开启新空间，其余容器共享父空间。
+		// origin 记录本节点在当前空间的绘制原点：父容器画子节点前设置，
+		// 叶子/容器据此定位——任意嵌套（容器嵌容器、容器嵌子窗口）坐标链不断。
+
+		// 同空间对位：子按 bounds 相对偏移放置（VBox/HBox/Group/分格/Tree/Collapsing）
+		inline void drawChildAt(Node& n, Node& c) {
+			const ImVec2 p(n.origin.x + c.bounds.x - n.bounds.x,
+				n.origin.y + c.bounds.y - n.bounds.y);
+			ImGui::SetCursorPos(p);
+			c.origin = p;
+			c.draw();
+		}
+
+		// 顺序流式：从当前光标接着排（弹窗/菜单/Tab/缩进/装饰件包裹）
+		inline void drawChildFlow(Node& c) {
+			c.origin = ImGui::GetCursorPos();
+			c.draw();
+		}
+
+		// 子窗口局部：以本节点 bounds 为原点的新空间（SubWindow/Panel 内）
+		inline void drawChildLocal(Node& n, Node& c) {
+			const ImVec2 p(c.bounds.x - n.bounds.x, c.bounds.y - n.bounds.y);
+			ImGui::SetCursorPos(p);
+			c.origin = p;
+			c.draw();
+		}
+
 		// 默认兜底：无 renderImpl 的节点只递归渲染孩子
 		inline void renderChildrenOnly(Node& n) {
 			for(auto* c : n.children) {
-				if(c) c->draw();
+				if(c) drawChildFlow(*c);
 			}
 		}
 	}
@@ -136,18 +215,21 @@ namespace Mk::wg {
 	template<typename T>
 	struct ControlTraits {
 		static void render(Node& n) {
-			auto* self = static_cast<T*>(n.owner);   // 一处下沉转型
+			auto* self = static_cast<T*>(n.owner);   // 一次下转型
 			if constexpr (requires { self->renderImpl(n); }) {
 				self->renderImpl(n);
 			}
 			else if constexpr (requires { renderImpl(*self, n); }) {
-				renderImpl(*self, n);                // ADL 自由函数兜底
+				renderImpl(*self, n);                // ADL 自由函数派发
 			}
 			else {
 				detail::renderChildrenOnly(n);
 			}
 		}
 
+		// Qt 式尺寸协议：sizeHint / minimumSizeHint / policy / heightForWidth
+		// member → ADL → 默认 三级回退；默认 policy = Preferred，默认 min = {0,0}。
+		// 旧即时测量协议（兼容桥：旧控件仍提供 measureImpl；新布局不再调用，仅 Node::measure 使用）
 		static Size measure(Node& n, const Size& avail) {
 			auto* self = static_cast<T*>(n.owner);
 			if constexpr (requires { self->measureImpl(n, avail); }) {
@@ -157,21 +239,77 @@ namespace Mk::wg {
 				return measureImpl(*self, n, avail);
 			}
 			else {
-				return Size{avail.w, 0.0f};          // 缺省：取可用宽、高度 0
+				return Size{avail.w, 0.0f};
+			}
+		}
+
+		static Size sizeHint(Node& n) {
+			auto* self = static_cast<T*>(n.owner);
+			if constexpr (requires { self->sizeHintImpl(n); }) {
+				return self->sizeHintImpl(n);
+			}
+			else if constexpr (requires { sizeHintImpl(*self, n); }) {
+				return sizeHintImpl(*self, n);
+			}
+			else if constexpr (requires { self->measureImpl(n, Size{0.0f, 0.0f}); }) {   // 旧协议 fallback：measure({0,0})
+				return self->measureImpl(n, Size{0.0f, 0.0f});
+			}
+			else if constexpr (requires { measureImpl(*self, n, Size{0.0f, 0.0f}); }) {
+				return measureImpl(*self, n, Size{0.0f, 0.0f});
+			}
+			else {
+				return Size{0.0f, 0.0f};
+			}
+		}
+		static Size minimumSizeHint(Node& n) {
+			auto* self = static_cast<T*>(n.owner);
+			if constexpr (requires { self->minimumSizeHintImpl(n); }) {
+				return self->minimumSizeHintImpl(n);
+			}
+			else if constexpr (requires { minimumSizeHintImpl(*self, n); }) {
+				return minimumSizeHintImpl(*self, n);
+			}
+			else {
+				return Size{0.0f, 0.0f};
+			}
+		}
+		static Policy policy(Node& n) {
+			auto* self = static_cast<T*>(n.owner);
+			if constexpr (requires { self->policyImpl(n); }) {
+				return self->policyImpl(n);
+			}
+			else if constexpr (requires { policyImpl(*self, n); }) {
+				return policyImpl(*self, n);
+			}
+			else {
+				return Policy{};   // Preferred/Preferred
+			}
+		}
+		static bool hasHFW(Node& n) {
+			auto* self = static_cast<T*>(n.owner);
+			return requires { self->heightForWidthImpl(n, 0.0f); } || requires { heightForWidthImpl(*self, n, 0.0f); };
+		}
+		static float heightForWidth(Node& n, float w) {
+			auto* self = static_cast<T*>(n.owner);
+			if constexpr (requires { self->heightForWidthImpl(n, w); }) {
+				return self->heightForWidthImpl(n, w);
+			}
+			else if constexpr (requires { heightForWidthImpl(*self, n, w); }) {
+				return heightForWidthImpl(*self, n, w);
+			}
+			else {
+				return -1.0f;   // 无 HFW
 			}
 		}
 
 		static void arrange(Node& n, const Rect& r) {
-			auto* self = static_cast<T*>(n.owner);
-			if constexpr (requires { self->arrangeImpl(n, r); }) {
-				self->arrangeImpl(n, r);
+			if constexpr (requires { static_cast<T*>(n.owner)->arrangeImpl(n, r); }) {
+				static_cast<T*>(n.owner)->arrangeImpl(n, r);
 			}
-			else if constexpr (requires { arrangeImpl(*self, n, r); }) {
-				arrangeImpl(*self, n, r);
+			else if constexpr (requires { arrangeImpl(*static_cast<T*>(n.owner), n, r); }) {
+				arrangeImpl(*static_cast<T*>(n.owner), n, r);
 			}
-			// 缺省：无操作（bounds 保持 host）
 		}
-
 		static void onCreate(Node& n) {
 			auto* self = static_cast<T*>(n.owner);
 			if constexpr (requires { self->onCreateImpl(n); }) self->onCreateImpl(n);
@@ -205,9 +343,15 @@ namespace Mk::wg {
 		m_OnDestroy = &ControlTraits<T>::onDestroy;
 		m_OnShow    = &ControlTraits<T>::onShow;
 		m_OnHide    = &ControlTraits<T>::onHide;
+		m_SizeHint = &ControlTraits<T>::sizeHint;
+		m_MinHint  = &ControlTraits<T>::minimumSizeHint;
+		m_Policy   = &ControlTraits<T>::policy;
+		m_HasHFW   = &ControlTraits<T>::hasHFW;
+		m_HFW      = &ControlTraits<T>::heightForWidth;
 	}
 
 	inline void Node::draw() {
+		flushPending();
 		// —— 生命周期检测（draw 驱动；visible=false 也要检测 onHide）——
 		if(!m_Hooked) {
 			m_Hooked = true;
@@ -222,28 +366,51 @@ namespace Mk::wg {
 
 		ImGui::PushID(this);
 		if(!enabled) ImGui::BeginDisabled();
+		// 布局-渲染几何桥：本节点若直接提交 item（原子控件/FnRender），
+		// 按分配的 bounds.w 设置 item 宽——输入类控件真实填满格子而非默认宽。
+		// 容器节点无害（子节点 draw 时会再次覆盖为各自宽度）。
+		if(bounds.w > 0.0f) ImGui::SetNextItemWidth(bounds.w);
 		if(m_Render) m_Render(*this);
 		else detail::renderChildrenOnly(*this);
 		if(!enabled) ImGui::EndDisabled();
 		ImGui::PopID();
 	}
 
+	// ===== Qt 式尺寸查询（布局求解器用；自动应用 overrides 钳制）=====
+	inline Size Node::hint() { return m_SizeHint ? m_SizeHint(*this) : Size{0.0f, 0.0f}; }
+	inline Size Node::minHint() { return m_MinHint ? m_MinHint(*this) : Size{0.0f, 0.0f}; }
+	inline Policy Node::getPolicy() { return m_Policy ? m_Policy(*this) : Policy{}; }
+	inline bool Node::hasHFW() { return m_HasHFW && m_HasHFW(*this); }
+	inline float Node::hfw(float w) { return m_HFW ? m_HFW(*this, w) : -1.0f; }
+
 	inline Size Node::measure(const Size& avail) {
+		flushPending();
 		return m_Measure ? m_Measure(*this, avail) : Size{avail.w, 0.0f};
 	}
 
 	inline void Node::arrange(const Rect& r) {
+		flushPending();
 		bounds = r;
 		if(m_Arrange) m_Arrange(*this, r);
 	}
 
 	inline void Node::layout(const Rect& host) {
-		const Size desired = measure(Size{host.w, host.h});
+		// flush deferred adds (safe: outside any children iteration)
+		if(!m_Pending.empty()) {
+			for(Node* pc : m_Pending) if(pc) children.push_back(pc);
+			m_Pending.clear();
+		}
+		++detail::g_RenderDepth;
+		const Size desired = hint();   // Qt 式：理想尺寸（hint 内部 fallback 到旧 measure 协议）
 		Rect r = host;
-		r.w = desired.w;
-		r.h = desired.h;
+		if(!fill) {   // 填充型容器（分格）直接使用 host，其余按内容尺寸
+			r.w = desired.w;
+			r.h = desired.h;
+		}
 		arrange(r);
+		origin = ImVec2(r.x, r.y);   // 根节点绘制原点 = 布局矩形左上角（当前窗口空间）
 		draw();
+		--detail::g_RenderDepth;
 	}
 
 	inline void Node::compact() {
@@ -252,8 +419,16 @@ namespace Mk::wg {
 			children.end());
 	}
 
+	inline void Node::flushPending() {
+		if(!m_Pending.empty()) {
+			for(Node* pc : m_Pending) if(pc) children.push_back(pc);
+			m_Pending.clear();
+		}
+	}
+
 	inline void Node::add(Node& child) {
 		child.parent = this;
+		if(detail::g_RenderDepth > 0) { m_Pending.push_back(&child); return; }  // deferred during render
 		children.push_back(&child);
 	}
 
@@ -267,6 +442,8 @@ namespace Mk::wg {
 				return;
 			}
 		}
+		for(auto& p : m_Pending) { if(p == &child) { p = nullptr; return; } }
+		// 渲染期 add 后立即 remove：节点尚在 pending 队列，摘除（防止 flush 悬垂）
 	}
 
 	inline void Node::clear() {
@@ -279,11 +456,11 @@ namespace Mk::wg {
 		}
 	}
 
-	inline Node* Node::findById(const std::string& want) {
-		if(id == want) return this;
-		compact();
+	inline Node* Node::findByIdname(const std::string& want) {
+		if(idname == want) return this;
+		if(detail::g_RenderDepth == 0) compact();   // 渲染期不压缩（避免 erase 在遍历中）
 		for(auto* c : children) {
-			if(Node* found = c->findById(want)) return found;
+			if(Node* found = c->findByIdname(want)) return found;
 		}
 		return nullptr;
 	}
@@ -298,10 +475,13 @@ namespace Mk::wg {
 		std::tuple<Ts...> children;   // 编译期子控件组合（模板参数传入）
 
 		// 无参构造：控件数据用默认值（原子控件也常用）
-		// 无参构造：控件数据用默认值（原子控件也常用）；Self 不可默认构造时跳过
-		Control() requires std::default_initializable<Self> : self() {
+		// 无参构造：控件数据用默认值（原子控件也常用）；Self 或任一子控件不可默认构造时跳过
+		Control() requires std::default_initializable<Self> &&
+			(std::default_initializable<Ts> && ...) : self() {
 			node.owner = &self;
 			node.bind<Self>();
+			if constexpr (requires { Self::kLayoutFill; }) node.fill = Self::kLayoutFill;   // 布局类型自动 fill
+			// （Qt 装配由 Control::addWidget 转发，宿主 node 显式传参，无需回填）
 			std::apply([&](auto&... c) { (node.add(c.node), ...); }, children);
 		}
 
@@ -331,7 +511,29 @@ namespace Mk::wg {
 		void add(Node& child) { node.add(child); }
 		void remove(Node& child) { node.remove(child); }
 		void clear() { node.clear(); }
-		Node* findById(const std::string& i) { return node.findById(i); }
+		// Qt 式尺寸覆盖（写 node.overrides；布局求解时优先于 hint/policy）
+		// Qt 风格装配转发（Self 提供 addWidget/setSpacing 时可用）
+		template<typename W>
+		void addWidget(W& w, float stretch = 0.0f) {
+			if constexpr (requires { self.addWidget(node, w.node, stretch); }) self.addWidget(node, w.node, stretch);
+			else if constexpr (requires { self.addWidget(node, w, stretch); }) self.addWidget(node, w, stretch);   // W 本身就是 Node&
+		}
+		void setSpacing(float s) { if constexpr(requires { self.setSpacing(s); }) self.setSpacing(s); }
+		void setContentsMargins(float x, float y) { if constexpr(requires { self.setContentsMargins(x, y); }) self.setContentsMargins(x, y); }
+		void setCols(int c) { if constexpr(requires { self.cols = c; }) self.cols = c; }
+		void addStretch(float weight = 1.0f) { if constexpr (requires { self.addStretch(node, weight); }) self.addStretch(node, weight); }
+		void setFixedWidth(float w) { node.overrides.fixedW = w; }
+		void setFixedHeight(float h) { node.overrides.fixedH = h; }
+		void setFixedSize(float w, float h) { node.overrides.fixedW = w; node.overrides.fixedH = h; }
+		void setPrefSize(float w, float h) { node.overrides.prefW = w; node.overrides.prefH = h; }
+		void setMinSize(float w, float h) { node.overrides.minW = w; node.overrides.minH = h; }
+		void setMaxSize(float w, float h) { node.overrides.maxW = w; node.overrides.maxH = h; }
+		Node* findByIdname(const std::string& i) { return node.findByIdname(i); }
 	};
 
 }
+
+
+
+
+

@@ -1,17 +1,40 @@
-// mkui 控件画廊应用入口：双顶层窗口（Gallery + Inspector）+ 常驻层（菜单栏/
-// 浮动面板/三个弹窗）+ 文件对话框轮询。演示页本体见 gallery_pages.h，
+// mkui 控件画廊应用入口（wg-only）：双顶层窗口（Gallery + Inspector）+ 常驻层
+// （菜单栏/浮动面板/三个弹窗）+ 文件对话框轮询。22 个 wg 演示页见 gallery_pages.h，
 // 代码片段见 snippets.h。交互式应用：菜单 File/Exit 或直接关窗退出。
-#include "gallery_pages.h"
+// 常驻层组装约定：命名控件 + 运行时 node.add；声明顺序 = 子先于父（析构安全）。
+#include "gallery_app.h"
 #include <imgui_mk/ui/wg.h>
 #include <imgui_mk/ui/wg_controls.h>
-#include <imgui_mk/ui/wg_bridge.h>
+#include <imgui_mk/ui/wg_style.h>
 
+#include <windows.h>   // 崩溃自诊断写盘（调试用）
 #include <cmath>
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <string>
 
 namespace {
+
+// —— 崩溃自诊断：未处理异常时把异常地址/调用栈/运行状态写盘（调试用；SEH 下 CRT IO 为 best-effort）——
+static volatile LONG g_crashFrame = 0;
+static volatile LONG g_crashSel = -1;
+static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
+	FILE* f = nullptr;
+	if(fopen_s(&f, "C:\\Users\\26495\\AppData\\Local\\Temp\\opencode\\gallery_crash.txt", "w") == 0 && f) {
+		std::fprintf(f, "exception=0x%08X addr=0x%p\n",
+			ep->ExceptionRecord->ExceptionCode,
+			ep->ExceptionRecord->ExceptionAddress);
+		std::fprintf(f, "state: frame=%ld sel=%ld\n", g_crashFrame, g_crashSel);
+		void* bt[40];
+		const USHORT n = RtlCaptureStackBackTrace(0, 40, bt, nullptr);
+		for(USHORT i = 0; i < n; ++i) {
+			std::fprintf(f, "  [%u] 0x%p\n", i, bt[i]);
+		}
+		std::fclose(f);
+	}
+	return EXCEPTION_CONTINUE_SEARCH;
+}
 
 // 程序生成 64x64 棋盘格 RGBA 纹理（无外部文件依赖）
 void makeChecker(unsigned char* px) {
@@ -30,18 +53,13 @@ void makeChecker(unsigned char* px) {
 } // namespace
 
 int main() {
-	// DPI + 全动态自适应（应用显式 opt-in，测试代码不启用以保持像素断言确定性）：
-	//   字号 = 基准 18 × 显示器缩放（启动时）× 宽度档位/跨屏变化（运行时）
-	//   窗口尺寸 = 主显示器工作区百分比（小屏不超界、大屏饱满）
-	Mk::fui::setDefaultTheme(Mk::fui::scaledForMonitor(Mk::fui::Theme::dark()));
+	// DPI + 全动态自适应（应用显式 opt-in）：字号 = 基准 18 × 显示器缩放 × 宽度档位
+	Mk::wg::setDefaultTheme(Mk::wg::scaledForMonitor(Mk::wg::Theme::dark()));
 	const auto [galW, galH] = Mk::workAreaSize(0.75f, 0.8f, 1440, 880);
 
 	Mk::MainWindow<> gallery("mkui Widget Gallery", galW, galH);
 
-	// 自定义字体链：中文（默认链）+ 等宽代码字体。ProggyClean 是内嵌矢量 TTF，
-	// SizePixels 任意尺寸光栅化都清晰——代码字随 UI 字号联动（×0.85 略小一级，
-	// 层级分明），rescale/档位/跨屏重烘焙时同步重挂。
-	// 设置后立即按当前字号重烘焙一次，此后所有 rescale 都走这条链
+	// 自定义字体链：中文（默认链）+ 等宽代码字体（×0.85 随字号联动）
 	gallery.getWindow().setFontLoader([](float fontSize) {
 		if(!Mk::window::Impl::defaultFontLoader(fontSize)) return false;
 		ImFontConfig cfg;
@@ -49,18 +67,70 @@ int main() {
 		gallery::gMono = ImGui::GetIO().Fonts->AddFontDefault(&cfg);
 		return true;
 	});
-
-	// 运行时自适应：跨屏拖动/系统缩放变化 + 窗口宽度档位（900/1400/2000）
 	gallery.getWindow().setAutoScaleFont(true);
 
 	gallery::State s;
 	s.win = &gallery;
 
-	// —— 第二顶层窗口：Inspector（多窗口联动）。与画廊共享全部外置状态；
-	// 点 X 仅隐藏（关闭回调拦截否决），画廊关闭（引擎销毁）后下一帧跟随退出
+	// 棋盘纹理（Image/ImageButton 页共用）
+	static unsigned char pixels[64 * 64 * 4];
+	makeChecker(pixels);
+	s.tex = Mk::wg::loadTextureRGBA(pixels, 64, 64);
+
+	// —— 22 个演示页：main 组装一次，UI 回调按选中下标切换可见性 ——
+	gallery::GalleryWindow window(s);
+
+	gallery::PageBase      pageBase(s);
+	gallery::PageLifecycle pageLifecycle(s);
+	gallery::PageLayout    pageLayout(s);
+	gallery::PageSplit     pageSplit(s);
+	gallery::PageText      pageText(s);
+	gallery::PageButton    pageButton(s);
+	gallery::PageInput     pageInput(s);
+	gallery::PageNumber    pageNumber(s);
+	gallery::PageDrag      pageDrag(s);
+	gallery::PageSelect    pageSelect(s);
+	gallery::PageFeedback  pageFeedback(s);
+	gallery::PageContainer pageContainer(s);
+	gallery::PageTab       pageTab(s);
+	gallery::PageMenu      pageMenu(s);
+	gallery::PageTable     pageTable(s);
+	gallery::PagePopup     pagePopup(s);
+	gallery::PageColor     pageColor(s);
+	gallery::PageDeco      pageDeco(s);
+	gallery::PageTheme     pageTheme(s);
+	gallery::PageWindow    pageWindow(s);
+	gallery::PageFile      pageFile(s);
+	gallery::PageFnRender  pageFnRender(s);
+
+	window.addPage(pageBase,      gallery::kGroupWg);
+	window.addPage(pageLifecycle);
+	window.addPage(pageLayout);
+	window.addPage(pageSplit);
+	window.addPage(pageText,      gallery::kGroupAtoms);
+	window.addPage(pageButton);
+	window.addPage(pageInput);
+	window.addPage(pageNumber);
+	window.addPage(pageDrag);
+	window.addPage(pageSelect);
+	window.addPage(pageFeedback);
+	window.addPage(pageContainer, gallery::kGroupContainers);
+	window.addPage(pageTab);
+	window.addPage(pageMenu);
+	window.addPage(pageTable);
+	window.addPage(pagePopup,     gallery::kGroupPopColor);
+	window.addPage(pageColor);
+	window.addPage(pageDeco,      gallery::kGroupDeco);
+	window.addPage(pageTheme,     gallery::kGroupApp);
+	window.addPage(pageWindow);
+	window.addPage(pageFile);
+	window.addPage(pageFnRender);
+
+	// —— 第二顶层窗口：Inspector（与画廊共享全部外置状态；点 X 仅隐藏）——
 	const auto [insW, insH] = Mk::workAreaSize(0.3f, 0.7f, 420, 640);
 	Mk::window inspector("Inspector", insW, insH);
 	inspector.setAutoScaleFont(true);
+	s.inspectorWin = &inspector;
 	s.inspectorHandle = inspector.getHandle();
 	if(s.inspectorHandle) {
 		glfwSetWindowCloseCallback(s.inspectorHandle, [](GLFWwindow* w) {
@@ -68,102 +138,37 @@ int main() {
 			glfwHideWindow(w);
 		});
 	}
+	gallery::InsUi insUi;
+	gallery::buildIns(insUi, s);
+	inspector.setCentralWidget(insUi.root.node);   // 中央挂载：外边距/尺寸由引擎每帧驱动
 	inspector.setUserUI([&] {
-		if(gallery.getHandle() == nullptr) {
+		if(gallery.getHandle() == nullptr) {   // 主窗已销毁 → 跟随退出
 			glfwSetWindowShouldClose(inspector.getHandle(), true);
 			return;
 		}
 		++s.insFrames;
-		using namespace Mk::fui;
-		draw(vbox(8.0f,
-			separatorText("Shared state (live link with Gallery)"),
-			slider("Volume", s.volume, 0.0f, 1.0f),
-			checkbox("Mute", s.mute),
-			colorEdit3("Theme color", s.col3),
-			hbox(8.0f,
-				checkboxFlags("Bit A", s.bitFlags, 1),
-				checkboxFlags("Bit B", s.bitFlags, 2),
-				checkboxFlags("Bit C", s.bitFlags, 4)),
-			separatorText("Independent frame loops"),
-			labelText("Gallery frame", std::to_string(s.frames)),
-			labelText("Inspector frame", std::to_string(s.insFrames)),
-			textWrapped("Two top-level windows each own an ImGui context and frame loop; binding the same external variables keeps them live-linked: drag any slider or color in either window and the other follows the same frame. Clicking X only hides the Inspector (menu Window or the Gallery sidebar restores it); it follows the Gallery out when the Gallery closes.")));
+		gallery::refreshIns(insUi, s);
 	});
 
-	// 棋盘纹理 + OOP 反向桥适配器
-	static unsigned char pixels[64 * 64 * 4];
-	makeChecker(pixels);
-	s.tex = Mk::fui::loadTextureRGBA(pixels, 64, 64);
-	s.adapter = std::make_unique<Mk::fui::WidgetAdapter<gallery::State::RevMaker>>(
-		gallery::State::RevMaker{s});
-	s.oopBox.add(*s.adapter);
+	// 中央挂载一次性完成（引擎每帧自动根布局；Qt setCentralWidget 语义）
+	gallery.setCentralWidget(window.root.node);
 
-	// —— 组装 wg 演示树（main 局部长期存活；State.wgTreeX 指向其 node，WgHost 渲染）——
-	// 38 对象树与生命周期：VBox 组合 + 运行时 add 叶子 + 按钮更新计数
-	Mk::wg::VBox<Mk::wg::Button, Mk::wg::Label> lifeBox;
-	Mk::wg::Button addLeafBtn;   addLeafBtn.self.setLabel("添加 wg 叶子");
-	Mk::wg::Label leafCount;     leafCount.self.setText("叶子 0");
-	lifeBox.add(addLeafBtn.node);
-	lifeBox.add(leafCount.node);
-	int leafNo = 0;
-	addLeafBtn.self.onClick = [&] { ++leafNo; leafCount.self.setText(("叶子 " + std::to_string(leafNo)).c_str()); };
-	s.wgTreeLife = &lifeBox.node;
-
-	// 39 布局：VBox 内嵌 HBox（模板组合）+ 滑块/复选
-	Mk::wg::VBox<Mk::wg::HBox<Mk::wg::Label, Mk::wg::Label>, Mk::wg::SliderF, Mk::wg::CheckBox> layoutBox;
-	layoutBox.child<0>().child<0>().self.setText("左");
-	layoutBox.child<0>().child<1>().self.setText("右");
-	layoutBox.child<1>().self.label = "音量";  layoutBox.child<1>().self.value = &s.volume;
-	layoutBox.child<2>().self.label = "静音";  layoutBox.child<2>().self.checked = &s.mute;
-	s.wgTreeLayout = &layoutBox.node;
-
-	// 40 原子：文本/输入/滑块/复选/进度/下拉/标签值
-	Mk::wg::VBox<Mk::wg::Label, Mk::wg::InputText<>, Mk::wg::SliderF, Mk::wg::CheckBox,
-		Mk::wg::ProgressBar, Mk::wg::Combo, Mk::wg::LabelText> atomsBox;
-	atomsBox.child<0>().self.setText("wg 原子控件演示");
-	atomsBox.child<1>().self.label = "文本";
-	atomsBox.child<2>().self.label = "滑块";  atomsBox.child<2>().self.value = &s.volume;
-	atomsBox.child<3>().self.label = "开关";  atomsBox.child<3>().self.checked = &s.mute;
-	atomsBox.child<4>().self.fraction = &s.volume;
-	atomsBox.child<5>().self.label = "下拉";  atomsBox.child<5>().self.current = &s.comboSel;
-	atomsBox.child<5>().self.items = s.kItems;  atomsBox.child<5>().self.count = 3;
-	atomsBox.child<6>().self.label = "帧";    atomsBox.child<6>().self.text = std::to_string(s.frames);
-	s.wgTreeAtoms = &atomsBox.node;
-
-	// 41 容器：折叠 + 数据表 + 函数表
-	Mk::wg::VBox<Mk::wg::Collapsing, Mk::wg::TextTable, Mk::wg::FnTable> containersBox;
-	containersBox.child<0>().self.label = "折叠区";
-	containersBox.child<0>().self.flags = ImGuiTreeNodeFlags_DefaultOpen;
-	Mk::wg::Label folded; folded.self.setText("折叠内容");
-	containersBox.child<0>().node.add(folded.node);
-	containersBox.child<1>().self.id = "wgtable";
-	containersBox.child<1>().self.headers = s.kItems; containersBox.child<1>().self.headerCount = 3;
-	containersBox.child<1>().self.rows = &s.rows;
-	containersBox.child<2>().self.id = "wgfn";
-	containersBox.child<2>().self.headers = s.kItems; containersBox.child<2>().self.headerCount = 3;
-	containersBox.child<2>().self.rowCount = 2;
-	containersBox.child<2>().self.cell = [](int r, int c) {
-		return std::to_string(r) + "," + std::to_string(c);
-	};
-	s.wgTreeContainers = &containersBox.node;
-
-	// 42 桥接：wg 树内嵌 fui 视图（每帧重建）
-	auto wgBridgeMaker = [&] {
-		return Mk::fui::hbox(8.0f,
-			Mk::fui::label("fui 视图（每帧重建）"),
-			Mk::fui::labelText("音量", std::to_string(s.volume).substr(0, 4)));
-	};
-	Mk::wg::FuiView<decltype(wgBridgeMaker)> bridgeNode(wgBridgeMaker);
-	s.wgTreeBridge = &bridgeNode.node;
-
-	GLFWwindow* handle = gallery.getHandle();   // 菜单 Exit 回调用
+	SetUnhandledExceptionFilter(CrashHandler);
 
 	gallery.setUI([&] {
+		g_crashFrame = s.frames;
+		g_crashSel = s.sel;
 		// 动画驱动
 		++s.frames;
 		s.volume = 0.5f + 0.5f * std::sin(s.frames * 0.02f);
 		s.history.push_back(0.5f + 0.5f * std::sin(s.frames * 0.05f));
 		if(s.history.size() > 300) s.history.erase(s.history.begin());
+
+		// Ctrl+O 快捷键（与菜单 Open 同路径；wg 小助手免直连 ImGui IO）
+		if(Mk::wg::detail::ctrlHeld() && Mk::wg::detail::keyPressed(ImGuiKey_O)) s.openFileDlg();
+
+		// Inspector 句柄刷新（窗口关闭后失效防护）
+		s.inspectorHandle = inspector.getHandle();
 
 		// 文件对话框轮询：完成即读取（文本截前 64KB，二进制只记大小）
 		std::string picked;
@@ -191,61 +196,9 @@ int main() {
 			}
 		}
 
-		using namespace Mk::fui;
-
-		const bool insVisible = s.inspectorHandle != nullptr
-			&& glfwGetWindowAttrib(s.inspectorHandle, GLFW_VISIBLE) != 0;
-
-		// —— 常驻层：菜单栏 + 浮动面板 ——
-		draw(menuBar(
-			menu("File",
-				menuItem("Open...", [&] {
-					s.fileDlg.open("Open File", {
-						{"Text/Code", "*.txt;*.md;*.cpp;*.h;*.hpp;*.json;*.xml;*.ini;*.log"},
-						{"All files", "*.*"},
-					});
-				}, "Ctrl+O"),
-				menuItem("Exit", [handle] { glfwSetWindowShouldClose(handle, true); }, "Alt+F4")),
-			menu("Theme",
-				menuItem("Dark", [&] {
-					s.theme = Mk::fui::Theme::dark();
-					gallery.setTheme(s.theme);
-				}),
-				menuItem("Light", [&] {
-					s.theme = Mk::fui::Theme::light();
-					gallery.setTheme(s.theme);
-				})),
-			menu("Window",
-				menuItem(insVisible ? "Hide Inspector" : "Show Inspector", [&] {
-					if(s.inspectorHandle) {
-						if(glfwGetWindowAttrib(s.inspectorHandle, GLFW_VISIBLE))
-							glfwHideWindow(s.inspectorHandle);
-						else
-							glfwShowWindow(s.inspectorHandle);
-					}
-				})),
-			menu("Help",
-				menuItem("About Gallery", [&] { s.aboutOpen = true; }))));
-
-		draw(panel("Floating Panel", 0,
-			slider("Panel slider", s.volume, 0.0f, 1.0f),
-			gallery::FrameLabel{s.frames}));
-
-		// —— 主体：左侧目录 + 右侧演示（上控件下代码）——
-		draw(hsplit(
-			fixed("sidebar", 250.0f, gallery::Sidebar{gallery::kSidebar, s.sel}).min(150.0f).atMost(0.35f),
-			stretch("preview", 1.0f, gallery::Preview{s})));
-
-		// —— 弹窗（树外常驻）——
-		draw(popup("Gallery Popup", s.popupOpen,
-			label("A regular popup."),
-			gallery::ClosePopupButton{"Close"}));
-		draw(popupModal("Gallery Modal", s.modalOpen, 0,
-			label("A modal popup blocks interaction with the host."),
-			gallery::ClosePopupButton{"Close"}));
-		draw(popupModal("About", s.aboutOpen, 0,
-			label("mkui Widget Gallery\nImGui + GLFW + OpenGL wrapper\nOOP widget tree + functional widget library"),
-			gallery::ClosePopupButton{"OK"}));
+		// 每帧动态绑定刷新 + 状态栏
+		window.refreshAll(s);
+		window.drawPopups();   // 弹窗浮层（触发后自己显示，不占布局）
 	});
 
 	Mk::mkui<Mk::window>::run();

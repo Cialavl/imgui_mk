@@ -12,11 +12,11 @@
 #include <utility>
 #include <vector>
 
-// 函数式控件库·文件对话框模块（Windows）：Win32 IFileOpenDialog 的异步封装。
+// Mk::wg 文件对话框模块（Windows）：Win32 IFileOpenDialog 的异步封装。
 // 对话框跑在专用 worker 线程（线程内自备 STA COM），主渲染循环不阻塞、不冻结；
 // 主循环每帧调 poll() 取结果——完成后返回 true 并给出选中路径（用户取消为空串）。
 //
-//   Mk::fui::FileDialog dlg;
+//   Mk::wg::FileDialog dlg;
 //   dlg.open("打开文件", {{"文本", "*.txt;*.md"}, {"所有文件", "*.*"}});
 //   ...
 //   std::string path;
@@ -27,7 +27,7 @@
 
 #pragma comment(lib, "ole32.lib")
 
-namespace Mk::fui {
+namespace Mk::wg {
 
 	class FileDialog {
 	public:
@@ -143,4 +143,4 @@ namespace Mk::fui {
 		std::string m_Path;   // worker 写入先于 state=Done（release/acquire 保序）
 	};
 
-}
+} // namespace Mk::wg

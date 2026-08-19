@@ -1,5 +1,6 @@
 #pragma once
 #include <imgui_mk/window.h>
+#include <imgui_mk/ui/wg_style.h>
 #include <functional>
 #include <utility>
 
@@ -23,6 +24,11 @@ namespace Mk {
 			}
 		}
 
+
+	// 挂载中央内容（Qt setCentralWidget 语义）：窗口每帧自动根布局；padX/padY 外边距增量（默认 = 样式 WindowPadding）
+	void setCentralWidget(Mk::wg::Node& root, float padX = 0.0f, float padY = 0.0f) {
+		m_Window.setCentralWidget(root, padX, padY);
+	}
 		// —— 主窗口特定功能 ——
 
 		// 显示窗口（转发到内部窗口的 show）
@@ -42,13 +48,8 @@ namespace Mk {
 			m_Window.setUserUI(std::move(ui));
 		}
 
-		// 挂载控件树（转发到内部窗口的 setWidget）
-		void setWidget(ui::Widget& root) {
-			m_Window.setWidget(root);
-		}
-
 		// 切换窗口主题（转发到内部窗口的 setTheme）
-		void setTheme(const fui::Theme& theme) {
+		void setTheme(const wg::Theme& theme) {
 			m_Window.setTheme(theme);
 		}
 
@@ -85,3 +86,4 @@ namespace Mk {
 	};
 
 }
+
