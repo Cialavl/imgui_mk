@@ -890,8 +890,9 @@ inline void deleteTexture(ImTextureID tex) {
 	using BulletText = Control<BulletTextImpl, DefaultStyle>;
 
 	struct LabelTextImpl {
-		std::string name;    // 左侧项名
-		std::string value;   // 右侧值文本
+		std::string name;                       // 左侧项名
+		std::string value;                      // 右侧值文本
+		std::function<std::string()> valueFn;   // 拉取式值（渲染时调用；存在则优先于 value，免应用层每帧赋值）
 		Size measureImpl(Node&, const Size& avail) {
 			(void)avail;
 			const ImVec2 v = ImGui::CalcTextSize(value.c_str());
@@ -900,7 +901,8 @@ inline void deleteTexture(ImTextureID tex) {
 		}
 		void arrangeImpl(Node& n, const Rect& r) { n.bounds = r; }
 		void renderImpl(Node& n) {
-			ImGui::TextUnformatted(value.c_str());
+			const std::string shown = valueFn ? valueFn() : value;
+			ImGui::TextUnformatted(shown.c_str());
 			ImGui::SameLine(0.0f, 8.0f);
 			ImGui::TextDisabled("%s", name.c_str());
 		}
@@ -1233,6 +1235,7 @@ inline void deleteTexture(ImTextureID tex) {
 	}
 	template<typename... Ts>
 	void renderImpl(PopupData<Ts...>& self, Node& n) {
+		ImGui::SetNextItemWidth(-FLT_MIN);   // 挂树后中和父层泄漏的 SetNextItemWidth（弹窗按钮不被撑满窗宽）
 		if(self.open && *self.open) {
 			ImGui::OpenPopup(n.idname.empty() ? "popup" : n.idname.c_str());
 			*self.open = false;
@@ -1278,6 +1281,7 @@ inline void deleteTexture(ImTextureID tex) {
 	}
 	template<typename... Ts>
 	void renderImpl(PopupModalData<Ts...>& self, Node& n) {
+		ImGui::SetNextItemWidth(-FLT_MIN);   // 挂树后中和父层泄漏的 SetNextItemWidth
 		if(self.open && *self.open) {
 			ImGui::OpenPopup(n.idname.empty() ? "popup" : n.idname.c_str());
 			*self.open = false;
@@ -1402,8 +1406,10 @@ inline void deleteTexture(ImTextureID tex) {
 	// —— EllipsisLabel：超宽省略号标签（超出 bounds 截断加 "..."）——
 	struct EllipsisLabelImpl {
 		std::string name;
+		std::function<std::string()> valueFn;   // 拉取式文本（渲染时调用；存在则优先于 name）
 		void renderImpl(Node& n) {
-			ImGui::TextUnformatted(detail::ellipsize(name,
+			const std::string text = valueFn ? valueFn() : name;
+			ImGui::TextUnformatted(detail::ellipsize(text,
 				std::max(n.bounds.w, 0.0f)).c_str());
 		}
 		Size measureImpl(Node&, const Size& avail) {

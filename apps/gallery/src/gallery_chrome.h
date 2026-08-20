@@ -1,6 +1,7 @@
 #pragma once
-// gallery 页铬适配层：Page 页架（组装 SectionHead/SubWindow/CodeBlock）+ InsUi。
-// 通用控件（Sidebar/PageHost/SectionHead/CodeBlock/FrameLabel/ClosePopupButton）已下沉到 wg_extras.h。
+// gallery 页铬适配层：Page 页架（组装 SectionHead/SubWindow/CodeBlock）。
+// 通用控件（Sidebar/PageHost/SectionHead/CodeBlock/FrameLabel/ClosePopupButton）已下沉到 wg_extras.h；
+// Inspector 子窗口见 gallery_inspector.h（独立文件分层）。
 #include "gallery_state.h"
 #include "snippets.h"
 #include <imgui_mk/ui/wg_extras.h>
@@ -37,7 +38,7 @@ struct Page {
 		head.self.desc = desc;
 		codeTitle.self.name = "Code";
 		code.self.code = snippet;
-		code.self.mono = gMono;      // 等宽字体注入（gMono 由 main 装载，构建前已就绪）
+		code.self.monoFn = [] { return gMono; };   // 拉取式等宽字体：首帧重烘焙后就绪（不拷构造期快照）
 		root.setContentsMargins(0.0f, 0.0f);   // 页内不叠加外边距：preview 子窗口自带 WindowPadding
 		root.addWidget(head.node);
 		root.addWidget(demo.node, 1.0f);   // 演示区弹性吃剩余（SubWindow 内部滚）
@@ -46,45 +47,5 @@ struct Page {
 	}
 };
 
-
-// ============ Inspector 窗口 UI ============
-
-struct InsUi {
-	SeparatorText head;
-	SliderF volume;
-	CheckBox mute;
-	CheckboxFlags bit1, bit2, bit3;
-	SeparatorText framesHead;
-	LabelText galFrames, insFrames;
-	TextWrapped note;
-	VLayout root;
-};
-
-inline void buildIns(InsUi& u, State& s) {
-	u.head.self.name = "Shared state (live link with Gallery)";
-	u.volume.self.name = "Volume";
-	u.volume.self.value = &s.volume;
-	u.mute.self.name = "Mute";
-	u.mute.self.checked = &s.mute;
-	u.bit1.self.name = "Bit A"; u.bit1.self.flags = &s.bitFlags; u.bit1.self.mask = 1;
-	u.bit2.self.name = "Bit B"; u.bit2.self.flags = &s.bitFlags; u.bit2.self.mask = 2;
-	u.bit3.self.name = "Bit C"; u.bit3.self.flags = &s.bitFlags; u.bit3.self.mask = 4;
-	u.framesHead.self.name = "Independent frame loops";
-	u.galFrames.self.name = "Gallery frame";
-	u.insFrames.self.name = "Inspector frame";
-	u.note.self.name = "Two top-level windows each own an ImGui context and frame loop; "
-		"binding the same external variables keeps them live-linked. "
-		"Clicking X only hides the Inspector; it follows the Gallery out when the Gallery closes.";
-	for(Node* nd : {&u.head.node, &u.volume.node, &u.mute.node, &u.bit1.node,
-		&u.bit2.node, &u.bit3.node, &u.framesHead.node, &u.galFrames.node,
-		&u.insFrames.node, &u.note.node}) {
-		u.root.addWidget(*nd);
-	}
-}
-
-inline void refreshIns(InsUi& u, State& s) {
-	u.galFrames.self.value = std::to_string(s.frames);
-	u.insFrames.self.value = std::to_string(s.insFrames);
-}
 
 } // namespace gallery

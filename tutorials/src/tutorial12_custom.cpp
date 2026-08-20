@@ -79,14 +79,8 @@ using TogglePanel = Mk::wg::Control<TogglePanelImpl, Mk::wg::DefaultStyle>;
 int main() {
 	Mk::MainWindow<> mainWindow("教程12：扩展你自己的控件", 1280, 800);
 
-	// 自定义字体链：中文（默认链）+ 等宽代码字体（×0.9，随字号联动）
-	mainWindow.getWindow().setFontLoader([](float size) {
-		if(!Mk::window::Impl::defaultFontLoader(size)) return false;
-		ImFontConfig cfg;
-		cfg.SizePixels = size * 0.9f;
-		ImGui::GetIO().Fonts->AddFontDefault(&cfg);
-		return true;
-	});
+	// 追加等宽代码字体（×0.9，随字号联动）：框架保证默认中文链 + 自动装载
+	mainWindow.addAuxFont(0.9f);
 
 	int frames = 0, clicks = 0;
 	float volume = 0.5f;
@@ -121,9 +115,9 @@ int main() {
 
 	Mk::wg::Button b18, b27;
 	b18.self.setName("18px");
-	b18.self.onClick = [&] { mainWindow.getWindow().rescale(18.0f); };
+	b18.self.onClick = [&] { mainWindow.rescale(18.0f); };
 	b27.self.setName("27px");
-	b27.self.onClick = [&] { mainWindow.getWindow().rescale(27.0f); };
+	b27.self.onClick = [&] { mainWindow.rescale(27.0f); };
 	Mk::wg::Layout btnRow;
 	btnRow.self.mode = Mk::wg::LayoutMode::H;
 	btnRow.node.add(b18.node);

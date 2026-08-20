@@ -20,7 +20,9 @@ struct PageFile {
 		fileOpen.self.setName("选文件…");
 		fileOpen.self.onClick = [&] { s.openFileDlg(); };
 		fileSize.self.name = "文件大小";
+		fileSize.self.valueFn = [&s] { return std::to_string(s.fileSize) + " bytes"; };
 		filePath.self.name = "(none)";
+		filePath.self.valueFn = [&s] { return s.filePath.empty() ? std::string("(none)") : s.filePath; };
 		fileBinText.self.name = "二进制";
 		fileMissText.self.name = "错误";
 		fileMissText.self.value = "文件不可读";
@@ -34,8 +36,6 @@ struct PageFile {
 	}
 
 	void refresh(State& s) {
-		fileSize.self.value = std::to_string(s.fileSize) + " bytes";
-		filePath.self.name = s.filePath.empty() ? "(none)" : s.filePath;
 		fileBin.self.show = !s.filePath.empty() && s.fileBinary;
 		fileBinText.self.value = "二进制文件，预览不显示内容";
 		fileMiss.self.show = s.fileMissing;

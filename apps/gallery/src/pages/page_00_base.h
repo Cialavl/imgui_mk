@@ -23,16 +23,13 @@ struct PageBase {
 		baseBtn.node.idname = "probeBtn";
 		baseBtn.self.onClick = [&] { ++s.clicks; };
 		baseClicks.self.name = "点击次数";
+		baseClicks.self.valueFn = [&s] { return std::to_string(s.clicks); };   // 拉取式绑定，免每帧赋值
 		page.addWidget(baseL1);
 		page.addWidget(baseL2);
 		page.addWidget(baseL3);
 		page.addWidget(baseL4);
 		page.addWidget(baseBtn);
 		page.addWidget(baseClicks);
-	}
-
-	void refresh(State& s) {
-		baseClicks.self.value = std::to_string(s.clicks);
 	}
 };
 

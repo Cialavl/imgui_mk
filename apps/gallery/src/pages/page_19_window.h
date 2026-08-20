@@ -15,7 +15,9 @@ struct PageWindow {
 			"两个顶层窗口各自一个 ImGui 上下文与帧循环；绑定 wg 控件到同一批外部变量 = 实时链接。",
 			snips::kMultiWindow);
 		winGal.self.name = "Gallery 帧";
+		winGal.self.valueFn = [&s] { return std::to_string(s.frames); };
 		winIns.self.name = "Inspector 帧";
+		winIns.self.valueFn = [&s] { return std::to_string(s.insFrames); };
 		winToggle.self.setName("显示/隐藏 Inspector");
 		winToggle.self.onClick = [&] { s.toggleInspector(); };
 		winNote.self.name = "拖动一个窗口的滑块，另一个同帧刷新（绑同一变量）。"
@@ -24,11 +26,6 @@ struct PageWindow {
 		page.addWidget(winIns);
 		page.addWidget(winToggle);
 		page.addWidget(winNote);
-	}
-
-	void refresh(State& s) {
-		winGal.self.value = std::to_string(s.frames);
-		winIns.self.value = std::to_string(s.insFrames);
 	}
 };
 

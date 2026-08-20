@@ -38,7 +38,7 @@ int main() {
 	Mk::wg::setDefaultTheme(Mk::wg::scaledForMonitor(Mk::wg::Theme::dark()));
 	const auto [w, h] = Mk::workAreaSize(0.9f, 0.9f, 1280, 900);
 	Mk::MainWindow<> mainWindow("教程08：主题与全局动态自适应", w, h);
-	mainWindow.getWindow().setAutoScaleFont(true);
+	mainWindow.setAutoScaleFont(true);
 
 	// 状态
 	Mk::wg::Theme theme = Mk::wg::Theme::dark();
@@ -118,7 +118,7 @@ int main() {
 	applyFont.self.onClick = [&] {
 		theme = theme.withFontSize(fontSize);
 		mainWindow.setTheme(theme);
-		mainWindow.getWindow().rescale(fontSize);   // 重烘焙字体位图 + 几何等比
+		mainWindow.rescale(fontSize);   // 重烘焙字体位图 + 几何等比
 	};
 	Mk::wg::Layout fontRow;
 	fontRow.self.mode = Mk::wg::LayoutMode::H;
@@ -130,11 +130,11 @@ int main() {
 
 	Mk::wg::Button man14, man18, man27;
 	man14.self.setName("手动 14px");
-	man14.self.onClick = [&] { mainWindow.getWindow().rescale(14.0f); };
+	man14.self.onClick = [&] { mainWindow.rescale(14.0f); };
 	man18.self.setName("手动 18px");
-	man18.self.onClick = [&] { mainWindow.getWindow().rescale(18.0f); };
+	man18.self.onClick = [&] { mainWindow.rescale(18.0f); };
 	man27.self.setName("手动 27px");
-	man27.self.onClick = [&] { mainWindow.getWindow().rescale(27.0f); };
+	man27.self.onClick = [&] { mainWindow.rescale(27.0f); };
 	Mk::wg::Layout manualRow;
 	manualRow.self.mode = Mk::wg::LayoutMode::H;
 	manualRow.node.add(man14.node);
@@ -165,7 +165,7 @@ int main() {
 		ltFont.self.value = std::to_string((int)ImGui::GetFontSize());
 		ltFrame.self.value = std::to_string(frames);
 		styledWhen.self.show = styledOn;
-		mainWindow.getWindow().setAutoScaleFont(autoOn);   // 每帧同步（幂等）
+		mainWindow.setAutoScaleFont(autoOn);   // 每帧同步（幂等）
 		root.layout(Mk::wg::Rect{20, 20, 1240, 860});
 	});
 

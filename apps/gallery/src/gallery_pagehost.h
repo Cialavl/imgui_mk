@@ -15,9 +15,16 @@ using namespace Mk::wg;
 struct PageHostImpl {
 	int* current = nullptr;                 // 当前选中页下标
 	std::vector<Node*> pages;               // 页面根集合（addPage 注册）
+	std::vector<std::function<void(State&)>> refreshers;   // 每帧页面刷新（与 pages 对齐，可空）
 
-	// Qt 风格：添加页面
-	void addPage(Node& root) { pages.push_back(&root); }
+	// Qt 风格：添加页面（refresh(State&) 存在则注册每帧刷新）
+	void addPage(Node& root, std::function<void(State&)> refresh = nullptr) {
+		pages.push_back(&root);
+		refreshers.push_back(std::move(refresh));
+	}
+
+	// 每帧刷新所有已注册页面
+	void refreshAll(State& s) { for(auto& fn : refreshers) if(fn) fn(s); }
 
 	void renderImpl(Node& n) {
 		const ImVec2 sz(n.bounds.w, n.bounds.h);

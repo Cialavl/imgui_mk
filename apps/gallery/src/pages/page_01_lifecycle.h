@@ -36,6 +36,7 @@ struct PageLifecycle {
 		lifeHide.self.name = "隐藏叶子（onHide/onShow）";
 		lifeHide.self.checked = &s.mute;
 		lifeState.self.name = "叶子状态";
+		lifeState.self.valueFn = [this] { return lifeLeaf ? std::string("有叶子（onCreate 已触发）") : std::string("无叶子"); };
 		lifeNote.self.name = "说明";
 		lifeNote.self.value = "勾选：演示观察 When 包裹控件的隐藏/恢复（onHide/onShow 日志）。";
 		lifeWhenText.self.setName("（When 包裹的文本，mute 时隐藏显示）");
@@ -49,7 +50,6 @@ struct PageLifecycle {
 	}
 
 	void refresh(State& s) {
-		lifeState.self.value = lifeLeaf ? "有叶子（onCreate 已触发）" : "无叶子";
 		lifeWhen.self.show = !s.mute;
 	}
 };

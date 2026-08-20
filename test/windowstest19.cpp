@@ -52,7 +52,7 @@ int main() {
 			accentR = ImGui::GetStyle().Colors[ImGuiCol_CheckMark].x;
 		}
 		if(frames == 90) {
-			win.getWindow().rescale(24.0f);   // 重烘焙：下一帧 render 顶部生效
+			win.rescale(24.0f);   // 重烘焙：下一帧 render 顶部生效
 		}
 		if(frames == 110) {
 			snapFont = 1;

@@ -21,19 +21,12 @@ struct PageTheme {
 			"rescale 重载字号（窗口等比缩放自适应）。",
 			snips::kTheme);
 		themeDark.self.setName("Dark");
-		themeDark.self.onClick = [&] {
-			s.theme = Theme::dark();
-			s.win->setTheme(s.theme);
-		};
+		themeDark.self.onClick = [&] { s.applyTheme(Theme::dark()); };   // 引擎广播：双窗同步换肤
 		themeLight.self.setName("Light");
-		themeLight.self.onClick = [&] {
-			s.theme = Theme::light();
-			s.win->setTheme(s.theme);
-		};
+		themeLight.self.onClick = [&] { s.applyTheme(Theme::light()); };
 		themeAccent.self.setName("Accent 红");
 		themeAccent.self.onClick = [&] {
-			s.theme = Theme::dark().withAccent(ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
-			s.win->setTheme(s.theme);
+			s.applyTheme(Theme::dark().withAccent(ImVec4(1.0f, 0.0f, 0.0f, 1.0f)));
 		};
 
 		themeRow.addWidget(themeDark.node);
@@ -50,8 +43,8 @@ struct PageTheme {
 		themeRescaleNote.self.setName("rescale(24)：重载字号图标集；布局/控件/行高/间距全等比");
 		themeRescale.self.setName("rescale(24)");
 		themeRescale.self.onClick = [&] {
-			const float cur = s.win ? s.win->getWindow().fontSize() : 18.0f;
-			s.win->getWindow().rescale(cur >= 23.5f ? 18.0f : 24.0f);   // 18↔24 双向切换
+			const float cur = engineFontSize();
+			engineRescale(cur >= 23.5f ? 18.0f : 24.0f);   // 引擎广播：18↔24 双向切换
 		};
 		page.addWidget(themeRow);
 		page.addWidget(themeScopeNote);
@@ -62,7 +55,7 @@ struct PageTheme {
 
 	void refresh(State& s) {
 		themeCompact.self.theme = s.theme.withItemSpacing(2.0f, 2.0f).withRounding(0.0f);   // 跟随当前主题（换肤后同步）
-		const float cur = s.win ? s.win->getWindow().fontSize() : 18.0f;
+		const float cur = engineFontSize();
 		themeRescale.self.setName(cur >= 23.5f ? "rescale(18)" : "rescale(24)");
 	}
 };

@@ -56,3 +56,46 @@ TEST_F(MkuiEngineTest, RunRendersUntilClosed) {
 	Mk::mkui<FakeWindow>::run();
 	EXPECT_EQ(impl->renderCount, 3);
 }
+
+// ============ 引擎共享状态注册表（类型键多槽）============
+
+namespace {
+struct StateA { int value = 0; };
+struct StateB { double value = 0.0; };
+struct StateC {};   // 未注册类型（抛异常用）
+}
+
+TEST_F(MkuiEngineTest, RegisterAndGetStateSharedInstance) {
+	auto& eng = Mk::mkui<FakeWindow>::RegistrationWindow();
+	auto s = std::make_shared<StateA>();
+	eng.registerState(s);
+	EXPECT_EQ(eng.state<StateA>().value, 0);
+	eng.state<StateA>().value = 7;   // 经引擎写
+	EXPECT_EQ(s->value, 7);          // 源实例联动（同一对象）
+}
+
+TEST_F(MkuiEngineTest, StateIsolatedByType) {
+	auto& eng = Mk::mkui<FakeWindow>::RegistrationWindow();
+	eng.registerState(std::make_shared<StateB>());
+	eng.state<StateB>().value = 2.5;
+	EXPECT_EQ(eng.state<StateA>().value, 7);         // 与前例 StateA 互不干扰
+	EXPECT_DOUBLE_EQ(eng.state<StateB>().value, 2.5);
+}
+
+TEST_F(MkuiEngineTest, MissingStateThrows) {
+	auto& eng = Mk::mkui<FakeWindow>::RegistrationWindow();
+	EXPECT_THROW(eng.state<StateC>(), std::runtime_error);
+}
+
+TEST_F(MkuiEngineTest, BroadcastGuardedForMinimalImpl) {
+	// 最小契约 Impl（无 requestTheme/requestRescale/m_Handle）：广播经 requires 守卫
+	// 为空操作、fontSize() 恒 0——编译期验证不实例化错误路径
+	auto& eng = Mk::mkui<FakeWindow>::RegistrationWindow();
+	auto impl = std::make_shared<FakeWindow::Impl>();
+	impl->maxRenders = 1;
+	eng.Registration(impl);
+	eng.applyThemeAll(12345);
+	eng.rescaleAll(24.0f);
+	EXPECT_FLOAT_EQ(eng.fontSize(), 0.0f);
+	Mk::mkui<FakeWindow>::run();   // 1 帧后关闭并清空窗口表
+}

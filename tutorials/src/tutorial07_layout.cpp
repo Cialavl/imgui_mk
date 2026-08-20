@@ -16,7 +16,7 @@ int main() {
 	Mk::wg::setDefaultTheme(Mk::wg::scaledForMonitor(Mk::wg::Theme::dark()));
 	const auto [w, h] = Mk::workAreaSize(0.9f, 0.9f, 1280, 900);
 	Mk::MainWindow<> mainWindow("教程07：布局系统（拖大窗口宽度做实验！）", w, h);
-	mainWindow.getWindow().setAutoScaleFont(true);
+	mainWindow.setAutoScaleFont(true);
 
 	static constexpr const char* kVersions[] = {
 		"v1 原始固定宽", "v2 Layout SplitH", "v3 字号等比（em）", "v4 约束分格",

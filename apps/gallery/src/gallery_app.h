@@ -9,10 +9,12 @@
 //   │   │   ├── pageHost  stretch（预览区）
 //   │   │   └── sidePanel pref 260（SubWindow 嵌入右格）
 //   │   └── statusRow     状态栏（FPS / 帧数 / 当前页）
-//   └── popups（popupTree/modalTree/aboutTree：流式 BeginPopup/Modal，不占布局）
+//   └── popups（popupTree/modalTree/aboutTree：入树的流式 BeginPopup/Modal，不占布局）
+#include "gallery_inspector.h"
 #include "gallery_pagehost.h"
 #include "gallery_pages.h"
 #include <functional>
+#include <memory>
 #include <vector>
 
 namespace gallery {
@@ -32,6 +34,7 @@ struct GalleryWindow {   // Qt 风格主窗口：构造组装 + addPage 注册�
 	// ---- 状态栏 ----
 	LabelText stFps, stFrame, stPage;
 	HLayout statusRow;
+
 	// ---- 弹窗（流式，不参与布局）----
 	Label popupText, modalText, aboutText;
 	ClosePopupButton popupClose, modalClose, aboutOk;
@@ -42,7 +45,9 @@ struct GalleryWindow {   // Qt 风格主窗口：构造组装 + addPage 注册�
 	VLayout mainCol;           // VBox: menuBar / contentRow / statusRow
 	OverlayLayout root;        // Overlay: mainCol + popups
 
-	explicit GalleryWindow(State& s) : sRef(&s) {   // 构造函数组装窗口（Qt 风格）
+	// 主窗口引用在构造装配点显式注入（仅此一处需要窗口对象；数据联动走引擎广播）
+	GalleryWindow(Mk::MainWindow<Mk::window, State>& win, State& s)
+		: sRef(&s), winRef(&win), inspector(win.getWindow(), s) {   // 子窗口挂载到父窗口
 		initMenus(s);
 		initPanels(s);
 		initPopups(s);
@@ -50,26 +55,21 @@ struct GalleryWindow {   // Qt 风格主窗口：构造组装 + addPage 注册�
 		initLayout();
 	}
 
-	// Qt 风格：窗口添加页面（组名仅在组首传入；refresh(State&) 存在则自动注册每帧刷新）
+	// Qt 风格：窗口添加页面（组名仅在组首传入；refresh(State&) 存在则注册给 PageHost 每帧刷新）
 	template<typename P>
 	void addPage(P& page, const char* group = nullptr) {
 		if(group && *group) pageNav.self.addEntry(group, true);
 		pageNav.self.addEntry(page.page.title, false);
-		pageHost.self.addPage(page.page.rootNode());
-		if constexpr (requires { page.refresh(*sRef); }) refreshers.push_back([&page](State& s) { page.refresh(s); });
+		if constexpr (requires { page.refresh(*sRef); })
+			pageHost.self.addPage(page.page.rootNode(), [&page](State& s) { page.refresh(s); });
+		else
+			pageHost.self.addPage(page.page.rootNode());
 	}
 
-	// 每帧刷新所有已注册页面（替代 refreshGallery）+ 状态栏/菜单勾选态
+	// 每帧刷新（页面刷新由 PageHost 自持）+ 菜单勾选态
 	void refreshAll(State& s) {
-		for(auto& fn : refreshers) fn(s);
+		pageHost.self.refreshAll(s);
 		updateStatus(s);
-	}
-
-	// 弹窗常驻浮层：触发后自己显示（OpenPopup + BeginPopup/Modal），不参与布局
-	void drawPopups() {
-		popupTree.node.draw();
-		modalTree.node.draw();
-		aboutTree.node.draw();
 	}
 
 private:
@@ -79,7 +79,7 @@ private:
 		miOpen.self.onClick = [&] { s.openFileDlg(); };
 		miExit.self.name = "Exit";
 		miExit.self.shortcut = "Alt+F4";   // 系统级关闭（GLFW/Windows 处理）
-		miExit.self.onClick = [&] { glfwSetWindowShouldClose(s.win->getHandle(), true); };
+		miExit.self.onClick = [&] { glfwSetWindowShouldClose(winRef->getHandle(), true); };
 		miDark.self.name = "Dark";
 		miDark.self.onClick = [&] { s.applyTheme(Theme::dark()); };
 		miLight.self.name = "Light";
@@ -140,10 +140,12 @@ private:
 	}
 
 	void initStatus(State& s) {
-		(void)s;
 		stFps.self.name = "FPS";
 		stFrame.self.name = "帧";
 		stPage.self.name = "页";
+		stFps.self.valueFn = [] { return std::to_string((int)detail::fps()) + " fps"; };   // 拉取式绑定，免每帧赋值
+		stFrame.self.valueFn = [&s] { return std::to_string(s.frames); };
+		stPage.self.valueFn = [this] { return std::string(currentPageTitle()); };
 		statusRow.addWidget(stFps.node);
 		statusRow.addWidget(stFrame.node);
 		statusRow.addWidget(stPage.node);
@@ -163,12 +165,13 @@ private:
 		mainCol.setContentsMargins(0.0f, 0.0f);
 		root.setContentsMargins(0.0f, 0.0f);
 		root.addWidget(mainCol.node);
+		// 弹窗常驻浮层入树：触发后自己显示（OpenPopup + BeginPopup/Modal），不占布局
+		root.addWidget(popupTree.node);
+		root.addWidget(modalTree.node);
+		root.addWidget(aboutTree.node);
 	}
 
 	void updateStatus(State& s) {
-		stFps.self.value = std::to_string((int)detail::fps()) + " fps";
-		stFrame.self.value = std::to_string(s.frames);
-		stPage.self.value = currentPageTitle();
 		miDark.self.selected = s.darkActive;
 		miLight.self.selected = !s.darkActive;
 	}
@@ -185,7 +188,8 @@ private:
 	}
 
 	State* sRef = nullptr;
-	std::vector<std::function<void(State&)>> refreshers;
+	Mk::MainWindow<Mk::window, State>* winRef = nullptr;   // 主窗口引用（Exit 菜单用）
+	InspectorWindow inspector;   // 子窗口：独立文件分层（gallery_inspector.h），构造即挂载到父窗口
 };
 
 } // namespace gallery

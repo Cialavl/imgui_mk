@@ -1,15 +1,20 @@
 #pragma once
+#include <imgui_mk/mkui.h>
 #include <imgui_mk/window.h>
 #include <imgui_mk/ui/wg_style.h>
 #include <functional>
+#include <memory>
+#include <type_traits>
 #include <utility>
 
 namespace Mk {
 	// 主窗口组件：以模板组合（成员对象 has-a）方式包装 WindowT（默认 Mk::window），
 	// 创建窗口（自动注册到全局引擎）并持有源对象，window.h 的窗口 API 全部转发，
 	// 因此 MainWindow 本身即可当作窗口使用。
+	// S = 应用共享状态类型（默认 void = 不注册）：构造时创建并注册进引擎，
+	// 全部窗口/页面经 state<T>() 取用同一实例（引擎层数据联动，应用不互指窗口）。
 	// 组件生命周期必须覆盖 Mk::mkui<WindowT>::run()。
-	template <typename WindowT = Mk::window>
+	template <typename WindowT = Mk::window, typename S = void>
 	class MainWindow {
 	public:
 		MainWindow(const char* title, int width = 1600, int height = 900)
@@ -22,7 +27,14 @@ namespace Mk {
 			if(ui) {
 				m_Window.setUserUI(std::move(ui));
 			}
+			registerStateIfAny();   // S 指定时：创建及注册一步完成
 		}
+
+		// 共享状态取用（转发引擎注册表；类型键多槽，未注册抛异常）
+		template<typename T>
+		T& state() { return Mk::mkui<WindowT>::RegistrationWindow().template state<T>(); }
+		template<typename T>
+		const T& state() const { return Mk::mkui<WindowT>::RegistrationWindow().template state<T>(); }
 
 
 	// 挂载中央内容（Qt setCentralWidget 语义）：窗口每帧自动根布局；padX/padY 外边距增量（默认 = 样式 WindowPadding）
@@ -48,9 +60,32 @@ namespace Mk {
 			m_Window.setUserUI(std::move(ui));
 		}
 
+		// window.h 同名别名
+		void setUserUI(std::function<void()> ui) { m_Window.setUserUI(std::move(ui)); }
+
+		// 子窗口挂载到本窗口：父关随关、子 X 隐藏（子窗口生命周期随父）
+		void mountChild(Mk::window& child) { m_Window.mountChild(child); }
+
 		// 切换窗口主题（转发到内部窗口的 setTheme）
 		void setTheme(const wg::Theme& theme) {
 			m_Window.setTheme(theme);
+		}
+
+		// —— 字号自适应（全量转发 window.h API：应用层无需 getWindow() 绕行）——
+		void setFontLoader(std::function<bool(float)> loader) { m_Window.setFontLoader(std::move(loader)); }
+		void addAuxFont(float scale, ImFont** out = nullptr) { m_Window.addAuxFont(scale, out); }
+		void setAutoScaleFont(bool on) { m_Window.setAutoScaleFont(on); }
+		void rescale(float fontSize) { m_Window.rescale(fontSize); }
+		float fontSize() const { return m_Window.fontSize(); }
+
+		// —— 注册式每帧机制（转发）——
+		void addShortcut(ImGuiKey key, std::function<void()> fn,
+			bool ctrl = false, bool shift = false, bool alt = false) {
+			m_Window.addShortcut(key, std::move(fn), ctrl, shift, alt);
+		}
+		template<typename Dlg>
+		void watchFileDialog(Dlg& dlg, std::function<void(std::string)> onDone) {
+			m_Window.watchFileDialog(dlg, std::move(onDone));
 		}
 
 		// GLFW 窗口句柄（关闭后为 nullptr）
@@ -82,7 +117,15 @@ namespace Mk {
 		}
 
 	private:
+		void registerStateIfAny() {
+			if constexpr (!std::is_void_v<S>) {
+				m_State = std::make_shared<S>();
+				Mk::mkui<WindowT>::RegistrationWindow().registerState(m_State);
+			}
+		}
+
 		WindowT m_Window;
+		std::shared_ptr<S> m_State;   // S=void 时为空，不参与状态注册
 	};
 
 }

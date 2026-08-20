@@ -18,14 +18,11 @@ struct PageInput {
 		inBig.self.name = "文本（128 字符）";
 		inBig.self.setName("hello");
 		inEcho.self.name = "内容回显";
+		inEcho.self.valueFn = [this] { return inBig.self.c_str(); };   // 回显 inBig 内部缓冲（textBuf 已移除）
 		inSmall.self.name = "短文本输入（64 字符）";
 		page.addWidget(inBig);
 		page.addWidget(inEcho);
 		page.addWidget(inSmall);
-	}
-
-	void refresh(State& s) {
-		inEcho.self.value = inBig.self.c_str();   // 回显 inBig 内部缓冲（textBuf 已移除）
 	}
 };
 

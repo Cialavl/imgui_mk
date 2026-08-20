@@ -25,6 +25,7 @@ struct PageButton {
 		btnImage.self.size = ImVec2(96, 96);
 		btnImage.self.onClick = [&] { ++s.imgBtnClicks; };
 		btnClicks.self.name = "图片按钮点击";
+		btnClicks.self.valueFn = [&s] { return std::to_string(s.imgBtnClicks); };
 		imageA.self.tex = s.tex;
 		imageA.self.size = ImVec2(64, 64);
 		imageB.self.tex = s.tex;
@@ -37,10 +38,6 @@ struct PageButton {
 		page.addWidget(btnImage);
 		page.addWidget(btnClicks);
 		page.addWidget(imageRow);
-	}
-
-	void refresh(State& s) {
-		btnClicks.self.value = std::to_string(s.imgBtnClicks);
 	}
 };
 

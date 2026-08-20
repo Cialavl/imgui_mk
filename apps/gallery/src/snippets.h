@@ -127,7 +127,7 @@ btn.node.enabled = false;             // 禁用子树)";
 
 inline constexpr std::string_view kTheme = R"(auto t = Mk::wg::Theme::dark().withAccent(accent);
 win.setTheme(t);                       // 每窗口独立 ImGui 上下文
-win.getWindow().rescale(24.0f);        // 重烘焙字号（几何等比联动）
+win.rescale(24.0f);                        // 重烘焙字号（几何等比联动）
 // 子树级作用域换肤：Styled 控件包裹
 Mk::wg::Styled<Mk::wg::Button> st;
 st.self.theme = t.withItemSpacing(2.0f, 2.0f);)";

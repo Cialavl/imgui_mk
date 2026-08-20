@@ -214,7 +214,9 @@ namespace Mk::wg {
 	struct CodeBlockImpl {
 		std::string_view code;
 		ImFont* mono = nullptr;
-		ImU32 copiedFrame = 0;   // Copy 反馈：最近一次复制帧号（60 帧内显示"已复制"）
+		std::function<ImFont*()> monoFn;   // 拉取式字体（渲染时调用；优先于 mono——重烘焙后首帧即生效）
+		ImU32 copiedFrame = 0;             // Copy 反馈：最近一次复制帧号（60 帧内显示"已复制"）
+		ImFont* activeMono() const { return monoFn ? monoFn() : mono; }
 		void renderImpl(Node& n) {
 			const ImGuiStyle& st = ImGui::GetStyle();
 			const ImVec4 baseText = st.Colors[ImGuiCol_Text];
@@ -251,7 +253,8 @@ namespace Mk::wg {
 			bg.z += (baseText.z - bg.z) * 0.06f;
 			ImGui::PushStyleColor(ImGuiCol_ChildBg, bg);
 
-			if(mono) ImGui::PushFont(mono);
+			ImFont* cm = activeMono();
+			if(cm) ImGui::PushFont(cm);
 			const float copyRow = ImGui::GetFrameHeight() + st.ItemSpacing.y;   // Copy 行已占光标高
 			const float childH = n.bounds.h > copyRow ? n.bounds.h - copyRow : 0.0f;   // 子窗口底对齐块底，不溢出
 			if(ImGui::BeginChild("code", ImVec2(n.bounds.w, childH), ImGuiChildFlags_Border,
@@ -291,14 +294,15 @@ namespace Mk::wg {
 				}
 			}
 			ImGui::EndChild();
-			if(mono) ImGui::PopFont();
+			if(cm) ImGui::PopFont();
 			ImGui::PopStyleColor();
 		}
 		// 块总高：代码行（含行距）+ 子窗口壳 + Copy 行——measure 与 render 同源，防底部截断
 		float blockHeight() const {
 			const ImGuiStyle& st = ImGui::GetStyle();
 			const size_t lines = 1 + (size_t)std::count(code.begin(), code.end(), '\n');
-			const float lh = (mono ? mono->FontSize : ImGui::GetFontSize()) + st.ItemSpacing.y;   // 行高含行距
+			ImFont* m = activeMono();
+			const float lh = (m ? m->FontSize : ImGui::GetFontSize()) + st.ItemSpacing.y;   // 行高含行距
 			const float content = (float)lines * lh - st.ItemSpacing.y;           // 末行无尾随行距
 			const float chrome = 2.0f * (st.WindowPadding.y + st.ChildBorderSize); // 子窗口壳
 			const float copyRow = ImGui::GetFrameHeight() + st.ItemSpacing.y;      // Copy 行

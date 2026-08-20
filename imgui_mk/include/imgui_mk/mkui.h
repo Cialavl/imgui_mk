@@ -1,7 +1,12 @@
 #pragma once
-#include <memory>
-#include <vector>
 #include <imgui_mk/windowRendereren.h>
+#include <memory>
+#include <stdexcept>
+#include <typeindex>
+#include <typeinfo>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace Mk {
 
@@ -50,6 +55,43 @@ namespace Mk {
 		void Registration(std::shared_ptr<ImplT> hand) {
 			m_Windows.push_back(std::move(hand));
 		}
+
+		// ===== 共享状态注册表（应用默认注册一次，全部窗口/页面经引擎取用 = 数据联动）=====
+		// 类型键多槽：不同状态类型互不干扰；未注册即取用抛异常（fail-fast）
+		template<typename S>
+		void registerState(std::shared_ptr<S> s) {
+			m_States[typeid(S)] = std::move(s);
+		}
+		template<typename S>
+		S& state() {
+			auto it = m_States.find(typeid(S));
+			if(it == m_States.end()) throw std::runtime_error("mkui: state 未注册");
+			return *static_cast<S*>(it->second.get());
+		}
+
+		// ===== 跨窗口联动广播（各窗口在自己帧内应用，避免跨窗口上下文切换）=====
+		// requires 守卫：最小契约 Impl（render/shouldClose/close）不实例化这些路径
+		template<typename T>
+		void applyThemeAll(T&& t) {
+			if constexpr (requires(ImplT& i, T&& v) { i.requestTheme(v); }) {
+				for(auto& w : m_Windows) w->requestTheme(t);
+			}
+		}
+		template<typename... A>
+		void rescaleAll(A&&... a) {
+			if constexpr (requires(ImplT& i, A&&... v) { i.requestRescale(v...); }) {
+				for(auto& w : m_Windows) w->requestRescale(std::forward<A>(a)...);
+			}
+		}
+		// 首个存活窗口的实际烘焙字号（无窗口或最小契约 Impl 返回 0）
+		float fontSize() const {
+			if constexpr (requires(ImplT& i) { i.m_Handle; i.m_LastBakedSize; }) {
+				for(const auto& w : m_Windows) {
+					if(w->m_Handle) return w->m_LastBakedSize;
+				}
+			}
+			return 0.0f;
+		}
 	private:
 		// 把 ImGui 当前上下文切到任一仍存活的窗口（无存活窗口则不动）。
 		// 仅当 Impl 暴露 m_Handle / m_ImGuiContext（真实窗口）时生效；
@@ -66,6 +108,7 @@ namespace Mk {
 		}
 
 		std::vector<std::shared_ptr<ImplT>> m_Windows;
+		std::unordered_map<std::type_index, std::shared_ptr<void>> m_States;
 	};
 
 }

@@ -1,5 +1,6 @@
 #pragma once
 // gallery 共享状态：State（跨页数据）+ FnDrawerImpl（FnRender 页用）+ gMono（等宽字体）
+#include <imgui_mk/mkui.h>
 #include <imgui_mk/window.h>
 #include <imgui_mk/ui/wg.h>
 #include <imgui_mk/ui/wg_controls.h>
@@ -57,8 +58,6 @@ struct State {
 	std::uintmax_t fileSize = 0;
 	bool fileBinary = false, fileMissing = false;
 
-	Mk::MainWindow<>* win = nullptr;
-	Mk::window* inspectorWin = nullptr;      // Inspector 窗口对象（换肤同步用）
 	GLFWwindow* inspectorHandle = nullptr;
 
 	static constexpr const char* kItems[] = {"Option A", "Option B", "Option C"};
@@ -69,19 +68,12 @@ struct State {
 		{"C", "3", "refreshed per frame"},
 	};
 
-	bool inspectorThemeDirty = false;   // Inspector 换肤延迟标记：跨窗口样式写入放到其自己帧内应用
-	Theme pendingTheme = Theme::dark();
-
-	// 统一换肤：主窗立即生效；Inspector 标记延迟（避免在 gallery 帧内切换其上下文）；
+	// 统一换肤：引擎广播 applyThemeAll（各窗口自己帧内应用，跨窗口安全）；
 	// darkActive 供菜单勾选态（按背景亮度推导）
 	void applyTheme(const Theme& t) {
 		theme = t;
 		darkActive = t.windowBg.x < 0.5f;
-		if(win) win->setTheme(t);
-		if(inspectorWin) {
-			pendingTheme = t;
-			inspectorThemeDirty = true;
-		}
+		Mk::mkui<Mk::window>::RegistrationWindow().applyThemeAll(t);
 	}
 
 	// 显示/隐藏 Inspector（菜单项与多窗口页共用）
@@ -102,6 +94,18 @@ struct State {
 		});
 	}
 };
+
+// ============ 引擎访问助手（页面零窗口依赖）============
+
+// 首个存活窗口的实际烘焙字号（无窗口返回 0）
+inline float engineFontSize() {
+	return Mk::mkui<Mk::window>::RegistrationWindow().fontSize();
+}
+
+// 引擎级字号重烘焙广播（各窗口帧内应用）
+inline void engineRescale(float fontSize) {
+	Mk::mkui<Mk::window>::RegistrationWindow().rescaleAll(fontSize);
+}
 
 // FnRender 页演示用的自定义 callable（可默认构造，State 用指针绑定）
 struct FnDrawerImpl {

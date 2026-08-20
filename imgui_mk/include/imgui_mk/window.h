@@ -23,6 +23,17 @@ namespace Mk {
 			// 中央内容挂载（Qt setCentralWidget 语义）：窗口每帧自动对其做根布局
 			wg::Node* m_Central = nullptr;
 			float m_CentralPadX = 0.0f, m_CentralPadY = 0.0f;
+			// 注册式每帧机制（引擎在 user UI 之前统一分发）
+			struct Shortcut {
+				ImGuiKey key;
+				bool ctrl = false, shift = false, alt = false;
+				std::function<void()> fn;
+			};
+			std::vector<Shortcut> m_Shortcuts;               // 快捷键轮询（addShortcut 注册）
+			std::vector<std::function<void()>> m_FileWatchers;   // 文件对话框托管（watchFileDialog 注册，每帧 poll）
+			struct AuxFont { float scale; ImFont** out; };   // 追加字体声明（addAuxFont 注册，重烘焙后写回句柄）
+			std::vector<AuxFont> m_AuxFonts;
+			std::vector<std::shared_ptr<Impl>> m_Children;  // 挂载的子窗口（mountChild；父关随关，生命周期随父）
 
 			// —— 运行时字号自适应状态（见 rescale/processAdaptiveScaling）——
 			wg::Theme m_Theme;                       // 当前已应用主题（字号保持实际烘焙值）
@@ -32,6 +43,8 @@ namespace Mk {
 			float m_PendingScale = 0.0f;              // >0：contentScale 回调置位，帧内安全处理
 			float m_PendingRescale = -1.0f;             // >0：请求重烘焙（帧内安全时机执行）
 			bool m_AutoScaleFont = false;             // 自适应总开关（B 跨屏 DPI + C 宽度档位）
+			wg::Theme m_PendingTheme;                  // 待应用主题（引擎广播 requestTheme 置位）
+			bool m_ThemePending = false;
 			std::function<bool(float)> m_FontLoader;  // 字号 → 装入字体图集；空 = 默认 CJK 链
 
 			~Impl() {
@@ -64,6 +77,13 @@ namespace Mk {
 				m_PendingRescale = fontSize;
 			}
 
+			// 请求换肤（引擎 applyThemeAll 广播用）：延迟到本窗口自己帧内应用，
+			// 避免在别的窗口帧内切换本窗口上下文（跨窗口安全）
+			void requestTheme(const wg::Theme& t) {
+				m_PendingTheme = t;
+				m_ThemePending = true;
+			}
+
 			// 重烘焙字体图集并按新字号重应用主题（几何随字号自动等比）。
 			// 须在 GL 上下文 + ImGui 上下文均为本窗口时调用（render 顶部满足）。
 			// 注意：全量 CJK 图集重烘焙有约 0.3~0.5s 一次性卡顿（量化档位已把频率降到最低）
@@ -79,6 +99,13 @@ namespace Mk {
 				io.Fonts->Clear();   // 全量重置（含 ConfigData）：ClearFonts 不清配置，重复 Add 会触发 ImGui 断言
 				if(m_FontLoader) m_FontLoader(fontSize);
 				else defaultFontLoader(fontSize);
+				for(const auto& aux : m_AuxFonts) {   // 追加字体：默认链/自定义装载器之后按 scale 装载，句柄写回
+					ImFontConfig cfg;
+					cfg.SizePixels = fontSize * aux.scale;
+					if(ImFont* f = io.Fonts->AddFontDefault(&cfg)) {
+						if(aux.out) *aux.out = f;
+					}
+				}
 				// 销毁旧字体纹理：GL 后端在下一次 NewFrame 检测到空纹理会自动重建
 				ImGui_ImplOpenGL3_DestroyFontsTexture();
 				m_Theme.fontSize = fontSize;
@@ -118,6 +145,11 @@ namespace Mk {
 			// 与 shared_ptr 引用计数无关——引擎发现窗口关闭、或调用方主动 close()，
 			// 都会立即销毁窗口状态，所有共享句柄同步失效（getHandle() 返回 nullptr）。
 			void close() {
+				// 子窗口跟随关闭：置 shouldClose 后由引擎循环在各自迭代执行有序清理
+				//（不在本窗口 close 内嵌套销毁，保持各自上下文独立的关闭顺序）
+				for(auto& c : m_Children) {
+					if(c && c->m_Handle) glfwSetWindowShouldClose(c->m_Handle, true);
+				}
 				if(!m_Handle) return;
 
 				glfwMakeContextCurrent(m_Handle);
@@ -154,6 +186,12 @@ namespace Mk {
 				glfwGetFramebufferSize(m_Handle, &fbw0, &fbh0);
 				if(fbw0 <= 0 || fbh0 <= 0) return;
 				processAdaptiveScaling();   // B/C 字号自适应（重烘焙须在 NewFrame 前）
+				if(m_ThemePending) {   // 引擎广播的延迟换肤：本帧上下文即本窗口，安全应用
+					m_Theme = m_PendingTheme;
+					m_Theme.fontSize = m_LastBakedSize;
+					wg::applyTheme(m_ImGuiContext, m_Theme);
+					m_ThemePending = false;
+				}
 
 				int display_w = 0, display_h = 0;
 				glfwGetFramebufferSize(m_Handle, &display_w, &display_h);
@@ -182,6 +220,16 @@ namespace Mk {
 					ImGuiWindowFlags_NoNavFocus;
 
 				ImGui::Begin("MainFullWindow", nullptr, window_flags);
+
+				// 注册式机制分发：快捷键轮询 + 文件对话框 poll（user UI 之前，状态变更当帧可见）
+				{
+					ImGuiIO& io = ImGui::GetIO();
+					for(const auto& sc : m_Shortcuts) {
+						if(sc.ctrl == io.KeyCtrl && sc.shift == io.KeyShift && sc.alt == io.KeyAlt
+						   && ImGui::IsKeyPressed(sc.key, false)) sc.fn();
+					}
+				}
+				for(const auto& watch : m_FileWatchers) watch();
 
 				if(m_UserUI) {
 					m_UserUI();
@@ -352,6 +400,30 @@ namespace Mk {
 			}
 		}
 
+		// 追加辅助字体（声明式传参）：默认中文链（或自定义装载器）之后按 scale×基准字号装载，
+		// 每次重烘焙后把句柄写回 out（可为空）；注册即请求重烘焙（同 setFontLoader 语义）
+		void addAuxFont(float scale, ImFont** out = nullptr) {
+			if(m_Impl) {
+				m_Impl->m_AuxFonts.push_back({scale, out});
+				m_Impl->requestRescale(m_Impl->m_LastBakedSize);
+			}
+		}
+
+		// 注册式快捷键：引擎每帧轮询（修饰键精确匹配，触发即回调；须在 run() 前注册）
+		void addShortcut(ImGuiKey key, std::function<void()> fn,
+			bool ctrl = false, bool shift = false, bool alt = false) {
+			if(m_Impl) m_Impl->m_Shortcuts.push_back({key, ctrl, shift, alt, std::move(fn)});
+		}
+
+		// 文件对话框托管：引擎每帧 poll（dlg 须与 run() 同寿），完成即回调结果路径
+		template<typename Dlg>
+		void watchFileDialog(Dlg& dlg, std::function<void(std::string)> onDone) {
+			if(m_Impl) m_Impl->m_FileWatchers.push_back([&dlg, fn = std::move(onDone)]() mutable {
+				std::string path;
+				if(dlg.poll(path)) fn(std::move(path));
+			});
+		}
+
 		// 显示窗口（GLFW 创建即可见；窗口被隐藏后可重新显示）
 		void show() {
 			if(auto* h = getHandle()) {
@@ -363,6 +435,20 @@ namespace Mk {
 		void hide() {
 			if(auto* h = getHandle()) {
 				glfwHideWindow(h);
+			}
+		}
+
+		// 子窗口挂载到父窗口：父窗口关闭 → 子窗口跟随关闭；子窗口点 X = 隐藏（生命周期随父）。
+		// 父窗口持有子窗口的共享引用——应用侧的窗口对象可以是局部变量
+		void mountChild(window& child) {
+			if(m_Impl && child.m_Impl && m_Impl != child.m_Impl) {
+				m_Impl->m_Children.push_back(child.m_Impl);
+				if(GLFWwindow* ch = child.getHandle()) {
+					glfwSetWindowCloseCallback(ch, [](GLFWwindow* w) {
+						glfwSetWindowShouldClose(w, GLFW_FALSE);
+						glfwHideWindow(w);
+					});
+				}
 			}
 		}
 

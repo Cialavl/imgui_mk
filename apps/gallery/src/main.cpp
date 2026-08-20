@@ -57,20 +57,13 @@ int main() {
 	Mk::wg::setDefaultTheme(Mk::wg::scaledForMonitor(Mk::wg::Theme::dark()));
 	const auto [galW, galH] = Mk::workAreaSize(0.75f, 0.8f, 1440, 880);
 
-	Mk::MainWindow<> gallery("mkui Widget Gallery", galW, galH);
+	// 主窗口创建即注册共享状态（引擎层数据联动：窗口/页面经引擎取用同一实例）
+	Mk::MainWindow<Mk::window, gallery::State> gallery("mkui Widget Gallery", galW, galH);
+	gallery::State& s = gallery.state<gallery::State>();
 
-	// 自定义字体链：中文（默认链）+ 等宽代码字体（×0.85 随字号联动）
-	gallery.getWindow().setFontLoader([](float fontSize) {
-		if(!Mk::window::Impl::defaultFontLoader(fontSize)) return false;
-		ImFontConfig cfg;
-		cfg.SizePixels = fontSize * 0.85f;
-		gallery::gMono = ImGui::GetIO().Fonts->AddFontDefault(&cfg);
-		return true;
-	});
-	gallery.getWindow().setAutoScaleFont(true);
-
-	gallery::State s;
-	s.win = &gallery;
+	// 追加等宽代码字体（×0.85 随字号联动）：框架保证默认中文链 + 重烘焙后句柄写回 gMono
+	gallery.addAuxFont(0.85f, &gallery::gMono);
+	gallery.setAutoScaleFont(true);
 
 	// 棋盘纹理（Image/ImageButton 页共用）
 	static unsigned char pixels[64 * 64 * 4];
@@ -78,7 +71,7 @@ int main() {
 	s.tex = Mk::wg::loadTextureRGBA(pixels, 64, 64);
 
 	// —— 22 个演示页：main 组装一次，UI 回调按选中下标切换可见性 ——
-	gallery::GalleryWindow window(s);
+	gallery::GalleryWindow window(gallery, s);
 
 	gallery::PageBase      pageBase(s);
 	gallery::PageLifecycle pageLifecycle(s);
@@ -126,83 +119,50 @@ int main() {
 	window.addPage(pageFile);
 	window.addPage(pageFnRender);
 
-	// —— 第二顶层窗口：Inspector（与画廊共享全部外置状态；点 X 仅隐藏）——
-	const auto [insW, insH] = Mk::workAreaSize(0.3f, 0.7f, 420, 640);
-	Mk::window inspector("Inspector", insW, insH);
-	inspector.setAutoScaleFont(true);
-	s.inspectorWin = &inspector;
-	s.inspectorHandle = inspector.getHandle();
-	if(s.inspectorHandle) {
-		glfwSetWindowCloseCallback(s.inspectorHandle, [](GLFWwindow* w) {
-			glfwSetWindowShouldClose(w, GLFW_FALSE);
-			glfwHideWindow(w);
-		});
-	}
-	gallery::InsUi insUi;
-	gallery::buildIns(insUi, s);
-	inspector.setCentralWidget(insUi.root.node);   // 中央挂载：外边距/尺寸由引擎每帧驱动
-	inspector.setUserUI([&] {
-		if(gallery.getHandle() == nullptr) {   // 主窗已销毁 → 跟随退出
-			glfwSetWindowShouldClose(inspector.getHandle(), true);
-			return;
-		}
-		if(s.inspectorThemeDirty) {   // 延迟换肤：本帧上下文即 Inspector 自身，无跨窗口切换
-			inspector.setTheme(s.pendingTheme);
-			s.inspectorThemeDirty = false;
-		}
-		++s.insFrames;
-		gallery::refreshIns(insUi, s);
-	});
+	// —— Inspector 子窗口由主窗 GalleryWindow 构造时全权装配（窗口/界面/回调）——
 
 	// 中央挂载一次性完成（引擎每帧自动根布局；Qt setCentralWidget 语义）
 	gallery.setCentralWidget(window.root.node);
+
+	// 注册式每帧机制：快捷键 + 文件对话框托管（引擎在 user UI 前统一分发）
+	gallery.addShortcut(ImGuiKey_O, [&] { s.openFileDlg(); }, true);
+	gallery.watchFileDialog(s.fileDlg, [&](std::string picked) {
+		s.filePath = picked;
+		s.filePreview.clear();
+		s.fileSize = 0;
+		s.fileBinary = false;
+		s.fileMissing = false;
+		if(!s.filePath.empty()) {
+			std::error_code ec;
+			s.fileSize = std::filesystem::file_size(s.filePath, ec);
+			if(ec) {
+				s.fileMissing = true;
+			}
+			else {
+				std::ifstream in(s.filePath, std::ios::binary);
+				constexpr std::size_t kCap = 64 * 1024;
+				std::string buf(kCap, '\0');
+				in.read(buf.data(), (std::streamsize)kCap);
+				buf.resize((size_t)in.gcount());
+				s.fileBinary = buf.find('\0') != std::string::npos;
+				if(!s.fileBinary) s.filePreview = std::move(buf);
+			}
+		}
+	});
 
 	SetUnhandledExceptionFilter(CrashHandler);
 
 	gallery.setUI([&] {
 		g_crashFrame = s.frames;
 		g_crashSel = s.sel;
-		// 动画驱动
+		// 动画驱动（演示内容）
 		++s.frames;
 		s.volume = 0.5f + 0.5f * std::sin(s.frames * 0.02f);
 		s.history.push_back(0.5f + 0.5f * std::sin(s.frames * 0.05f));
 		if(s.history.size() > 300) s.history.erase(s.history.begin());
 
-		// Ctrl+O 快捷键（与菜单 Open 同路径；wg 小助手免直连 ImGui IO）
-		if(Mk::wg::detail::ctrlHeld() && Mk::wg::detail::keyPressed(ImGuiKey_O)) s.openFileDlg();
-
-		// Inspector 句柄刷新（窗口关闭后失效防护）
-		s.inspectorHandle = inspector.getHandle();
-
-		// 文件对话框轮询：完成即读取（文本截前 64KB，二进制只记大小）
-		std::string picked;
-		if(s.fileDlg.poll(picked)) {
-			s.filePath = picked;
-			s.filePreview.clear();
-			s.fileSize = 0;
-			s.fileBinary = false;
-			s.fileMissing = false;
-			if(!s.filePath.empty()) {
-				std::error_code ec;
-				s.fileSize = std::filesystem::file_size(s.filePath, ec);
-				if(ec) {
-					s.fileMissing = true;
-				}
-				else {
-					std::ifstream in(s.filePath, std::ios::binary);
-					constexpr std::size_t kCap = 64 * 1024;
-					std::string buf(kCap, '\0');
-					in.read(buf.data(), (std::streamsize)kCap);
-					buf.resize((size_t)in.gcount());
-					s.fileBinary = buf.find('\0') != std::string::npos;
-					if(!s.fileBinary) s.filePreview = std::move(buf);
-				}
-			}
-		}
-
-		// 每帧动态绑定刷新 + 状态栏
+		// 每帧动态绑定刷新（show 标志/主题跟随等；字符串型已改 valueFn 拉取式）
 		window.refreshAll(s);
-		window.drawPopups();   // 弹窗浮层（触发后自己显示，不占布局）
 	});
 
 	Mk::mkui<Mk::window>::run();
