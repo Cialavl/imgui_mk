@@ -93,6 +93,7 @@ namespace Mk::wg {
 	// ============ 应用：写入当前 ImGui 上下文 ============
 
 	inline void applyTheme(ImGuiContext* ctx, const Theme& t) {
+		ImGuiContext* prev = ImGui::GetCurrentContext();   // 保存调用方上下文：跨窗口调用（其他窗口帧内）不污染
 		ImGui::SetCurrentContext(ctx);
 		ImGuiStyle& s = ImGui::GetStyle();
 
@@ -170,6 +171,7 @@ namespace Mk::wg {
 		c[ImGuiCol_DragDropTarget] = t.accent;
 		c[ImGuiCol_NavCursor] = t.accent;
 		c[ImGuiCol_ModalWindowDimBg] = ImVec4(0.10f, 0.10f, 0.12f, 0.55f);
+		ImGui::SetCurrentContext(prev);
 	}
 
 	// ============ 默认主题与 DPI ============

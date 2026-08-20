@@ -69,12 +69,19 @@ struct State {
 		{"C", "3", "refreshed per frame"},
 	};
 
-	// 统一换肤：主窗 + Inspector 同步；darkActive 供菜单勾选态（按背景亮度推导）
+	bool inspectorThemeDirty = false;   // Inspector 换肤延迟标记：跨窗口样式写入放到其自己帧内应用
+	Theme pendingTheme = Theme::dark();
+
+	// 统一换肤：主窗立即生效；Inspector 标记延迟（避免在 gallery 帧内切换其上下文）；
+	// darkActive 供菜单勾选态（按背景亮度推导）
 	void applyTheme(const Theme& t) {
 		theme = t;
 		darkActive = t.windowBg.x < 0.5f;
 		if(win) win->setTheme(t);
-		if(inspectorWin) inspectorWin->setTheme(t);
+		if(inspectorWin) {
+			pendingTheme = t;
+			inspectorThemeDirty = true;
+		}
 	}
 
 	// 显示/隐藏 Inspector（菜单项与多窗口页共用）

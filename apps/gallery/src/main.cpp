@@ -146,6 +146,10 @@ int main() {
 			glfwSetWindowShouldClose(inspector.getHandle(), true);
 			return;
 		}
+		if(s.inspectorThemeDirty) {   // 延迟换肤：本帧上下文即 Inspector 自身，无跨窗口切换
+			inspector.setTheme(s.pendingTheme);
+			s.inspectorThemeDirty = false;
+		}
 		++s.insFrames;
 		gallery::refreshIns(insUi, s);
 	});
