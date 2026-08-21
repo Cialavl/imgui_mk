@@ -1,4 +1,4 @@
-﻿# mkui 教学课程配套程序：tutorial00..12，每课一个可运行的活教材。
+# mkui 教学课程配套程序：tutorial00..12，每课一个可运行的活教材。
 # 无外部依赖，Debug/ASan/Release 全树构建；交互式（手动关窗退出），
 # 例外：带自演示计时的课程按各自注释说明。
 file(GLOB tutorial_srcs CONFIGURE_DEPENDS src/*.cpp)
@@ -10,3 +10,7 @@ foreach(src ${tutorial_srcs})
     add_executable(${name} ${src})
     target_link_libraries(${name} PRIVATE imgui_mk)
 endforeach()
+
+# wg2 新教程单独启用（旧教程 glob 仍处于禁用状态）
+add_executable(tutorial13_wg2 src/tutorial13_wg2.cpp)
+target_link_libraries(tutorial13_wg2 PRIVATE imgui_mk)

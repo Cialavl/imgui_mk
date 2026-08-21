@@ -1,70 +1,81 @@
 #pragma once
-// p3 分格模式：SplitH/SplitV/Wrap/Grid
+// p3 分格模式：SplitH/SplitV/Wrap/Grid（wg2 编译期布局）
 #include "../gallery_chrome.h"
 
 namespace gallery {
 
 struct PageSplit {
-	Label splitIntro, sfA, sfB, sfC, svA, svB;
-	Label wA, wB, wC, wD;
-	Label g00, g01, g02, g10, g11, g12;
-	SplitHLayout splitH;  // SplitH：固定 + 1:2 权重
-	SplitVLayout splitV;  // SplitV：固定 + stretch
-	WrapLayout wrapRow;   // Wrap 模式
-	GridLayout grid;      // Grid 网格
+using Root = Mk::wg2::VBox<
+Mk::wg2::Id("root"),
+Mk::wg2::Label<Mk::wg2::Id("intro")>,
+Mk::wg2::SplitH<Mk::wg2::Id("splitH"),
+Mk::wg2::Label<Mk::wg2::Id("sfA")>,
+Mk::wg2::Label<Mk::wg2::Id("sfB")>,
+Mk::wg2::Label<Mk::wg2::Id("sfC")>
+>,
+Mk::wg2::SplitV<Mk::wg2::Id("splitV"),
+Mk::wg2::Label<Mk::wg2::Id("svA")>,
+Mk::wg2::Label<Mk::wg2::Id("svB")>
+>,
+Mk::wg2::Wrap<Mk::wg2::Id("wrap"),
+Mk::wg2::Label<Mk::wg2::Id("wA")>,
+Mk::wg2::Label<Mk::wg2::Id("wB")>,
+Mk::wg2::Label<Mk::wg2::Id("wC")>,
+Mk::wg2::Label<Mk::wg2::Id("wD")>
+>,
+Mk::wg2::Grid<Mk::wg2::Id("grid"),
+Mk::wg2::Label<Mk::wg2::Id("g00")>,
+Mk::wg2::Label<Mk::wg2::Id("g01")>,
+Mk::wg2::Label<Mk::wg2::Id("g02")>,
+Mk::wg2::Label<Mk::wg2::Id("g10")>,
+Mk::wg2::Label<Mk::wg2::Id("g11")>,
+Mk::wg2::Label<Mk::wg2::Id("g12")>
+>
+>;
 
-	Page page;
-	PageSplit(State& s) {
-		(void)s;
-		page.setup("分格模式",
-			"SplitH/SplitV：setFixedWidth 固定 + addWidget(w,stretch) 权重；Wrap 换行；"
-			"Grid 固定列网格。分格需要明确尺寸（layout 传 host 尺寸）。",
-			snips::kSplit);
-		splitIntro.self.setName("分格演示：SplitH 权重分割 / SplitV 垂直分割 / Wrap 换行 / Grid 网格");
-		sfA.self.setName("fixed 160");
-		sfB.self.setName("stretch 1");
-		sfC.self.setName("stretch 2");
-		sfA.setFixedWidth(160.0f);
+Page page;
+Root root;
 
+PageSplit(State& s) {
+(void)s;
+page.setup("分格模式",
+"wg2 SplitH/SplitV 是 HBox/VBox 别名；stretch 与 fixed size 都存在 WidgetState。"
+"Wrap 换行、Grid 固定列网格。",
+snips::kSplit);
 
+root.at<Mk::wg2::Id("intro")>().text = "分格演示：SplitH 权重分割 / SplitV 垂直分割 / Wrap 换行 / Grid 网格";
+root.at<Mk::wg2::Id("splitH"), Mk::wg2::Id("sfA")>().text = "fixed 160";
+root.at<Mk::wg2::Id("splitH"), Mk::wg2::Id("sfA")>().state.size.fixedW = 160.0f;
+root.at<Mk::wg2::Id("splitH"), Mk::wg2::Id("sfB")>().text = "stretch 1";
+root.at<Mk::wg2::Id("splitH"), Mk::wg2::Id("sfB")>().state.stretch = 1.0f;
+root.at<Mk::wg2::Id("splitH"), Mk::wg2::Id("sfC")>().text = "stretch 2";
+root.at<Mk::wg2::Id("splitH"), Mk::wg2::Id("sfC")>().state.stretch = 2.0f;
 
-		splitH.addWidget(sfA.node);
-		splitH.addWidget(sfB.node, 1.0f);
-		splitH.addWidget(sfC.node, 2.0f);
-		svA.self.setName("fixed 44");
-		svB.self.setName("VSplit stretch");
-		svA.setFixedHeight(44.0f);
+root.at<Mk::wg2::Id("splitV"), Mk::wg2::Id("svA")>().text = "fixed 44";
+root.at<Mk::wg2::Id("splitV"), Mk::wg2::Id("svA")>().state.size.fixedH = 44.0f;
+root.at<Mk::wg2::Id("splitV"), Mk::wg2::Id("svB")>().text = "VSplit stretch";
+root.at<Mk::wg2::Id("splitV"), Mk::wg2::Id("svB")>().state.stretch = 1.0f;
 
+root.at<Mk::wg2::Id("wrap"), Mk::wg2::Id("wA")>().text = "换行一";
+root.at<Mk::wg2::Id("wrap"), Mk::wg2::Id("wB")>().text = "换行二（较长项）";
+root.at<Mk::wg2::Id("wrap"), Mk::wg2::Id("wC")>().text = "换行三";
+root.at<Mk::wg2::Id("wrap"), Mk::wg2::Id("wD")>().text = "换行四";
 
-		splitV.addWidget(svA.node);
-		splitV.addWidget(svB.node, 1.0f);
-		wA.self.setName("换行一");
-		wB.self.setName("换行二（较长项）");
-		wC.self.setName("换行三");
-		wD.self.setName("换行四");
+root.at<Mk::wg2::Id("grid")>().cols = 3;
+root.at<Mk::wg2::Id("grid"), Mk::wg2::Id("g00")>().text = "格 0-0";
+root.at<Mk::wg2::Id("grid"), Mk::wg2::Id("g01")>().text = "格 0-1";
+root.at<Mk::wg2::Id("grid"), Mk::wg2::Id("g02")>().text = "格 0-2";
+root.at<Mk::wg2::Id("grid"), Mk::wg2::Id("g10")>().text = "格 1-0";
+root.at<Mk::wg2::Id("grid"), Mk::wg2::Id("g11")>().text = "格 1-1";
+root.at<Mk::wg2::Id("grid"), Mk::wg2::Id("g12")>().text = "格 1-2";
 
-		wrapRow.addWidget(wA);
-		wrapRow.addWidget(wB);
-		wrapRow.addWidget(wC);
-		wrapRow.addWidget(wD);
+page.addWidget([&](const Mk::wg2::Rect& r) {
+ Mk::wg2::layout(root, r);
+}, [&](const Mk::wg2::Size& avail) {
+return root.hint(avail);
+});
+}
 
-		g00.self.setName("格 0-0"); g01.self.setName("格 0-1"); g02.self.setName("格 0-2");
-		g10.self.setName("格 1-0"); g11.self.setName("格 1-1"); g12.self.setName("格 1-2");
-
-		grid.setCols(3);
-		grid.addWidget(g00);
-		grid.addWidget(g01);
-		grid.addWidget(g02);
-		grid.addWidget(g10);
-		grid.addWidget(g11);
-		grid.addWidget(g12);
-
-		page.addWidget(splitIntro);
-		page.addWidget(splitH);
-		page.addWidget(splitV);
-		page.addWidget(wrapRow);
-		page.addWidget(grid);
-	}
 };
 
 } // namespace gallery

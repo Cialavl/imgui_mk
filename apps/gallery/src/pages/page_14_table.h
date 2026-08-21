@@ -1,33 +1,45 @@
 #pragma once
-// p14 表格：TextTable/FnTable
+// p14 表格：TextTable/FnTable（wg2）
 #include "../gallery_chrome.h"
+
+#include <string>
 
 namespace gallery {
 
 struct PageTable {
-	TextTable tableData;
-	FnTable tableFn;
+using Root = Mk::wg2::VBox<
+Mk::wg2::Id("root"),
+Mk::wg2::TextTable<Mk::wg2::Id("data")>,
+Mk::wg2::FnTable<Mk::wg2::Id("fn")>
+>;
 
-	Page page;
-	PageTable(State& s) {
-		page.setup("表格",
-			"TextTable（数据驱动：外部 vector 只读绑定）；FnTable（单元回调 cell(r,c)）。"
-			"表格 ImGui ID 用 node.idname。",
-			snips::kTable);
-		tableData.node.idname = "tbl";
-		tableData.self.headers = State::kHeaders;
-		tableData.self.headerCount = 3;
-		tableData.self.rows = &s.rows;
-		tableFn.node.idname = "fn";
-		tableFn.self.headers = State::kHeaders;
-		tableFn.self.headerCount = 3;
-		tableFn.self.rowCount = 4;
-		tableFn.self.cell = [](int r, int c) {
-			return "r" + std::to_string(r) + "c" + std::to_string(c);
-		};
-		page.addWidget(tableData.node);
-		page.addWidget(tableFn.node);
-	}
+Page page;
+Root root;
+
+PageTable(State& s) {
+page.setup("表格",
+"wg2 TextTable（数据驱动：外部 vector 只读绑定）；FnTable（单元回调 cell(r,c)）。",
+snips::kTable);
+
+root.at<Mk::wg2::Id("data")>().idname = "tbl";
+root.at<Mk::wg2::Id("data")>().headers = State::kHeaders;
+root.at<Mk::wg2::Id("data")>().headerCount = 3;
+root.at<Mk::wg2::Id("data")>().rows = &s.rows;
+root.at<Mk::wg2::Id("fn")>().idname = "fn";
+root.at<Mk::wg2::Id("fn")>().headers = State::kHeaders;
+root.at<Mk::wg2::Id("fn")>().headerCount = 3;
+root.at<Mk::wg2::Id("fn")>().rowCount = 4;
+root.at<Mk::wg2::Id("fn")>().cell = [](int r, int c) {
+return "r" + std::to_string(r) + "c" + std::to_string(c);
+};
+
+page.addWidget([&](const Mk::wg2::Rect& r) {
+ Mk::wg2::layout(root, r);
+}, [&](const Mk::wg2::Size& avail) {
+return root.hint(avail);
+});
+}
+
 };
 
 } // namespace gallery

@@ -1,63 +1,65 @@
 #pragma once
-// p18 主题自适应：Theme dark/light/accent + Styled 局部主题 + rescale
+// p18 主题自适应：全局 Theme 切换 + rescale（wg2）
 #include "../gallery_chrome.h"
 
 namespace gallery {
 
 struct PageTheme {
-	Button themeDark, themeLight, themeAccent;
-	HLayout themeRow;
-	Label themeScopeNote;
-	Button themeCompact1, themeCompact2;
-	VLayout themeCompactInner;
-	Styled<VLayout> themeCompact;
-	Label themeRescaleNote;
-	Button themeRescale;
+using Root = Mk::wg2::VBox<
+Mk::wg2::Id("root"),
+Mk::wg2::HBox<Mk::wg2::Id("row"),
+Mk::wg2::Button<Mk::wg2::Id("dark")>,
+Mk::wg2::Button<Mk::wg2::Id("light")>,
+Mk::wg2::Button<Mk::wg2::Id("accent")>
+>,
+Mk::wg2::Label<Mk::wg2::Id("scopeNote")>,
+Mk::wg2::VBox<Mk::wg2::Id("compact"),
+Mk::wg2::Button<Mk::wg2::Id("compact1")>,
+Mk::wg2::Button<Mk::wg2::Id("compact2")>
+>,
+Mk::wg2::Label<Mk::wg2::Id("rescaleNote")>,
+Mk::wg2::Button<Mk::wg2::Id("rescale")>
+>;
 
-	Page page;
-	PageTheme(State& s) {
-		page.setup("主题与自适应",
-			"Theme 值对象：dark/light 预设 + withAccent 链式修改；Styled 局部主题区换肤；"
-			"rescale 重载字号（窗口等比缩放自适应）。",
-			snips::kTheme);
-		themeDark.self.setName("Dark");
-		themeDark.self.onClick = [&] { s.applyTheme(Theme::dark()); };   // 引擎广播：双窗同步换肤
-		themeLight.self.setName("Light");
-		themeLight.self.onClick = [&] { s.applyTheme(Theme::light()); };
-		themeAccent.self.setName("Accent 红");
-		themeAccent.self.onClick = [&] {
-			s.applyTheme(Theme::dark().withAccent(ImVec4(1.0f, 0.0f, 0.0f, 1.0f)));
-		};
+Page page;
+Root root;
 
-		themeRow.addWidget(themeDark.node);
-		themeRow.addWidget(themeLight.node);
-		themeRow.addWidget(themeAccent.node);
-		themeScopeNote.self.setName("Styled 作用域：局部覆盖主题（全局不受影响）");
-		themeCompact1.self.setName("紧凑按钮一");
-		themeCompact2.self.setName("紧凑按钮二");
+PageTheme(State& s) {
+page.setup("主题与自适应",
+"wg2 全局 Theme 切换与 rescale 重载字号；局部主题可用 Colored/样式作用域代替。",
+snips::kTheme);
 
-		themeCompactInner.addWidget(themeCompact1.node);
-		themeCompactInner.addWidget(themeCompact2.node);
-		themeCompact.self.theme = s.theme.withItemSpacing(2.0f, 2.0f).withRounding(0.0f);
-		themeCompact.node.add(themeCompactInner.node);
-		themeRescaleNote.self.setName("rescale(24)：重载字号图标集；布局/控件/行高/间距全等比");
-		themeRescale.self.setName("rescale(24)");
-		themeRescale.self.onClick = [&] {
-			const float cur = engineFontSize();
-			engineRescale(cur >= 23.5f ? 18.0f : 24.0f);   // 引擎广播：18↔24 双向切换
-		};
-		page.addWidget(themeRow);
-		page.addWidget(themeScopeNote);
-		page.addWidget(themeCompact);
-		page.addWidget(themeRescaleNote);
-		page.addWidget(themeRescale);
-	}
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("dark")>().label = "Dark";
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("dark")>().onClick = [&] { s.applyTheme(Theme::dark()); };
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("light")>().label = "Light";
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("light")>().onClick = [&] { s.applyTheme(Theme::light()); };
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("accent")>().label = "Accent 红";
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("accent")>().onClick = [&] {
+s.applyTheme(Theme::dark().withAccent(ImVec4(1.0f, 0.0f, 0.0f, 1.0f)));
+};
+root.at<Mk::wg2::Id("scopeNote")>().text = "局部主题：wg2 当前使用 Colored 装饰件替代 Styled";
+root.at<Mk::wg2::Id("compact")>().spacing = 2.0f;
+root.at<Mk::wg2::Id("compact"), Mk::wg2::Id("compact1")>().label = "紧凑按钮一";
+root.at<Mk::wg2::Id("compact"), Mk::wg2::Id("compact2")>().label = "紧凑按钮二";
+root.at<Mk::wg2::Id("rescaleNote")>().text = "rescale(24)：重载字号图标集；布局/控件/行高/间距全等比";
+root.at<Mk::wg2::Id("rescale")>().onClick = [&] {
+const float cur = engineFontSize();
+engineRescale(cur >= 23.5f ? 18.0f : 24.0f);
+};
 
-	void refresh(State& s) {
-		themeCompact.self.theme = s.theme.withItemSpacing(2.0f, 2.0f).withRounding(0.0f);   // 跟随当前主题（换肤后同步）
-		const float cur = engineFontSize();
-		themeRescale.self.setName(cur >= 23.5f ? "rescale(18)" : "rescale(24)");
-	}
+page.addWidget([&](const Mk::wg2::Rect& r) {
+ Mk::wg2::layout(root, r);
+}, [&](const Mk::wg2::Size& avail) {
+return root.hint(avail);
+});
+}
+
+void refresh(State& s) {
+(void)s;
+const float cur = engineFontSize();
+root.at<Mk::wg2::Id("rescale")>().label = cur >= 23.5f ? "rescale(18)" : "rescale(24)";
+}
+
 };
 
 } // namespace gallery

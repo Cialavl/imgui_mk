@@ -1,8 +1,9 @@
 #pragma once
 #include <imgui_mk/windowRendereren.h>
 #include <imgui_mk/mkui.h>
-#include <imgui_mk/ui/wg_style.h>
-#include <imgui_mk/ui/wg.h>   // Node（setCentralWidget 挂载）
+#include <imgui_mk/ui/wg2/style.h>
+
+#include <imgui_mk/ui/wg2/core.h>   // wg2::Rect（新 setCentralWidget 回调挂载）
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -21,7 +22,7 @@ namespace Mk {
 			// 每帧 UI 回调（组件注入窗口内容，如主窗口组件）
 			std::function<void()> m_UserUI;
 			// 中央内容挂载（Qt setCentralWidget 语义）：窗口每帧自动对其做根布局
-			wg::Node* m_Central = nullptr;
+						std::function<void(const wg2::Rect&)> m_CentralFn;   // wg2 回调挂载
 			float m_CentralPadX = 0.0f, m_CentralPadY = 0.0f;
 			// 注册式每帧机制（引擎在 user UI 之前统一分发）
 			struct Shortcut {
@@ -36,14 +37,14 @@ namespace Mk {
 			std::vector<std::shared_ptr<Impl>> m_Children;  // 挂载的子窗口（mountChild；父关随关，生命周期随父）
 
 			// —— 运行时字号自适应状态（见 rescale/processAdaptiveScaling）——
-			wg::Theme m_Theme;                       // 当前已应用主题（字号保持实际烘焙值）
+			wg2::Theme m_Theme;                       // 当前已应用主题（字号保持实际烘焙值）
 			float m_BaseFontSize = 0.0f;              // 逻辑基准字号（构造字号 / 构造时 contentScale）
 			float m_ContentScale = 1.0f;              // 当前显示器缩放（跨屏时由回调更新）
 			float m_LastBakedSize = 0.0f;             // 实际烘焙字号（档位比对基准）
 			float m_PendingScale = 0.0f;              // >0：contentScale 回调置位，帧内安全处理
 			float m_PendingRescale = -1.0f;             // >0：请求重烘焙（帧内安全时机执行）
 			bool m_AutoScaleFont = false;             // 自适应总开关（B 跨屏 DPI + C 宽度档位）
-			wg::Theme m_PendingTheme;                  // 待应用主题（引擎广播 requestTheme 置位）
+			wg2::Theme m_PendingTheme;                  // 待应用主题（引擎广播 requestTheme 置位）
 			bool m_ThemePending = false;
 			std::function<bool(float)> m_FontLoader;  // 字号 → 装入字体图集；空 = 默认 CJK 链
 
@@ -79,7 +80,7 @@ namespace Mk {
 
 			// 请求换肤（引擎 applyThemeAll 广播用）：延迟到本窗口自己帧内应用，
 			// 避免在别的窗口帧内切换本窗口上下文（跨窗口安全）
-			void requestTheme(const wg::Theme& t) {
+			void requestTheme(const wg2::Theme& t) {
 				m_PendingTheme = t;
 				m_ThemePending = true;
 			}
@@ -111,7 +112,7 @@ namespace Mk {
 				m_Theme.fontSize = fontSize;
 				m_LastBakedSize = fontSize;
 				m_PendingRescale = -1.0f;
-				wg::applyTheme(m_ImGuiContext, m_Theme);
+				wg2::applyTheme(m_ImGuiContext, m_Theme);
 			}
 
 			// 帧内自适应处理（render 顶部，上下文已安全切到本窗口）：
@@ -189,7 +190,7 @@ namespace Mk {
 				if(m_ThemePending) {   // 引擎广播的延迟换肤：本帧上下文即本窗口，安全应用
 					m_Theme = m_PendingTheme;
 					m_Theme.fontSize = m_LastBakedSize;
-					wg::applyTheme(m_ImGuiContext, m_Theme);
+					wg2::applyTheme(m_ImGuiContext, m_Theme);
 					m_ThemePending = false;
 				}
 
@@ -238,15 +239,16 @@ namespace Mk {
 
 				// 布局由窗口自动驱动（控件树与窗口交互；应用侧零布局调用）
 				// 外边距语义：默认 = 窗口样式 WindowPadding（主题/字号联动）；padX/padY 为增量（Qt setCentralWidget）
-				if(m_Central) {
-					const ImVec2 avail = ImGui::GetContentRegionAvail();
-					const ImVec2 wp = ImGui::GetStyle().WindowPadding;
-					m_Central->layout(wg::Rect{
-						wp.x + m_CentralPadX, wp.y + m_CentralPadY,
-						std::max(0.0f, avail.x - m_CentralPadX * 2.0f),
-						std::max(0.0f, avail.y - m_CentralPadY * 2.0f)});
-				}
-				ImGui::End();
+				if(m_CentralFn) {
+const ImVec2 avail = ImGui::GetContentRegionAvail();
+const ImVec2 wp = ImGui::GetStyle().WindowPadding;
+const float x = wp.x + m_CentralPadX;
+const float y = wp.y + m_CentralPadY;
+const float w = std::max(0.0f, avail.x - m_CentralPadX * 2.0f);
+const float h = std::max(0.0f, avail.y - m_CentralPadY * 2.0f);
+m_CentralFn(wg2::Rect{x, y, w, h});
+}
+ImGui::End();
 
 				ImGui::Render();
 				ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -309,20 +311,20 @@ namespace Mk {
 			ImGui::SetCurrentContext(impl.m_ImGuiContext);
 
 			// 全局默认主题（setDefaultTheme 须在首个窗口创建前调用；此处读取烘焙）
-			impl.m_Theme = wg::defaultTheme();
-			const wg::Theme& theme = impl.m_Theme;
+			impl.m_Theme = wg2::defaultTheme();
+			const wg2::Theme& theme = impl.m_Theme;
 
 			// 按主题字号加载默认字体链（中文全量字形，见 defaultFontLoader）
 			Impl::defaultFontLoader(theme.fontSize);
 
 			// 自适应状态初始化：逻辑基准 = 构造字号 / 构造时显示器缩放
 			//（scaledForMonitor 预乘过的字号在此被剥离，档位计算不会双重缩放）
-			impl.m_ContentScale = wg::dpiScale();
+			impl.m_ContentScale = wg2::dpiScale();
 			impl.m_BaseFontSize = theme.fontSize / impl.m_ContentScale;
 			impl.m_LastBakedSize = theme.fontSize;
 
 			// 应用默认主题（几何随 fontSize 等比），可用 setTheme 换肤
-			wg::applyTheme(impl.m_ImGuiContext, theme);
+			wg2::applyTheme(impl.m_ImGuiContext, theme);
 
 			// 初始化ImGui的OpenGL3后端
 			ImGui_ImplGlfw_InitForOpenGL(impl.m_Handle, true);
@@ -348,23 +350,22 @@ namespace Mk {
 			}
 		}
 
-		// 挂载中央内容（Qt setCentralWidget 语义）：窗口每帧自动对其根布局（setUserUI 回调之后执行），
-		// 布局由控件树与窗口交互自动完成；padX/padY 为外边距增量（默认 = 样式 WindowPadding）。
-		void setCentralWidget(wg::Node& root, float padX = 0.0f, float padY = 0.0f) {
-			if(m_Impl) {
-				m_Impl->m_Central = &root;
-				m_Impl->m_CentralPadX = padX;
-				m_Impl->m_CentralPadY = padY;
-			}
-		}
-
-		// 切换本窗口主题（每窗口独立 ImGui 上下文，可各持一套皮肤）。
+		// wg2 中央内容挂载：每帧把内容区 bounds 回调给应用层执行 layout()。
+void setCentralWidget(std::function<void(const wg2::Rect&)> fn,
+float padX = 0.0f, float padY = 0.0f) {
+if(m_Impl) {
+m_Impl->m_CentralFn = std::move(fn);
+m_Impl->m_CentralPadX = padX;
+m_Impl->m_CentralPadY = padY;
+}
+}
+// 切换本窗口主题（每窗口独立 ImGui 上下文，可各持一套皮肤）。
 		// 换肤不换字号：字体位图不重建，几何按当前烘焙字号推导
-		void setTheme(const wg::Theme& theme) {
+		void setTheme(const wg2::Theme& theme) {
 			if(m_Impl && m_Impl->m_Handle) {
 				m_Impl->m_Theme = theme;
 				m_Impl->m_Theme.fontSize = m_Impl->m_LastBakedSize;
-				wg::applyTheme(m_Impl->m_ImGuiContext, m_Impl->m_Theme);
+				wg2::applyTheme(m_Impl->m_ImGuiContext, m_Impl->m_Theme);
 			}
 		}
 

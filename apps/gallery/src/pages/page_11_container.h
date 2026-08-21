@@ -1,47 +1,57 @@
 #pragma once
-// p11 容器：OverlayLayout / Collapsing / Tree / SubWindow
+// p11 容器：Overlay / Collapsing / Tree / SubWindow（wg2 编译期子节点）
 #include "../gallery_chrome.h"
 
 namespace gallery {
 
 struct PageContainer {
-	Label grpLabel, collLabel, treeLeaf1, treeLeaf2, subLabel;
-	Button grpButton;
-	OverlayLayout overlayBox;   // Overlay 模式（原 Group）
-	Collapsing boxColl;
-	Tree boxTree;
-	SubWindow<> boxSub;
+using Root = Mk::wg2::VBox<
+Mk::wg2::Id("root"),
+Mk::wg2::Overlay<Mk::wg2::Id("overlay"),
+Mk::wg2::Label<Mk::wg2::Id("overlayLabel")>,
+Mk::wg2::Button<Mk::wg2::Id("overlayButton")>
+>,
+Mk::wg2::Collapsing<Mk::wg2::Id("collapsing"),
+Mk::wg2::Label<Mk::wg2::Id("collLabel")>
+>,
+Mk::wg2::Tree<Mk::wg2::Id("tree"),
+Mk::wg2::Label<Mk::wg2::Id("leaf1")>,
+Mk::wg2::Label<Mk::wg2::Id("leaf2")>
+>,
+Mk::wg2::SubWindow<Mk::wg2::Id("sub"),
+Mk::wg2::Label<Mk::wg2::Id("subLabel")>
+>
+>;
 
-	Page page;
-	PageContainer(State& s) {
-		page.setup("容器控件",
-			"OverlayLayout 叠放 / Collapsing / Tree / SubWindow。容器 ID 统一为 node.idname。",
-			snips::kContainers);
-		grpLabel.self.setName("Overlay 叠放（重叠渲染）");
-		grpButton.self.setName("叠放按钮");
-		grpButton.self.onClick = [&] { ++s.clicks; };
+Page page;
+Root root;
 
-		overlayBox.addWidget(grpLabel.node);
-		overlayBox.addWidget(grpButton.node);
-		boxColl.self.name = "折叠容器（默认展开）";
-		boxColl.self.flags = ImGuiTreeNodeFlags_DefaultOpen;
-		collLabel.self.setName("折叠内容");
-		boxColl.node.add(collLabel.node);
-		boxTree.self.name = "树节点（默认展开）";
-		boxTree.self.defaultOpen = true;
-		treeLeaf1.self.setName("叶子一");
-		treeLeaf2.self.setName("叶子二");
-		boxTree.node.add(treeLeaf1.node);
-		boxTree.node.add(treeLeaf2.node);
-		boxSub.node.idname = "subwin";
-		boxSub.self.height = 70.0f;
-		subLabel.self.setName("SubWindow：嵌套滚动子窗口");
-		boxSub.node.add(subLabel.node);
-		page.addWidget(overlayBox);
-		page.addWidget(boxColl);
-		page.addWidget(boxTree);
-		page.addWidget(boxSub);
-	}
+PageContainer(State& s) {
+page.setup("容器控件",
+"wg2 Overlay 叠放 / Collapsing / Tree / SubWindow；子节点经模板参数编译期传入。",
+snips::kContainers);
+
+root.at<Mk::wg2::Id("overlay"), Mk::wg2::Id("overlayLabel")>().text = "Overlay 叠放（重叠渲染）";
+root.at<Mk::wg2::Id("overlay"), Mk::wg2::Id("overlayButton")>().label = "叠放按钮";
+root.at<Mk::wg2::Id("overlay"), Mk::wg2::Id("overlayButton")>().onClick = [&] { ++s.clicks; };
+root.at<Mk::wg2::Id("collapsing")>().title = "折叠容器（默认展开）";
+root.at<Mk::wg2::Id("collapsing")>().defaultOpen = true;
+root.at<Mk::wg2::Id("collapsing"), Mk::wg2::Id("collLabel")>().text = "折叠内容";
+root.at<Mk::wg2::Id("tree")>().title = "树节点（默认展开）";
+root.at<Mk::wg2::Id("tree")>().defaultOpen = true;
+root.at<Mk::wg2::Id("tree"), Mk::wg2::Id("leaf1")>().text = "叶子一";
+root.at<Mk::wg2::Id("tree"), Mk::wg2::Id("leaf2")>().text = "叶子二";
+root.at<Mk::wg2::Id("sub")>().idname = "subwin";
+root.at<Mk::wg2::Id("sub")>().height = 70.0f;
+root.at<Mk::wg2::Id("sub"), Mk::wg2::Id("subLabel")>().text = "SubWindow：嵌套滚动子窗口";
+
+page.addWidget([&](const Mk::wg2::Rect& r) {
+ Mk::wg2::layout(root, r);
+}, [&](const Mk::wg2::Size& avail) {
+return root.hint(avail);
+});
+}
+
 };
 
 } // namespace gallery

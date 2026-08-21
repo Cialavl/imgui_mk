@@ -1,0 +1,241 @@
+#pragma once
+#include <cmath>
+#include <functional>
+#include <limits>
+#include <string>
+#include <vector>
+#include <imgui.h>
+#include <imgui_mk/ui/wg2/core.h>
+#include <imgui_mk/ui/wg2/widget.h>
+
+// Mk::wg2 显示类原子控件：直接 template struct。
+
+namespace Mk::wg2 {
+
+template<FixedString Id>
+struct ProgressBar {
+	static constexpr auto id = Id;
+
+	WidgetState<> state;
+	float* fraction = nullptr;
+	std::string overlay;
+
+	Size hint(const Size& avail) const {
+		return Size{avail.w > 0.0f ? avail.w : 200.0f, ImGui::GetFrameHeight()};
+	}
+
+	Policy policy() const { return Policy{}; }
+
+	void draw(const Rect& r) {
+		if (!fraction) return;
+		ImGui::ProgressBar(*fraction, ImVec2(r.w, r.h),
+			overlay.empty() ? nullptr : overlay.c_str());
+	}
+};
+
+template<FixedString Id>
+struct TextWrapped {
+	static constexpr auto id = Id;
+
+	WidgetState<> state;
+	std::string text;
+
+	Size hint(const Size& avail) const {
+		const ImVec2 s = ImGui::CalcTextSize(text.c_str(), nullptr, true, avail.w);
+		return Size{avail.w, s.y};
+	}
+
+	Policy policy() const { return Policy{}; }
+
+	void draw(const Rect& r) {
+		ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + r.w);
+		ImGui::TextUnformatted(text.c_str());
+		ImGui::PopTextWrapPos();
+	}
+};
+
+template<FixedString Id>
+struct BulletText {
+	static constexpr auto id = Id;
+
+	WidgetState<> state;
+	std::string text;
+
+	Size hint(const Size&) const {
+		const ImVec2 s = ImGui::CalcTextSize(text.c_str());
+		return Size{s.x + 16.0f, s.y};
+	}
+
+	Policy policy() const { return Policy{}; }
+
+	void draw(const Rect&) {
+		ImGui::BulletText("%s", text.c_str());
+	}
+};
+
+template<FixedString Id>
+struct LabelText {
+	static constexpr auto id = Id;
+
+	WidgetState<> state;
+	std::string name;
+	std::string value;
+	std::function<std::string()> valueFn;
+
+	Size hint(const Size&) const {
+		const std::string shown = valueFn ? valueFn() : value;
+		const ImVec2 v = ImGui::CalcTextSize(shown.c_str());
+		const float nameW = ImGui::CalcTextSize(name.c_str()).x;
+		return Size{v.x + nameW + 8.0f, v.y};
+	}
+
+	Policy policy() const { return Policy{}; }
+
+	void draw(const Rect&) {
+		const std::string shown = valueFn ? valueFn() : value;
+		ImGui::TextUnformatted(shown.c_str());
+		ImGui::SameLine(0.0f, 8.0f);
+		ImGui::TextDisabled("%s", name.c_str());
+	}
+};
+
+template<FixedString Id>
+struct Selectable {
+	static constexpr auto id = Id;
+
+	WidgetState<> state;
+	std::string name;
+	bool* selected = nullptr;
+
+	Size hint(const Size& avail) const {
+		const float h = ImGui::CalcTextSize(name.c_str()).y + ImGui::GetStyle().FramePadding.y * 2.0f;
+		return Size{avail.w > 0.0f ? avail.w : 160.0f, h};
+	}
+
+	Policy policy() const { return Policy{}; }
+
+	void draw(const Rect& r) {
+		if (!selected) return;
+		const ImVec2 sp = ImGui::GetStyle().ItemSpacing;
+		ImGui::SetCursorPos(ImVec2(
+			ImGui::GetCursorPos().x + std::trunc(sp.x * 0.5f),
+			ImGui::GetCursorPos().y + std::trunc(sp.y * 0.5f)));
+		ImGui::Selectable(name.c_str(), selected, 0, ImVec2(r.w - sp.x, r.h - sp.y));
+	}
+};
+
+template<FixedString Id>
+struct SeparatorText {
+	static constexpr auto id = Id;
+
+	WidgetState<> state;
+	std::string name;
+
+	Size hint(const Size&) const {
+		return Size{0.0f, ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.y};
+	}
+
+	Policy policy() const { return Policy{}; }
+
+	void draw(const Rect&) {
+		ImGui::SeparatorText(name.c_str());
+	}
+};
+
+template<FixedString Id>
+struct Image {
+	static constexpr auto id = Id;
+
+	WidgetState<> state;
+	ImTextureID tex{};
+	ImVec2 size{64.0f, 64.0f};
+
+	Size hint(const Size&) const { return Size{size.x, size.y}; }
+	Policy policy() const { return Policy{}; }
+
+	void draw(const Rect&) {
+		ImGui::Image(tex, size);
+	}
+};
+
+template<FixedString Id>
+struct ImageButton {
+	static constexpr auto id = Id;
+
+	WidgetState<> state;
+	ImTextureID tex{};
+	ImVec2 size{64.0f, 64.0f};
+	std::function<void()> onClick;
+
+	Size hint(const Size&) const { return Size{size.x, size.y}; }
+	Policy policy() const { return Policy{}; }
+
+	void draw(const Rect&) {
+		if (ImGui::ImageButton("wg2_imagebtn", tex, size) && onClick) onClick();
+	}
+};
+
+template<FixedString Id>
+struct PlotLines {
+	static constexpr auto id = Id;
+
+	WidgetState<> state;
+	std::string name;
+	const std::vector<float>* values = nullptr;
+	ImVec2 size{0.0f, 60.0f};
+
+	Size hint(const Size& avail) const {
+		return Size{size.x > 0.0f ? size.x : avail.w, size.y};
+	}
+
+	Policy policy() const { return Policy{}; }
+
+	void draw(const Rect& r) {
+		if (!values || values->empty()) return;
+		const float maxf = std::numeric_limits<float>::max();
+		ImGui::PlotLines(name.c_str(), values->data(), static_cast<int>(values->size()),
+			0, nullptr, maxf, maxf,
+			ImVec2(detail::frameWidthFor(r.w, name.c_str()), r.h));
+	}
+};
+
+namespace detail {
+// 截断文本至指定显示宽（含 "..."）；不超宽则原样返回。
+inline std::string ellipsize(const std::string& text, float avail) {
+	if (avail <= 0.0f || ImGui::CalcTextSize(text.c_str()).x <= avail) return text;
+	if (text.empty()) return text;
+	std::string out;
+	for (std::size_t i = 1; i <= text.size(); ++i) {
+		out = text.substr(0, i) + "...";
+		if (ImGui::CalcTextSize(out.c_str()).x > avail) {
+			if (i > 1) return text.substr(0, i - 1) + "...";
+			return "...";
+		}
+	}
+	return out;
+}
+} // namespace detail
+
+template<FixedString Id>
+struct EllipsisLabel {
+	static constexpr auto id = Id;
+
+	WidgetState<> state;
+	std::string text;
+	std::function<std::string()> valueFn;
+
+	Size hint(const Size& avail) const {
+		const std::string shown = valueFn ? valueFn() : text;
+		const ImVec2 s = ImGui::CalcTextSize(shown.c_str());
+		return Size{avail.w > 0.0f ? avail.w : s.x, s.y};
+	}
+
+	Policy policy() const { return Policy{}; }
+
+	void draw(const Rect& r) {
+		const std::string shown = valueFn ? valueFn() : text;
+		ImGui::TextUnformatted(detail::ellipsize(shown, std::max(r.w, 0.0f)).c_str());
+	}
+};
+
+} // namespace Mk::wg2

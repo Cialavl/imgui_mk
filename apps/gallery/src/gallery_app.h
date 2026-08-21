@@ -1,195 +1,209 @@
 #pragma once
-// gallery 应用层：GalleryUI —— struct 创建控件设好属性 + 布局组装 + 一次根 layout
-// 布局层次：
-//   root (Overlay 叠放，全幅)
-//   ├── mainCol (VBox)
-//   │   ├── menuBar       无 role → 按内容高
-//   │   ├── contentRow (SplitH, stretch)
-//   │   │   ├── pageNav   pref 250（min 150，设计像素 em 缩放）
-//   │   │   ├── pageHost  stretch（预览区）
-//   │   │   └── sidePanel pref 260（SubWindow 嵌入右格）
-//   │   └── statusRow     状态栏（FPS / 帧数 / 当前页）
-//   └── popups（popupTree/modalTree/aboutTree：入树的流式 BeginPopup/Modal，不占布局）
+// gallery 应用壳（wg2 迁移版）：
+//   - 菜单、状态栏、侧面板、弹窗全部使用 Mk::wg2 静态树；
+//   - 根节点通过 wg2 layout 回调 挂到旧引擎中央挂载点。
 #include "gallery_inspector.h"
-#include "gallery_pagehost.h"
 #include "gallery_pages.h"
+#include "gallery_wg2_bridge.h"
 #include <functional>
 #include <memory>
 #include <vector>
 
 namespace gallery {
 
-struct GalleryWindow {   // Qt 风格主窗口：构造组装 + addPage 注册页面
-	// ---- 菜单栏 ----
-	MenuItem miOpen, miExit, miDark, miLight, miInspector, miAbout;
-	Menu<> menuFile, menuTheme, menuWindow, menuHelp;
-	MenuBar<> menuBar;
-	// ---- 主体 ----
-	PageNav pageNav;             // 页面导航（侧栏目录）
-	PageHost pageHost;           // 页面宿主（addPage 注册页面）
-	// ---- 嵌入侧面板（SubWindow，固定右格）----
-	SliderF panelSlider;
-	FrameLabel panelFrame;
-	SubWindow<> sidePanel;
-	// ---- 状态栏 ----
-	LabelText stFps, stFrame, stPage;
-	HLayout statusRow;
+struct GalleryWindow {
 
-	// ---- 弹窗（流式，不参与布局）----
-	Label popupText, modalText, aboutText;
-	ClosePopupButton popupClose, modalClose, aboutOk;
-	Popup<> popupTree;
-	PopupModal<> modalTree, aboutTree;
-	// ---- 布局 ----
-	SplitHLayout contentRow;   // SplitH: pageNav | pageHost | sidePanel
-	VLayout mainCol;           // VBox: menuBar / contentRow / statusRow
-	OverlayLayout root;        // Overlay: mainCol + popups
+// wg2 应用壳
+using ShellRoot = Mk::wg2::Overlay<
+Mk::wg2::Id("root"),
+Mk::wg2::VBox<Mk::wg2::Id("mainCol"),
+Mk::wg2::MenuBar<Mk::wg2::Id("menuBar"),
+Mk::wg2::Menu<Mk::wg2::Id("menuFile"),
+Mk::wg2::MenuItem<Mk::wg2::Id("miOpen")>,
+Mk::wg2::MenuItem<Mk::wg2::Id("miExit")>
+>,
+Mk::wg2::Menu<Mk::wg2::Id("menuTheme"),
+Mk::wg2::MenuItem<Mk::wg2::Id("miDark")>,
+Mk::wg2::MenuItem<Mk::wg2::Id("miLight")>
+>,
+Mk::wg2::Menu<Mk::wg2::Id("menuWindow"),
+Mk::wg2::MenuItem<Mk::wg2::Id("miInspector")>
+>,
+Mk::wg2::Menu<Mk::wg2::Id("menuHelp"),
+Mk::wg2::MenuItem<Mk::wg2::Id("miAbout")>
+>
+>,
+Mk::wg2::HBox<Mk::wg2::Id("contentRow"),
+PageNavWg2<Mk::wg2::Id("nav")>,
+PageHostWg2<Mk::wg2::Id("host")>,
+Mk::wg2::SubWindow<Mk::wg2::Id("sidePanel"),
+Mk::wg2::SliderF<Mk::wg2::Id("panelSlider")>,
+Mk::wg2::LabelText<Mk::wg2::Id("panelFrame")>
+>
+>,
+Mk::wg2::HBox<Mk::wg2::Id("statusRow"),
+Mk::wg2::LabelText<Mk::wg2::Id("stFps")>,
+Mk::wg2::LabelText<Mk::wg2::Id("stFrame")>,
+Mk::wg2::LabelText<Mk::wg2::Id("stPage")>
+>
+>,
+Mk::wg2::Popup<Mk::wg2::Id("popupTree"),
+Mk::wg2::Label<Mk::wg2::Id("popupText")>,
+Mk::wg2::Button<Mk::wg2::Id("popupClose")>
+>,
+Mk::wg2::PopupModal<Mk::wg2::Id("modalTree"),
+Mk::wg2::Label<Mk::wg2::Id("modalText")>,
+Mk::wg2::Button<Mk::wg2::Id("modalClose")>
+>,
+Mk::wg2::PopupModal<Mk::wg2::Id("aboutTree"),
+Mk::wg2::Label<Mk::wg2::Id("aboutText")>,
+Mk::wg2::Button<Mk::wg2::Id("aboutOk")>
+>
+>;
 
-	// 主窗口引用在构造装配点显式注入（仅此一处需要窗口对象；数据联动走引擎广播）
-	GalleryWindow(Mk::MainWindow<Mk::window, State>& win, State& s)
-		: sRef(&s), winRef(&win), inspector(win.getWindow(), s) {   // 子窗口挂载到父窗口
-		initMenus(s);
-		initPanels(s);
-		initPopups(s);
-		initStatus(s);
-		initLayout();
-	}
+ShellRoot shell;
 
-	// Qt 风格：窗口添加页面（组名仅在组首传入；refresh(State&) 存在则注册给 PageHost 每帧刷新）
-	template<typename P>
-	void addPage(P& page, const char* group = nullptr) {
-		if(group && *group) pageNav.self.addEntry(group, true);
-		pageNav.self.addEntry(page.page.title, false);
-		if constexpr (requires { page.refresh(*sRef); })
-			pageHost.self.addPage(page.page.rootNode(), [&page](State& s) { page.refresh(s); });
-		else
-			pageHost.self.addPage(page.page.rootNode());
-	}
+State* sRef = nullptr;
+Mk::MainWindow<Mk::window, State>* winRef = nullptr;
+InspectorWindow inspector;
 
-	// 每帧刷新（页面刷新由 PageHost 自持）+ 菜单勾选态
-	void refreshAll(State& s) {
-		pageHost.self.refreshAll(s);
-		updateStatus(s);
-	}
+GalleryWindow(Mk::MainWindow<Mk::window, State>& win, State& s)
+: sRef(&s), winRef(&win), inspector(win.getWindow(), s) {
+initMenus(s);
+initPanels(s);
+initPopups(s);
+initStatus(s);
+initShell();
+}
+
+template<typename P>
+void addPage(P& page, const char* group = nullptr) {
+if (group && *group) shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().addEntry(group, true);
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().addEntry(page.page.title, false);
+ auto render = [&page](const Mk::wg2::Rect& r) {
+ page.page.renderTo(r);
+ };
+if constexpr (requires { page.refresh(*sRef); })
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("host")>().addPage(render, [&page](State& s) { page.refresh(s); });
+else
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("host")>().addPage(render);
+}
+
+void refreshAll(State& s) {
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("host")>().refreshAll(s);
+updateStatus(s);
+}
+
+void renderShell(const Mk::wg2::Rect& r) { Mk::wg2::layout(shell, r); }
 
 private:
-	void initMenus(State& s) {
-		miOpen.self.name = "Open...";
-		miOpen.self.shortcut = "Ctrl+O";
-		miOpen.self.onClick = [&] { s.openFileDlg(); };
-		miExit.self.name = "Exit";
-		miExit.self.shortcut = "Alt+F4";   // 系统级关闭（GLFW/Windows 处理）
-		miExit.self.onClick = [&] { glfwSetWindowShouldClose(winRef->getHandle(), true); };
-		miDark.self.name = "Dark";
-		miDark.self.onClick = [&] { s.applyTheme(Theme::dark()); };
-		miLight.self.name = "Light";
-		miLight.self.onClick = [&] { s.applyTheme(Theme::light()); };
-		miInspector.self.name = "Show/Hide Inspector";
-		miInspector.self.onClick = [&] { s.toggleInspector(); };
-		miAbout.self.name = "About Gallery";
-		miAbout.self.onClick = [&] { s.aboutOpen = true; };
+void initMenus(State& s) {
+auto& f = shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile")>();
+f.name = "File";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miOpen")>().name = "Open...";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miOpen")>().shortcut = "Ctrl+O";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miOpen")>().onClick = [&] { s.openFileDlg(); };
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miExit")>().name = "Exit";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miExit")>().onClick = [&] {
+glfwSetWindowShouldClose(winRef->getHandle(), true);
+};
 
-		menuFile.self.name = "File";
-		menuFile.node.add(miOpen.node);
-		menuFile.node.add(miExit.node);
-		menuTheme.self.name = "Theme";
-		menuTheme.node.add(miDark.node);
-		menuTheme.node.add(miLight.node);
-		menuWindow.self.name = "Window";
-		menuWindow.node.add(miInspector.node);
-		menuHelp.self.name = "Help";
-		menuHelp.node.add(miAbout.node);
-		menuBar.node.add(menuFile.node);
-		menuBar.node.add(menuTheme.node);
-		menuBar.node.add(menuWindow.node);
-		menuBar.node.add(menuHelp.node);
-	}
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme")>().name = "Theme";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miDark")>().name = "Dark";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miDark")>().onClick = [&] { s.applyTheme(Theme::dark()); };
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miLight")>().name = "Light";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miLight")>().onClick = [&] { s.applyTheme(Theme::light()); };
 
-	void initPanels(State& s) {
-		pageNav.self.current = &s.sel;
-		pageHost.self.current = &s.sel;
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuWindow")>().name = "Window";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuWindow"), Mk::wg2::Id("miInspector")>().name = "Show/Hide Inspector";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuWindow"), Mk::wg2::Id("miInspector")>().onClick = [&] { s.toggleInspector(); };
 
-		panelSlider.self.name = "Panel slider";
-		panelSlider.self.value = &s.volume;
-		panelFrame.self.frames = &s.frames;
-		sidePanel.node.idname = "sidepanel";
-		sidePanel.self.border = true;
-		sidePanel.node.add(panelSlider.node);
-		sidePanel.node.add(panelFrame.node);
-	}
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp")>().name = "Help";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp"), Mk::wg2::Id("miAbout")>().name = "About Gallery";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp"), Mk::wg2::Id("miAbout")>().onClick = [&] { s.aboutOpen = true; };
+}
 
-	void initPopups(State& s) {
-		popupText.self.setName("A regular popup.");
-		popupClose.self.name = "关闭";
-		modalText.self.setName("A modal popup blocks interaction with the host.");
-		modalClose.self.name = "关闭";
-		aboutText.self.setName("mkui Widget Gallery\nImGui + GLFW + OpenGL wrapper\nwg template struct widget library");
-		aboutOk.self.name = "OK";
-		popupTree.node.idname = "gpop";
-		popupTree.self.open = &s.popupOpen;
-		popupTree.node.add(popupText.node);
-		popupTree.node.add(popupClose.node);
-		modalTree.node.idname = "gmodal";
-		modalTree.self.open = &s.modalOpen;
-		modalTree.node.add(modalText.node);
-		modalTree.node.add(modalClose.node);
-		aboutTree.node.idname = "about";
-		aboutTree.self.open = &s.aboutOpen;
-		aboutTree.node.add(aboutText.node);
-		aboutTree.node.add(aboutOk.node);
-	}
+void initPanels(State& s) {
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().current = &s.sel;
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("host")>().current = &s.sel;
 
-	void initStatus(State& s) {
-		stFps.self.name = "FPS";
-		stFrame.self.name = "帧";
-		stPage.self.name = "页";
-		stFps.self.valueFn = [] { return std::to_string((int)detail::fps()) + " fps"; };   // 拉取式绑定，免每帧赋值
-		stFrame.self.valueFn = [&s] { return std::to_string(s.frames); };
-		stPage.self.valueFn = [this] { return std::string(currentPageTitle()); };
-		statusRow.addWidget(stFps.node);
-		statusRow.addWidget(stFrame.node);
-		statusRow.addWidget(stPage.node);
-	}
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().state.size.prefW = 250.0f;
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().state.size.minW = 150.0f;
 
-	void initLayout() {
-		pageNav.setPrefSize(250.0f, 0.0f);    pageNav.setMinSize(150.0f, 0.0f);    // 导航 250（最小 150，设计像素 em 缩放）
-		sidePanel.setPrefSize(260.0f, 0.0f);  sidePanel.setMinSize(180.0f, 0.0f);  // 侧面板 260（最小 180）
-		contentRow.addWidget(pageNav.node);
-		contentRow.addWidget(pageHost.node, 1.0f);   // 预览区弹性
-		contentRow.addWidget(sidePanel.node);
-		mainCol.addWidget(menuBar.node);
-		mainCol.addWidget(contentRow.node, 1.0f);    // 内容行弹性（menuBar/statusRow 按内容高）
-		mainCol.addWidget(statusRow.node);
-		// 主布局外边距：窗口层默认（WindowPadding）已由引擎提供，主布局各层置 0 防叠加
-		contentRow.setContentsMargins(0.0f, 0.0f);
-		mainCol.setContentsMargins(0.0f, 0.0f);
-		root.setContentsMargins(0.0f, 0.0f);
-		root.addWidget(mainCol.node);
-		// 弹窗常驻浮层入树：触发后自己显示（OpenPopup + BeginPopup/Modal），不占布局
-		root.addWidget(popupTree.node);
-		root.addWidget(modalTree.node);
-		root.addWidget(aboutTree.node);
-	}
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("host")>().state.stretch = 1.0f;
 
-	void updateStatus(State& s) {
-		miDark.self.selected = s.darkActive;
-		miLight.self.selected = !s.darkActive;
-	}
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel")>().idname = "sidepanel";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel")>().border = true;
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel")>().state.size.prefW = 260.0f;
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel")>().state.size.minW = 180.0f;
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel"), Mk::wg2::Id("panelSlider")>().name = "Panel slider";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel"), Mk::wg2::Id("panelSlider")>().value = &s.volume;
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel"), Mk::wg2::Id("panelFrame")>().name = "Frame";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel"), Mk::wg2::Id("panelFrame")>().valueFn = [&s] {
+return std::to_string(s.frames);
+};
+}
 
-	const char* currentPageTitle() const {
-		const int target = pageNav.self.current ? *pageNav.self.current : 0;
-		int i = 0;
-		for(const auto& e : pageNav.self.entries) {
-			if(!e.header) {
-				if(i++ == target) return e.label;
-			}
-		}
-		return "(none)";
-	}
+void initPopups(State& s) {
+shell.at<Mk::wg2::Id("popupTree")>().idname = "gpop";
+shell.at<Mk::wg2::Id("popupTree")>().open = &s.popupOpen;
+shell.at<Mk::wg2::Id("popupTree"), Mk::wg2::Id("popupText")>().text = "A regular popup.";
+shell.at<Mk::wg2::Id("popupTree"), Mk::wg2::Id("popupClose")>().label = "关闭";
+shell.at<Mk::wg2::Id("popupTree"), Mk::wg2::Id("popupClose")>().onClick = [] { ImGui::CloseCurrentPopup(); };
 
-	State* sRef = nullptr;
-	Mk::MainWindow<Mk::window, State>* winRef = nullptr;   // 主窗口引用（Exit 菜单用）
-	InspectorWindow inspector;   // 子窗口：独立文件分层（gallery_inspector.h），构造即挂载到父窗口
+shell.at<Mk::wg2::Id("modalTree")>().idname = "gmodal";
+shell.at<Mk::wg2::Id("modalTree")>().open = &s.modalOpen;
+shell.at<Mk::wg2::Id("modalTree"), Mk::wg2::Id("modalText")>().text = "A modal popup blocks interaction with the host.";
+shell.at<Mk::wg2::Id("modalTree"), Mk::wg2::Id("modalClose")>().label = "关闭";
+shell.at<Mk::wg2::Id("modalTree"), Mk::wg2::Id("modalClose")>().onClick = [] { ImGui::CloseCurrentPopup(); };
+
+shell.at<Mk::wg2::Id("aboutTree")>().idname = "about";
+shell.at<Mk::wg2::Id("aboutTree")>().open = &s.aboutOpen;
+shell.at<Mk::wg2::Id("aboutTree"), Mk::wg2::Id("aboutText")>().text =
+"mkui Widget Gallery\nImGui + GLFW + OpenGL wrapper\nwg2 template struct widget library";
+shell.at<Mk::wg2::Id("aboutTree"), Mk::wg2::Id("aboutOk")>().label = "OK";
+shell.at<Mk::wg2::Id("aboutTree"), Mk::wg2::Id("aboutOk")>().onClick = [] { ImGui::CloseCurrentPopup(); };
+}
+
+void initStatus(State& s) {
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFps")>().name = "FPS";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFps")>().valueFn = [] {
+return std::to_string(static_cast<int>(ImGui::GetIO().Framerate)) + " fps";
+};
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFrame")>().name = "帧";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFrame")>().valueFn = [&s] { return std::to_string(s.frames); };
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stPage")>().name = "页";
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stPage")>().valueFn = [this] { return std::string(currentPageTitle()); };
+}
+
+void initShell() {
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow")>().marginX = 0.0f;
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow")>().marginY = 0.0f;
+ shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow")>().state.stretch = 1.0f;
+ shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow")>().marginX = 0.0f;
+ shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow")>().marginY = 0.0f;
+ shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow")>().spacing = 12.0f;
+shell.at<Mk::wg2::Id("mainCol")>().marginX = 0.0f;
+shell.at<Mk::wg2::Id("mainCol")>().marginY = 0.0f;
+shell.marginX = 0.0f;
+shell.marginY = 0.0f;
+}
+
+void updateStatus(State& s) {
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miDark")>().selected = s.darkActive;
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miLight")>().selected = !s.darkActive;
+}
+
+const char* currentPageTitle() {
+const int target = shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().current ? *shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().current : 0;
+int i = 0;
+ for (const auto& e : shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().entries) {
+if (!e.header) {
+if (i++ == target) return e.label;
+}
+}
+return "(none)";
+}
 };
 
 } // namespace gallery

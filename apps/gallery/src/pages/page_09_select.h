@@ -1,59 +1,67 @@
 #pragma once
-// p9 选择控件：CheckBox/RadioButton/RadioGroup/Combo/ListBox/Selectable/CheckboxFlags
+// p9 选择控件：CheckBox/RadioButton/RadioGroup/Combo/ListBox/Selectable/CheckboxFlags（wg2）
 #include "../gallery_chrome.h"
 #include <bitset>
 
 namespace gallery {
 
 struct PageSelect {
-	CheckBox selCheck;
-	RadioButton selRadio;
-	RadioGroup selGroup;
-	Combo selCombo;
-	ListBox selList;
-	Selectable selRow;
-	CheckboxFlags selBit1, selBit2, selBit3;
-	LabelText selBits;
+using Root = Mk::wg2::VBox<
+Mk::wg2::Id("root"),
+Mk::wg2::CheckBox<Mk::wg2::Id("check")>,
+Mk::wg2::RadioButton<Mk::wg2::Id("radio")>,
+Mk::wg2::RadioGroup<Mk::wg2::Id("group")>,
+Mk::wg2::Combo<Mk::wg2::Id("combo")>,
+Mk::wg2::ListBox<Mk::wg2::Id("list")>,
+Mk::wg2::Selectable<Mk::wg2::Id("row")>,
+Mk::wg2::CheckboxFlags<Mk::wg2::Id("bit1")>,
+Mk::wg2::CheckboxFlags<Mk::wg2::Id("bit2")>,
+Mk::wg2::CheckboxFlags<Mk::wg2::Id("bit3")>,
+Mk::wg2::LabelText<Mk::wg2::Id("bits")>
+>;
 
-	Page page;
-	PageSelect(State& s) {
-		page.setup("选择控件",
-			"CheckBox/RadioButton/RadioGroup/Combo/ListBox/Selectable/CheckboxFlags。"
-			"items 数组需长寿命（static constexpr）。",
-			snips::kSelect);
-		selCheck.self.name = "勾选";
-		selCheck.self.checked = &s.mute;
-		selRadio.self.name = "单选（布尔）";
-		selRadio.self.active = &s.radioBool;
-		selGroup.self.items = State::kItems;  selGroup.self.count = 3;
-		selGroup.self.current = &s.radio;
-		selCombo.self.name = "下拉";
-		selCombo.self.current = &s.comboSel;
-		selCombo.self.items = State::kItems;  selCombo.self.count = 3;
-		selList.self.name = "列表";
-		selList.self.current = &s.listSel;
-		selList.self.items = State::kItems;  selList.self.count = 3;
-		selRow.self.name = "可选中行";
-		selRow.self.selected = &s.rowSel;
-		selBit1.self.name = "位A"; selBit1.self.flags = &s.bitFlags; selBit1.self.mask = 1;
-		selBit2.self.name = "位B"; selBit2.self.flags = &s.bitFlags; selBit2.self.mask = 2;
-		selBit3.self.name = "位C"; selBit3.self.flags = &s.bitFlags; selBit3.self.mask = 4;
-		selBits.self.name = "位标志";
-		page.addWidget(selCheck);
-		page.addWidget(selRadio);
-		page.addWidget(selGroup);
-		page.addWidget(selCombo);
-		page.addWidget(selList);
-		page.addWidget(selRow);
-		page.addWidget(selBit1);
-		page.addWidget(selBit2);
-		page.addWidget(selBit3);
-		page.addWidget(selBits);
-	}
+Page page;
+Root root;
 
-	void refresh(State& s) {
-		selBits.self.value = "0b" + std::bitset<3>(s.bitFlags).to_string();
-	}
+PageSelect(State& s) {
+page.setup("选择控件",
+"wg2 CheckBox/RadioButton/RadioGroup/Combo/ListBox/Selectable/CheckboxFlags。"
+"items 数组需长寿命（static constexpr）。",
+snips::kSelect);
+
+root.at<Mk::wg2::Id("check")>().name = "勾选";
+root.at<Mk::wg2::Id("check")>().checked = &s.mute;
+root.at<Mk::wg2::Id("radio")>().name = "单选（布尔）";
+root.at<Mk::wg2::Id("radio")>().active = &s.radioBool;
+root.at<Mk::wg2::Id("group")>().items = State::kItems;
+root.at<Mk::wg2::Id("group")>().count = 3;
+root.at<Mk::wg2::Id("group")>().current = &s.radio;
+root.at<Mk::wg2::Id("combo")>().name = "下拉";
+root.at<Mk::wg2::Id("combo")>().current = &s.comboSel;
+root.at<Mk::wg2::Id("combo")>().items = State::kItems;
+root.at<Mk::wg2::Id("combo")>().count = 3;
+root.at<Mk::wg2::Id("list")>().name = "列表";
+root.at<Mk::wg2::Id("list")>().current = &s.listSel;
+root.at<Mk::wg2::Id("list")>().items = State::kItems;
+root.at<Mk::wg2::Id("list")>().count = 3;
+root.at<Mk::wg2::Id("row")>().name = "可选中行";
+root.at<Mk::wg2::Id("row")>().selected = &s.rowSel;
+root.at<Mk::wg2::Id("bit1")>().name = "位A"; root.at<Mk::wg2::Id("bit1")>().flags = &s.bitFlags; root.at<Mk::wg2::Id("bit1")>().mask = 1;
+root.at<Mk::wg2::Id("bit2")>().name = "位B"; root.at<Mk::wg2::Id("bit2")>().flags = &s.bitFlags; root.at<Mk::wg2::Id("bit2")>().mask = 2;
+root.at<Mk::wg2::Id("bit3")>().name = "位C"; root.at<Mk::wg2::Id("bit3")>().flags = &s.bitFlags; root.at<Mk::wg2::Id("bit3")>().mask = 4;
+root.at<Mk::wg2::Id("bits")>().name = "位标志";
+
+page.addWidget([&](const Mk::wg2::Rect& r) {
+ Mk::wg2::layout(root, r);
+}, [&](const Mk::wg2::Size& avail) {
+return root.hint(avail);
+});
+}
+
+void refresh(State& s) {
+root.at<Mk::wg2::Id("bits")>().value = "0b" + std::bitset<3>(s.bitFlags).to_string();
+}
+
 };
 
 } // namespace gallery

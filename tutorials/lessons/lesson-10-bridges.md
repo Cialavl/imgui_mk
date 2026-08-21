@@ -1,61 +1,44 @@
 # 第 10 课：桥接与动态树
 
-配套程序：`src/tutorial10_bridges.cpp`。单一体系下仍需两种"桥"：
-**动态列表**（运行时增删）与 **FnRender**（裸 ImGui 绘制桥接成节点）。
+wg2 静态树覆盖大多数界面；需要运行时增删时，按需使用动态容器。
 
-## §10.1 动态列表：拥有权池 + 墓碑增删
-
-模板组合是编译期的，动态列表必须走运行时通道：
+## §10.1 RuntimeList
 
 ```cpp
-std::vector<std::unique_ptr<Mk::wg::Label>> pool;   // 拥有权池
-Mk::wg::SubWindow<> listZone;                        // 列表容器（无模板子）
+RuntimeList<Id("list")> list;
 
-// 添加：渲染回调内 add 安全
-pool.push_back(std::make_unique<Mk::wg::Label>(("wg 项 #" + ...).c_str()));
-root.child<2>().node.add(pool.back()->node);
-
-// 删除：置空槽位（墓碑），不搬移 vector
-root.child<2>().node.remove(pool.back()->node);
-pool.pop_back();
+auto item = std::make_unique<Label<Id("item")>>("新项");
+AnyWidget any = AnyWidget::own(std::move(item));
+any.idname = "item";
+list.add(std::move(any));
+list.removeLast();
 ```
 
-`remove` 触发已绘制节点的 `onDestroy` 生命周期回调；槽位留 `nullptr`
-直到下一次 `compact`——**在渲染回调里增删全程安全**。
+`add/remove` 使用 pending + tombstone，渲染回调内安全。
 
-## §10.2 FnRender：裸 ImGui 绘制桥
-
-有些绘制（进度条、自定义绘制序列）直接写裸 ImGui 更自然。FnRender
-把它桥接为 wg 节点：
+## §10.2 RuntimeTabs
 
 ```cpp
-struct CounterDrawerImpl {
-    int* clicks = nullptr;
-    void operator()() {
-        if(clicks) ImGui::Text("FnRender 内裸绘制：点击 %d 次", *clicks);
-    }
-};
-Mk::wg::FnRender<CounterDrawerImpl> fnView;
-fnView.self.fn = CounterDrawerImpl{&clicks};
-root.child<4>().self.fn = CounterDrawerImpl{&clicks};   // 或直接进树
+RuntimeTabs<Id("tabs")> tabs;
+tabs.add("页 A", AnyWidget::own(std::make_unique<Label<Id("a")>>("A")));
+tabs.add("页 B", AnyWidget::own(std::make_unique<Label<Id("b")>>("B")));
 ```
 
-`FnRender<F>` 的 measure 占满可用宽、高度 0——渲染内容由 `fn()` 决定。
-可默认构造的 callable 才能作为 tuple 子控件（配套程序的
-`CounterDrawerImpl` 用指针成员满足）。
-
-## §10.3 数据镜像：跨位置联动
-
-配套程序的"镜像"练习：点击后把列表长度写进 `mirrorCount`，下方
-`When` 条件渲染提示——数据（数量）经普通变量流动，视图（When）只读：
+## §10.3 RuntimeGrid
 
 ```cpp
-root.child<6>().self.text = std::to_string(mirrorCount);
-root.child<7>().self.show = mirrorCount > 0;
+RuntimeGrid<Id("grid")> grid;
+grid.cols = 2;
+grid.add(AnyWidget::own(std::make_unique<Button<Id("b")>>()));
+```
+
+## §10.4 裸绘制桥
+
+```cpp
+auto drawer = []{ ImGui::Text("hello"); };
+FnWidget<Id("fn"), decltype(drawer)> fn(drawer);
 ```
 
 ## 练习
 
-1. 给列表项加"点击高亮"（`Selectable` + `selected` 指针池）。
-2. 用 FnRender 画一段自定义进度条（叠加两个矩形）。
-3. 把"镜像"改成反向：从 FnRender 里写回 `mirrorCount`。
+用 `RuntimeList` 做一个按钮添加/删除列表，并把列表嵌在静态 `VBox` 中。

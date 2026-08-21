@@ -1,39 +1,47 @@
 #pragma once
-// p2 布局：HLayout 嵌 VLayout（独立布局类型组合演示）
+// p2 布局：HBox 嵌 VBox（编译期布局组合演示）
 #include "../gallery_chrome.h"
 
 namespace gallery {
 
 struct PageLayout {
-	Label layIntro, layRight, layNote;
-	SliderF laySlider;
-	CheckBox layCheck;
-	VLayout layCol;      // 内部 V
-	HLayout layRow;      // 外部 H（嵌 col + 右标签）
+using Root = Mk::wg2::VBox<
+Mk::wg2::Id("root"),
+Mk::wg2::Label<Mk::wg2::Id("intro")>,
+Mk::wg2::HBox<Mk::wg2::Id("row"),
+Mk::wg2::VBox<Mk::wg2::Id("col"),
+Mk::wg2::SliderF<Mk::wg2::Id("volume")>,
+Mk::wg2::CheckBox<Mk::wg2::Id("mute")>
+>,
+Mk::wg2::Label<Mk::wg2::Id("right")>
+>,
+Mk::wg2::Label<Mk::wg2::Id("note")>
+>;
 
-	Page page;
-	PageLayout(State& s) {
-		page.setup("布局：Layout 嵌套",
-			"独立布局类型 VLayout/HLayout/Wrap/Grid/SplitH/SplitV/Overlay（共享盒式求解器）。"
-			"本页 = HLayout 嵌 VLayout，addWidget 装配；布局嵌布局自然递归。",
-			snips::kLayout);
-		layIntro.self.setName("布局步骤：measure（计算尺寸）→ arrange（定 bounds）→ draw");
-		layRight.self.setName("H 行右格");
-		laySlider.self.name = "音量";
-		laySlider.self.value = &s.volume;
-		layCheck.self.name = "静音";
-		layCheck.self.checked = &s.mute;
-		layNote.self.setName("布局数据约束：子控件在父 Layout 内，坐标传播全程一致。");
+Page page;
+Root root;
 
-		layCol.addWidget(laySlider.node);
-		layCol.addWidget(layCheck.node);
+PageLayout(State& s) {
+page.setup("布局：编译期 HBox/VBox 嵌套",
+"wg2 静态布局 = VBox/HBox/Grid/Wrap/SplitH/SplitV/Overlay 模板容器。"
+"本页 = HBox 嵌 VBox，子节点经模板参数传入，布局嵌布局自然递归。",
+snips::kLayout);
 
-		layRow.addWidget(layCol.node);
-		layRow.addWidget(layRight.node);
-		page.addWidget(layIntro);
-		page.addWidget(layRow);
-		page.addWidget(layNote);
-	}
+root.at<Mk::wg2::Id("intro")>().text = "布局步骤：hint（计算尺寸）→ draw（求解并递归子节点）";
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("volume")>().name = "音量";
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("volume")>().value = &s.volume;
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("mute")>().name = "静音";
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("mute")>().checked = &s.mute;
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("right")>().text = "H 行右格";
+root.at<Mk::wg2::Id("note")>().text = "布局数据约束：子控件在父容器内，路径访问全程一致。";
+
+page.addWidget([&](const Mk::wg2::Rect& r) {
+ Mk::wg2::layout(root, r);
+}, [&](const Mk::wg2::Size& avail) {
+return root.hint(avail);
+});
+}
+
 };
 
 } // namespace gallery

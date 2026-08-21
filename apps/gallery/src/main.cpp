@@ -1,11 +1,13 @@
 // mkui 控件画廊应用入口（wg-only）：双顶层窗口（Gallery + Inspector）+ 常驻层
-// （菜单栏/浮动面板/三个弹窗）+ 文件对话框轮询。22 个 wg 演示页见 gallery_pages.h，
+// （菜单栏/浮动面板/三个弹窗）+ 文件对话框轮询。24 个 wg 演示页见 gallery_pages.h，
 // 代码片段见 snippets.h。交互式应用：菜单 File/Exit 或直接关窗退出。
 // 常驻层组装约定：命名控件 + 运行时 node.add；声明顺序 = 子先于父（析构安全）。
 #include "gallery_app.h"
-#include <imgui_mk/ui/wg.h>
-#include <imgui_mk/ui/wg_controls.h>
-#include <imgui_mk/ui/wg_style.h>
+#include <imgui_mk/ui/wg2/style.h>
+#include <imgui_mk/ui/wg2/texture.h>
+
+
+
 
 #include <windows.h>   // 崩溃自诊断写盘（调试用）
 #include <cmath>
@@ -54,7 +56,7 @@ void makeChecker(unsigned char* px) {
 
 int main() {
 	// DPI + 全动态自适应（应用显式 opt-in）：字号 = 基准 18 × 显示器缩放 × 宽度档位
-	Mk::wg::setDefaultTheme(Mk::wg::scaledForMonitor(Mk::wg::Theme::dark()));
+	Mk::wg2::setDefaultTheme(Mk::wg2::scaledForMonitor(Mk::wg2::Theme::dark()));
 	const auto [galW, galH] = Mk::workAreaSize(0.75f, 0.8f, 1440, 880);
 
 	// 主窗口创建即注册共享状态（引擎层数据联动：窗口/页面经引擎取用同一实例）
@@ -68,9 +70,9 @@ int main() {
 	// 棋盘纹理（Image/ImageButton 页共用）
 	static unsigned char pixels[64 * 64 * 4];
 	makeChecker(pixels);
-	s.tex = Mk::wg::loadTextureRGBA(pixels, 64, 64);
+	s.tex = Mk::wg2::loadTextureRGBA(pixels, 64, 64);
 
-	// —— 22 个演示页：main 组装一次，UI 回调按选中下标切换可见性 ——
+	// —— 24 个演示页：main 组装一次，UI 回调按选中下标切换可见性 ——
 	gallery::GalleryWindow window(gallery, s);
 
 	gallery::PageBase      pageBase(s);
@@ -95,9 +97,13 @@ int main() {
 	gallery::PageWindow    pageWindow(s);
 	gallery::PageFile      pageFile(s);
 	gallery::PageFnRender  pageFnRender(s);
+	gallery::PageWg2       pageWg2(s);
+	gallery::PageWg2Catalog pageWg2Catalog(s);
 
 	window.addPage(pageBase,      gallery::kGroupWg);
 	window.addPage(pageLifecycle);
+	window.addPage(pageWg2);
+	window.addPage(pageWg2Catalog);
 	window.addPage(pageLayout);
 	window.addPage(pageSplit);
 	window.addPage(pageText,      gallery::kGroupAtoms);
@@ -122,7 +128,9 @@ int main() {
 	// —— Inspector 子窗口由主窗 GalleryWindow 构造时全权装配（窗口/界面/回调）——
 
 	// 中央挂载一次性完成（引擎每帧自动根布局；Qt setCentralWidget 语义）
-	gallery.setCentralWidget(window.root.node);
+	gallery.setCentralWidget([&](const Mk::wg2::Rect& r) {
+		window.renderShell(r);
+	});
 
 	// 注册式每帧机制：快捷键 + 文件对话框托管（引擎在 user UI 前统一分发）
 	gallery.addShortcut(ImGuiKey_O, [&] { s.openFileDlg(); }, true);

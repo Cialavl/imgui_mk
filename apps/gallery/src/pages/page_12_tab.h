@@ -1,31 +1,44 @@
 #pragma once
-// p12 标签页：TabBar/Tab
+// p12 标签页：TabBar/Tab（wg2 编译期页签）
 #include "../gallery_chrome.h"
 
 namespace gallery {
 
 struct PageTab {
-	Label tab1Text, tab2Text;
-	Tab<> tab1, tab2;    // Tab 页运行时加入（页签 = idname）
-	TabBar<> tabs;
+using Root = Mk::wg2::VBox<
+Mk::wg2::Id("root"),
+Mk::wg2::TabBar<Mk::wg2::Id("tabs"),
+Mk::wg2::Tab<Mk::wg2::Id("tab1"),
+Mk::wg2::Label<Mk::wg2::Id("text1")>
+>,
+Mk::wg2::Tab<Mk::wg2::Id("tab2"),
+Mk::wg2::Label<Mk::wg2::Id("text2")>
+>
+>
+>;
 
-	Page page;
-	PageTab(State& s) {
-		(void)s;
-		page.setup("标签页",
-			"TabBar 容器渲染子页签；页签 = Tab 节点 idname。Tab 运行时挂入 TabBar。",
-			snips::kTabBar);
-		tab1Text.self.setName("TabBar 容器：页签渲染，页签 = idname");
-		tab2Text.self.setName("第二页内容");
-		tab1.node.idname = "页一";
-		tab1.node.add(tab1Text.node);
-		tab2.node.idname = "页二";
-		tab2.node.add(tab2Text.node);
-		tabs.node.idname = "galtabs";
-		tabs.node.add(tab1.node);
-		tabs.node.add(tab2.node);
-		page.addWidget(tabs.node);
-	}
+Page page;
+Root root;
+
+PageTab(State& s) {
+(void)s;
+page.setup("标签页",
+"wg2 TabBar/Tab 是编译期模板；页签标题为 Tab::title。",
+snips::kTabBar);
+
+root.at<Mk::wg2::Id("tabs")>().idname = "galtabs";
+root.at<Mk::wg2::Id("tabs"), Mk::wg2::Id("tab1")>().title = "页一";
+root.at<Mk::wg2::Id("tabs"), Mk::wg2::Id("tab1"), Mk::wg2::Id("text1")>().text = "TabBar 容器：页签渲染";
+root.at<Mk::wg2::Id("tabs"), Mk::wg2::Id("tab2")>().title = "页二";
+root.at<Mk::wg2::Id("tabs"), Mk::wg2::Id("tab2"), Mk::wg2::Id("text2")>().text = "第二页内容";
+
+page.addWidget([&](const Mk::wg2::Rect& r) {
+ Mk::wg2::layout(root, r);
+}, [&](const Mk::wg2::Size& avail) {
+return root.hint(avail);
+});
+}
+
 };
 
 } // namespace gallery

@@ -1,32 +1,41 @@
 #pragma once
-// p10 反馈指示：ProgressBar/PlotLines/Separator/SeparatorText
+// p10 反馈指示：ProgressBar/PlotLines/Separator/SeparatorText（wg2）
 #include "../gallery_chrome.h"
 
 namespace gallery {
 
 struct PageFeedback {
-	ProgressBar fbBar1, fbBar2;
-	PlotLines fbPlot;
-	Separator fbSep;
-	SeparatorText fbSection;
+using Root = Mk::wg2::VBox<
+Mk::wg2::Id("root"),
+Mk::wg2::ProgressBar<Mk::wg2::Id("bar1")>,
+Mk::wg2::ProgressBar<Mk::wg2::Id("bar2")>,
+Mk::wg2::PlotLines<Mk::wg2::Id("plot")>,
+Mk::wg2::Separator<Mk::wg2::Id("sep")>,
+Mk::wg2::SeparatorText<Mk::wg2::Id("section")>
+>;
 
-	Page page;
-	PageFeedback(State& s) {
-		page.setup("反馈与指示",
-			"ProgressBar（fraction 绑定）/ PlotLines（外部 vector 只读绑定）/ Separator(Text)。",
-			snips::kFeedback);
-		fbBar1.self.fraction = &s.volume;
-		fbBar1.self.overlay = "Loading";
-		fbBar2.self.fraction = &s.volume;
-		fbPlot.self.name = "波形历史";
-		fbPlot.self.values = &s.history;
-		fbSection.self.name = "分隔标题";
-		page.addWidget(fbBar1);
-		page.addWidget(fbBar2);
-		page.addWidget(fbPlot);
-		page.addWidget(fbSep);
-		page.addWidget(fbSection);
-	}
+Page page;
+Root root;
+
+PageFeedback(State& s) {
+page.setup("反馈与指示",
+"wg2 ProgressBar（fraction 绑定）/ PlotLines（外部 vector 只读绑定）/ Separator(Text)。",
+snips::kFeedback);
+
+root.at<Mk::wg2::Id("bar1")>().fraction = &s.volume;
+root.at<Mk::wg2::Id("bar1")>().overlay = "Loading";
+root.at<Mk::wg2::Id("bar2")>().fraction = &s.volume;
+root.at<Mk::wg2::Id("plot")>().name = "波形历史";
+root.at<Mk::wg2::Id("plot")>().values = &s.history;
+root.at<Mk::wg2::Id("section")>().name = "分隔标题";
+
+page.addWidget([&](const Mk::wg2::Rect& r) {
+ Mk::wg2::layout(root, r);
+}, [&](const Mk::wg2::Size& avail) {
+return root.hint(avail);
+});
+}
+
 };
 
 } // namespace gallery

@@ -2,10 +2,13 @@
 // gallery 共享状态：State（跨页数据）+ FnDrawerImpl（FnRender 页用）+ gMono（等宽字体）
 #include <imgui_mk/mkui.h>
 #include <imgui_mk/window.h>
-#include <imgui_mk/ui/wg.h>
-#include <imgui_mk/ui/wg_controls.h>
-#include <imgui_mk/ui/wg_file.h>
-#include <imgui_mk/ui/wg_style.h>
+
+
+
+
+#include <imgui_mk/ui/wg2/wg2.h>
+#include <imgui_mk/ui/wg2/style.h>
+#include <imgui_mk/ui/wg2/texture.h>
 #include <Mainwindow.h>
 #include <array>
 #include <cstdint>
@@ -14,7 +17,7 @@
 
 namespace gallery {
 
-using namespace Mk::wg;
+using namespace Mk::wg2;
 
 // 等宽代码字体（main 在创建窗口后、首帧前 AddFontDefault 装载填充）
 inline ImFont* gMono = nullptr;

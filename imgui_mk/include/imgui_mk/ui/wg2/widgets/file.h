@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-// Mk::wg 文件对话框模块（Windows）：Win32 IFileOpenDialog 的异步封装。
+// Mk::wg2 文件对话框模块（Windows）：Win32 IFileOpenDialog 的异步封装。
 // 对话框跑在专用 worker 线程（线程内自备 STA COM），主渲染循环不阻塞、不冻结；
 // 主循环每帧调 poll() 取结果——完成后返回 true 并给出选中路径（用户取消为空串）。
 //
@@ -27,7 +27,7 @@
 
 #pragma comment(lib, "ole32.lib")
 
-namespace Mk::wg {
+namespace Mk::wg2 {
 
 	class FileDialog {
 	public:
@@ -143,4 +143,4 @@ namespace Mk::wg {
 		std::string m_Path;   // worker 写入先于 state=Done（release/acquire 保序）
 	};
 
-} // namespace Mk::wg
+} // namespace Mk::wg2

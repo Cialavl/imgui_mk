@@ -1,57 +1,71 @@
 #pragma once
-// p1 基础：生命周期（动态 add/remove 叶子 + When 隐藏）
+// p1 基础：生命周期（RuntimeList 动态叶子 + When 隐藏）
 #include "../gallery_chrome.h"
+
+#include <memory>
 
 namespace gallery {
 
 struct PageLifecycle {
-	Button lifeAdd, lifeRemove;
-	CheckBox lifeHide;
-	LabelText lifeState, lifeNote;
-	Label lifeWhenText;
-	When<Label> lifeWhen;
-	std::unique_ptr<Label> lifeLeaf;   // 动态叶子：裸构造删除
+using Root = Mk::wg2::VBox<
+Mk::wg2::Id("root"),
+Mk::wg2::HBox<Mk::wg2::Id("buttons"),
+Mk::wg2::Button<Mk::wg2::Id("add")>,
+Mk::wg2::Button<Mk::wg2::Id("remove")>
+>,
+Mk::wg2::CheckBox<Mk::wg2::Id("hide")>,
+Mk::wg2::LabelText<Mk::wg2::Id("state")>,
+Mk::wg2::LabelText<Mk::wg2::Id("note")>,
+Mk::wg2::When<Mk::wg2::Id("when"),
+Mk::wg2::Label<Mk::wg2::Id("when_text")>
+>,
+Mk::wg2::RuntimeList<Mk::wg2::Id("dynamic")>
+>;
 
-	Page page;
-	PageLifecycle(State& s) {
-		page.setup("基础：生命周期",
-			"draw() 首帧挂载触发 onCreate；可见性变化 onShow/onHide；移除 onDestroy。"
-			"动态叶子演示运行时 add/remove（墓碑机制，渲染回调中安全）。",
-			snips::kLife);
-		lifeAdd.self.setName("添加动态叶子");
-		lifeAdd.self.onClick = [&] {
-			if(!lifeLeaf) {
-				lifeLeaf = std::make_unique<Label>();
-				lifeLeaf->self.setName("动态叶子（onCreate/onDestroy）");
-		page.addWidget(lifeLeaf->node);
-			}
-		};
-		lifeRemove.self.setName("移除动态叶子");
-		lifeRemove.self.onClick = [&] {
-			if(lifeLeaf) {
-				page.demo.node.remove(lifeLeaf->node);
-				lifeLeaf.reset();
-			}
-		};
-		lifeHide.self.name = "隐藏叶子（onHide/onShow）";
-		lifeHide.self.checked = &s.mute;
-		lifeState.self.name = "叶子状态";
-		lifeState.self.valueFn = [this] { return lifeLeaf ? std::string("有叶子（onCreate 已触发）") : std::string("无叶子"); };
-		lifeNote.self.name = "说明";
-		lifeNote.self.value = "勾选：演示观察 When 包裹控件的隐藏/恢复（onHide/onShow 日志）。";
-		lifeWhenText.self.setName("（When 包裹的文本，mute 时隐藏显示）");
-		lifeWhen.node.add(lifeWhenText.node);
-		page.addWidget(lifeAdd);
-		page.addWidget(lifeRemove);
-		page.addWidget(lifeHide);
-		page.addWidget(lifeState);
-		page.addWidget(lifeNote);
-		page.addWidget(lifeWhen);
-	}
+Page page;
+Root root;
 
-	void refresh(State& s) {
-		lifeWhen.self.show = !s.mute;
-	}
+PageLifecycle(State& s) {
+page.setup("基础：生命周期",
+"wg2 静态树没有全局 Node 状态机；动态叶子通过 RuntimeList opt-in，"
+"When 装饰件负责显示/隐藏。",
+snips::kLife);
+
+root.at<Mk::wg2::Id("buttons"), Mk::wg2::Id("add")>().label = "添加动态叶子";
+root.at<Mk::wg2::Id("buttons"), Mk::wg2::Id("add")>().onClick = [&] {
+auto label = std::make_unique<Mk::wg2::Label<Mk::wg2::Id("leaf")>>(
+"动态叶子（wg2 RuntimeList 项）");
+Mk::wg2::AnyWidget any = Mk::wg2::AnyWidget::own(std::move(label));
+any.idname = "lifeLeaf";
+root.at<Mk::wg2::Id("dynamic")>().add(std::move(any));
+};
+root.at<Mk::wg2::Id("buttons"), Mk::wg2::Id("remove")>().label = "移除动态叶子";
+root.at<Mk::wg2::Id("buttons"), Mk::wg2::Id("remove")>().onClick = [&] {
+root.at<Mk::wg2::Id("dynamic")>().removeLast();
+};
+root.at<Mk::wg2::Id("hide")>().name = "隐藏叶子（When show=false）";
+root.at<Mk::wg2::Id("hide")>().checked = &s.mute;
+root.at<Mk::wg2::Id("state")>().name = "叶子状态";
+root.at<Mk::wg2::Id("state")>().valueFn = [this] {
+return root.at<Mk::wg2::Id("dynamic")>().size()
+? std::string("有叶子")
+: std::string("无叶子");
+};
+root.at<Mk::wg2::Id("note")>().name = "说明";
+root.at<Mk::wg2::Id("note")>().value = "勾选：When 包裹控件隐藏/恢复。";
+root.at<Mk::wg2::Id("when"), Mk::wg2::Id("when_text")>().text = "（When 包裹的文本，mute 时隐藏）";
+
+page.addWidget([&](const Mk::wg2::Rect& r) {
+ Mk::wg2::layout(root, r);
+}, [&](const Mk::wg2::Size& avail) {
+return root.hint(avail);
+});
+}
+
+void refresh(State& s) {
+root.at<Mk::wg2::Id("when")>().show = !s.mute;
+}
+
 };
 
 } // namespace gallery

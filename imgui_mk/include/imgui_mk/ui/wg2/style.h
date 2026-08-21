@@ -2,7 +2,7 @@
 #include <imgui_mk/windowRendereren.h>
 #include <utility>
 
-// Mk::wg 主题模块：Theme 纯值类型（颜色 + 几何），预设与链式派生。
+// Mk::wg2 主题模块：Theme 纯值类型（颜色 + 几何），预设与链式派生。
 // 应用粒度两层：
 //   窗口级  applyTheme(ctx, theme) / window::setTheme(theme)
 //           —— 每窗口独立 ImGui 上下文，天然按窗口异肤
@@ -12,7 +12,7 @@
 // 本就回落到 ImGui style，因此主题一改、所有容器间距跟随，无需逐处配置。
 // 几何随 fontSize 等比联动（见 Theme 字段与 applyTheme）；字体位图本身在窗口创建时按 fontSize 烘焙，setTheme 运行时切换不重建图集。
 
-namespace Mk::wg {
+namespace Mk::wg2 {
 
 	// ============ Theme：纯值 ============
 
@@ -252,4 +252,4 @@ namespace Mk::wg {
 		return r;
 	}
 
-} // namespace Mk::wg
+} // namespace Mk::wg2

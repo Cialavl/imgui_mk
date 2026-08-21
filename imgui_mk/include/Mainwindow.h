@@ -1,7 +1,7 @@
 #pragma once
 #include <imgui_mk/mkui.h>
 #include <imgui_mk/window.h>
-#include <imgui_mk/ui/wg_style.h>
+#include <imgui_mk/ui/wg2/style.h>
 #include <functional>
 #include <memory>
 #include <type_traits>
@@ -34,12 +34,10 @@ namespace Mk {
 		template<typename T>
 		T& state() { return Mk::mkui<WindowT>::RegistrationWindow().template state<T>(); }
 		template<typename T>
-		const T& state() const { return Mk::mkui<WindowT>::RegistrationWindow().template state<T>(); }
-
-
-	// 挂载中央内容（Qt setCentralWidget 语义）：窗口每帧自动根布局；padX/padY 外边距增量（默认 = 样式 WindowPadding）
-	void setCentralWidget(Mk::wg::Node& root, float padX = 0.0f, float padY = 0.0f) {
-		m_Window.setCentralWidget(root, padX, padY);
+		const T& state() const { return Mk::mkui<WindowT>::RegistrationWindow().template state<T>(); }		// wg2 中央内容挂载：每帧把内容区 bounds 回调给应用层执行 layout()。
+		void setCentralWidget(std::function<void(const Mk::wg2::Rect&)> fn,
+				float padX = 0.0f, float padY = 0.0f) {
+				m_Window.setCentralWidget(std::move(fn), padX, padY);
 	}
 		// —— 主窗口特定功能 ——
 
@@ -67,7 +65,7 @@ namespace Mk {
 		void mountChild(Mk::window& child) { m_Window.mountChild(child); }
 
 		// 切换窗口主题（转发到内部窗口的 setTheme）
-		void setTheme(const wg::Theme& theme) {
+		void setTheme(const Mk::wg2::Theme& theme) {
 			m_Window.setTheme(theme);
 		}
 

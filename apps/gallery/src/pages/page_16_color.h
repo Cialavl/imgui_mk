@@ -1,35 +1,48 @@
 #pragma once
-// p16 颜色编辑：ColorEdit3/4 + ColorPicker3/4
+// p16 颜色编辑：ColorEdit3/4 + ColorPicker3/4（wg2）
 #include "../gallery_chrome.h"
 
 namespace gallery {
 
 struct PageColor {
-	ColorEdit3 colRgb;
-	ColorEdit4 colRgba;
-	ColorPicker3 colPick3;
-	ColorPicker4 colPick4;
-	HLayout colRow;
-	Collapsing colColl;
+using Root = Mk::wg2::VBox<
+Mk::wg2::Id("root"),
+Mk::wg2::ColorEdit3<Mk::wg2::Id("rgb")>,
+Mk::wg2::ColorEdit4<Mk::wg2::Id("rgba")>,
+Mk::wg2::Collapsing<Mk::wg2::Id("collapsing"),
+Mk::wg2::HBox<Mk::wg2::Id("pickRow"),
+Mk::wg2::ColorPicker3<Mk::wg2::Id("pick3")>,
+Mk::wg2::ColorPicker4<Mk::wg2::Id("pick4")>
+>
+>
+>;
 
-	Page page;
-	PageColor(State& s) {
-		page.setup("颜色编辑",
-			"ColorEdit3/4 与 ColorPicker3/4：std::array<float,3|4>* 绑定；拾取器可包进折叠容器。",
-			snips::kColor);
-		colRgb.self.name = "RGB";   colRgb.self.color = &s.col3;
-		colRgba.self.name = "RGBA"; colRgba.self.color = &s.col4;
-		colPick3.self.name = "Pick RGB";  colPick3.self.color = &s.pick3;
-		colPick4.self.name = "Pick RGBA"; colPick4.self.color = &s.pick4;
+Page page;
+Root root;
 
-		colRow.addWidget(colPick3.node);
-		colRow.addWidget(colPick4.node);
-		colColl.self.name = "拾取器（默认展开）";
-		colColl.node.add(colRow.node);
-		page.addWidget(colRgb);
-		page.addWidget(colRgba);
-		page.addWidget(colColl);
-	}
+PageColor(State& s) {
+page.setup("颜色编辑",
+"wg2 ColorEdit3/4 与 ColorPicker3/4：std::array<float,3|4>* 绑定；拾取器可包进折叠容器。",
+snips::kColor);
+
+root.at<Mk::wg2::Id("rgb")>().name = "RGB";
+root.at<Mk::wg2::Id("rgb")>().color = &s.col3;
+root.at<Mk::wg2::Id("rgba")>().name = "RGBA";
+root.at<Mk::wg2::Id("rgba")>().color = &s.col4;
+root.at<Mk::wg2::Id("collapsing")>().title = "拾取器（默认展开）";
+root.at<Mk::wg2::Id("collapsing")>().defaultOpen = true;
+root.at<Mk::wg2::Id("collapsing"), Mk::wg2::Id("pickRow"), Mk::wg2::Id("pick3")>().name = "Pick RGB";
+root.at<Mk::wg2::Id("collapsing"), Mk::wg2::Id("pickRow"), Mk::wg2::Id("pick3")>().color = &s.pick3;
+root.at<Mk::wg2::Id("collapsing"), Mk::wg2::Id("pickRow"), Mk::wg2::Id("pick4")>().name = "Pick RGBA";
+root.at<Mk::wg2::Id("collapsing"), Mk::wg2::Id("pickRow"), Mk::wg2::Id("pick4")>().color = &s.pick4;
+
+page.addWidget([&](const Mk::wg2::Rect& r) {
+ Mk::wg2::layout(root, r);
+}, [&](const Mk::wg2::Size& avail) {
+return root.hint(avail);
+});
+}
+
 };
 
 } // namespace gallery

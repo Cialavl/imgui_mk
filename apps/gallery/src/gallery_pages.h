@@ -1,5 +1,5 @@
 #pragma once
-// gallery 页面聚合：22 页头聚合 + kGroupXxx 分组常量（页面对象在 main 组装注册）
+// gallery 页面聚合：24 页头聚合 + kGroupXxx 分组常量（页面对象在 main 组装注册）
 #include "gallery_chrome.h"
 #include "pages/page_00_base.h"
 #include "pages/page_01_lifecycle.h"
@@ -23,6 +23,8 @@
 #include "pages/page_19_window.h"
 #include "pages/page_20_file.h"
 #include "pages/page_21_fnrender.h"
+#include "pages/page_22_wg2.h"
+#include "pages/page_23_wg2_catalog.h"
 
 namespace gallery {
 

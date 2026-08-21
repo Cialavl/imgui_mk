@@ -1,32 +1,42 @@
 #pragma once
-// p19 多窗口：双顶层窗口共享状态实时链接
+// p19 多窗口：双顶层窗口共享状态实时链接（wg2）
 #include "../gallery_chrome.h"
 
 namespace gallery {
 
 struct PageWindow {
-	LabelText winGal, winIns;
-	Button winToggle;
-	TextWrapped winNote;
+using Root = Mk::wg2::VBox<
+Mk::wg2::Id("root"),
+Mk::wg2::LabelText<Mk::wg2::Id("gal")>,
+Mk::wg2::LabelText<Mk::wg2::Id("ins")>,
+Mk::wg2::Button<Mk::wg2::Id("toggle")>,
+Mk::wg2::TextWrapped<Mk::wg2::Id("note")>
+>;
 
-	Page page;
-	PageWindow(State& s) {
-		page.setup("多窗口链接",
-			"两个顶层窗口各自一个 ImGui 上下文与帧循环；绑定 wg 控件到同一批外部变量 = 实时链接。",
-			snips::kMultiWindow);
-		winGal.self.name = "Gallery 帧";
-		winGal.self.valueFn = [&s] { return std::to_string(s.frames); };
-		winIns.self.name = "Inspector 帧";
-		winIns.self.valueFn = [&s] { return std::to_string(s.insFrames); };
-		winToggle.self.setName("显示/隐藏 Inspector");
-		winToggle.self.onClick = [&] { s.toggleInspector(); };
-		winNote.self.name = "拖动一个窗口的滑块，另一个同帧刷新（绑同一变量）。"
-			" Inspector 只隐藏；Gallery 关闭后跟随退出。";
-		page.addWidget(winGal);
-		page.addWidget(winIns);
-		page.addWidget(winToggle);
-		page.addWidget(winNote);
-	}
+Page page;
+Root root;
+
+PageWindow(State& s) {
+page.setup("多窗口链接",
+"两个顶层窗口各自一个 ImGui 上下文与帧循环；绑定 wg2 控件到同一批外部变量 = 实时链接。",
+snips::kMultiWindow);
+
+root.at<Mk::wg2::Id("gal")>().name = "Gallery 帧";
+root.at<Mk::wg2::Id("gal")>().valueFn = [&s] { return std::to_string(s.frames); };
+root.at<Mk::wg2::Id("ins")>().name = "Inspector 帧";
+root.at<Mk::wg2::Id("ins")>().valueFn = [&s] { return std::to_string(s.insFrames); };
+root.at<Mk::wg2::Id("toggle")>().label = "显示/隐藏 Inspector";
+root.at<Mk::wg2::Id("toggle")>().onClick = [&] { s.toggleInspector(); };
+root.at<Mk::wg2::Id("note")>().text = "拖动一个窗口的滑块，另一个同帧刷新（绑同一变量）。"
+" Inspector 只隐藏；Gallery 关闭后跟随退出。";
+
+page.addWidget([&](const Mk::wg2::Rect& r) {
+ Mk::wg2::layout(root, r);
+}, [&](const Mk::wg2::Size& avail) {
+return root.hint(avail);
+});
+}
+
 };
 
 } // namespace gallery

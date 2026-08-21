@@ -1,6 +1,6 @@
 # mkui 教学课程
 
-面向 C++ 开发者的 mkui 系统化教学：从第一个窗口到自定义控件，共 12 课 + 2 附录。
+面向 C++ 开发者的 mkui 系统化教学：从第一个窗口到 wg2 新控件层，共 13 课 + 2 附录。
 每课 = 一篇细读文档 + 一个可运行的配套程序 `src/tutorialNN_*.cpp`（源内
 注释标注了对应文档章节号，如 `// §2.3`），两者对照着读。
 
@@ -31,8 +31,12 @@
 | 10 | [lesson-10](lessons/lesson-10-bridges.md) | `tutorial10_bridges` | 动态列表、FnRender 裸绘制桥 |
 | 11 | [lesson-11](lessons/lesson-11-file-dialog.md) | `tutorial11_filedialog` | 异步文件对话框状态机 |
 | 12 | [lesson-12](lessons/lesson-12-custom-widgets.md) | `tutorial12_custom` | 自定义 wg 控件/装饰件/复合控件 |
+| 13 | [lesson-13](lessons/lesson-13-wg2.md) | `tutorial13_wg2` | wg2 静态树、字符串路径、RuntimeList opt-in |
 | 附A | [appendix-a](lessons/appendix-a-api-reference.md) | — | API 速查表 |
 | 附B | [appendix-b](lessons/appendix-b-pitfalls.md) | — | 常见陷阱 FAQ（踩坑实录） |
+
+> 说明：第 03–12 课文档与示例程序描述的是旧 `Mk::wg` 控件层，保留用于兼容学习；
+> 新代码请从第 13 课开始使用 `Mk::wg2`。
 
 ## 构建与运行
 
