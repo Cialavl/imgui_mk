@@ -84,7 +84,7 @@ int main() {
 	Mk::wg::CheckBox cbStyled, cbAuto;
 	cbStyled.self.name = "显示紧凑区";
 	cbStyled.self.checked = &styledOn;
-	cbAuto.self.name = "自动跨屏/档位（900/1400/2000）";
+	cbAuto.self.name = "自动跨屏/窗口比例";
 	cbAuto.self.checked = &autoOn;
 
 	Mk::wg::Button compact1, compact2;
@@ -141,7 +141,7 @@ int main() {
 	manualRow.node.add(man18.node);
 	manualRow.node.add(man27.node);
 	Mk::wg::TextWrapped autoNote;
-	autoNote.self.name = "跨屏拖动/系统缩放变化与宽度档位都会触发重烘焙；每帧 setAutoScaleFont 同步开关（幂等 setter）。";
+	autoNote.self.name = "跨屏拖动/系统缩放变化会立即重烘焙；窗口尺寸变化按比例无级缩放（拖动中不重建、稳定 200ms 且变化 >5% 才重建）。每帧 setAutoScaleFont 同步开关（幂等 setter）。";
 
 	Mk::wg::Layout root;
 	root.self.mode = Mk::wg::LayoutMode::V;

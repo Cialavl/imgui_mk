@@ -52,11 +52,18 @@ ImU32 copiedFrame = 0;
 
 ImFont* activeMono() const { return monoFn ? monoFn() : mono; }
 
+// 代码区内边距（em，随字号）：顶部留白比全局控件间距更松，代码不贴边框
+static ImVec2 innerPad() {
+const float em = ImGui::GetFontSize();
+return ImVec2(0.55f * em, 0.75f * em);
+}
+
 Mk::wg2::Size hint(const Mk::wg2::Size& avail) const {
 std::size_t lines = 1;
 for (char c : code) if (c == '\n') ++lines;
 const float lineH = ImGui::GetTextLineHeightWithSpacing();
-return Mk::wg2::Size{avail.w, ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.y + static_cast<float>(lines) * lineH};
+const ImVec2 pad = innerPad();
+return Mk::wg2::Size{avail.w, ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.y + static_cast<float>(lines) * lineH + pad.y * 2.0f};
 }
 
 Mk::wg2::Policy policy() const { return Mk::wg2::Policy{}; }
@@ -73,11 +80,15 @@ ImGui::SetClipboardText(std::string(code).c_str());
 copiedFrame = ImGui::GetFrameCount();
 }
 
+const ImVec2 pad = innerPad();   // 须在 PushFont 之前：按主字体字号算 em
 ImFont* cm = activeMono();
 if (cm) ImGui::PushFont(cm);
 const float copyRow = ImGui::GetFrameHeight() + st.ItemSpacing.y;
 const float childH = r.h > copyRow ? r.h - copyRow : 0.0f;
-if (ImGui::BeginChild("code_wg2", ImVec2(r.w, childH), ImGuiChildFlags_Border)) {
+const float codeW = std::max(0.0f, ImGui::GetContentRegionAvail().x);
+ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, pad);   // 代码块内边距：上下更松，避免贴边
+if (ImGui::BeginChild("code_wg2", ImVec2(codeW, childH), ImGuiChildFlags_Border,
+ImGuiWindowFlags_HorizontalScrollbar)) {
 int lineNo = 1;
 std::size_t pos = 0;
 while (pos <= code.size()) {
@@ -92,6 +103,7 @@ pos = end + 1;
 }
 }
 ImGui::EndChild();
+ImGui::PopStyleVar();
 if (cm) ImGui::PopFont();
 }
 };
@@ -116,18 +128,23 @@ Mk::wg2::Policy policy() const { return Mk::wg2::Policy{}; }
 void draw(const Mk::wg2::Rect& r) {
 if (!render) return;
 
-float contentH = r.h;
-if (measure) {
-const Mk::wg2::Size desired = measure(Mk::wg2::Size{r.w, 0.0f});
-contentH = std::max(r.h, desired.h);
-}
-
-if (ImGui::BeginChild("page_demo_scroll", ImVec2(r.w, r.h), false,
-ImGuiWindowFlags_AlwaysVerticalScrollbar)) {
-const ImVec2 cp = ImGui::GetCursorPos();
-render(Mk::wg2::Rect{cp.x, cp.y, r.w, contentH});
-}
+// 页面层已提供整体滚动：这里按内容区宽度渲染，不再强制自带滚动条
+// 同上：页面滚动层已提供内边距，演示区不再叠加
+ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+if (!ImGui::BeginChild("page_demo_scroll", ImVec2(r.w, r.h), false, 0)) {
 ImGui::EndChild();
+ImGui::PopStyleVar();
+return;
+}
+const ImVec2 cp = ImGui::GetCursorPos();
+const float innerW = std::max(0.0f, ImGui::GetContentRegionAvail().x);
+// 按自然高度排版：demo 格被 stretch 撑高时，多出的高度留白，
+// 否则 VBox 会把子项拉成不均匀的大间距（页面看起来"散架"）
+float contentH = r.h;
+if (measure) contentH = measure(Mk::wg2::Size{innerW, 0.0f}).h;
+render(Mk::wg2::Rect{cp.x, cp.y, innerW, contentH});
+ImGui::EndChild();
+ImGui::PopStyleVar();
 }
 };
 
@@ -152,19 +169,37 @@ root.at<Mk::wg2::Id("head")>().desc = desc;
 root.at<Mk::wg2::Id("codeTitle")>().name = "Code";
 root.at<Mk::wg2::Id("code")>().code = snippet;
 root.at<Mk::wg2::Id("code")>().monoFn = [] { return gMono; };
-root.at<Mk::wg2::Id("demo")>().state.stretch = 1.0f;
+// demo 不参与伸展：页面内容按自然高度自上而下排列，剩余空间留白（代码块紧跟演示区）
 root.marginX = 0.0f;
 root.marginY = 0.0f;
 }
 
-void addWidget(std::function<void(const Mk::wg2::Rect&)> render,
-std::function<Mk::wg2::Size(const Mk::wg2::Size&)> measure = nullptr) {
-root.at<Mk::wg2::Id("demo")>().render = std::move(render);
-root.at<Mk::wg2::Id("demo")>().measure = std::move(measure);
+template<class F, class M = std::nullptr_t>
+void addWidget(F&& render,
+M&& measure = nullptr) {
+root.at<Mk::wg2::Id("demo")>().render = std::forward<F>(render);
+root.at<Mk::wg2::Id("demo")>().measure = std::forward<M>(measure);
 }
 
 void renderTo(const Mk::wg2::Rect& r) {
-Mk::wg2::layout(root, r);
+if (r.w <= 1.0f || r.h <= 1.0f) return;
+// 整页滚动：先量出内容自然高度，超出宿主时由本层滚动条接管（子页面不再各自滚动）
+// 外层宿主（preview_wg2）已带内边距：这里置零，避免滚动层再叠一层 padding
+ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+if (!ImGui::BeginChild("page_body", ImVec2(r.w, r.h), false, 0)) {
+ImGui::EndChild();
+ImGui::PopStyleVar();
+return;
+}
+const ImVec2 cp = ImGui::GetCursorPos();
+const ImVec2 avail = ImGui::GetContentRegionAvail();
+// 始终按内容自然高度布局：页面自上而下紧凑排列，剩余空间留在底部；
+// 若按宿主高度布局，VBox 会把每个子项的 Preferred 高度都撑开，出现不均匀大间隙
+const Mk::wg2::Size want = root.hint(Mk::wg2::Size{avail.x, 0.0f});
+const float h = want.h > 1.0f ? want.h : avail.y;
+Mk::wg2::layout(root, Mk::wg2::Rect{cp.x, cp.y, avail.x, h});
+ImGui::EndChild();
+ImGui::PopStyleVar();
 }
 };
 

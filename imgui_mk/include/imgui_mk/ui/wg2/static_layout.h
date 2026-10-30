@@ -191,7 +191,9 @@ struct VBox {
 		const float innerH = std::max(0.0f, r.h - my * 2.0f);
 
 		auto items = detail::collectItems(children, false, innerW);
-		auto tracks = detail::solveRow(items, innerH);
+		// 子项之间还要插入 sp 间距：先扣掉再求解，否则最后一子项整体溢出 (n-1)*sp
+		const float gaps = items.size() > 1 ? sp * static_cast<float>(items.size() - 1) : 0.0f;
+		auto tracks = detail::solveRow(items, std::max(0.0f, innerH - gaps));
 
 		std::size_t vi = 0;
 		float y = r.y + my;
@@ -270,7 +272,9 @@ struct HBox {
 		const float innerW = std::max(0.0f, r.w - mx * 2.0f);
 
 		auto items = detail::collectItems(children, true, innerH);
-		auto tracks = detail::solveRow(items, innerW);
+		// 同上：列间距先扣除，避免末列被挤出容器右缘
+		const float gaps = items.size() > 1 ? sp * static_cast<float>(items.size() - 1) : 0.0f;
+		auto tracks = detail::solveRow(items, std::max(0.0f, innerW - gaps));
 
 		std::size_t vi = 0;
 		float x = r.x + mx;

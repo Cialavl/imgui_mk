@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 4.1.1)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "1942b4fa-b2c5-4546-9385-83f254070067")
+set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "451f2fe2-a8a2-47c3-bc32-94786d8fc91b")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 project(imgui_mk LANGUAGES  CXX)
 
 if (MSVC)
@@ -27,6 +29,8 @@ endif()
 add_subdirectory(tutorials)
 
 add_subdirectory(test)
+# 个人验证 demo（非自动化测试）
+add_subdirectory(dome)
 
 # ============ 安装到 C:\Cpp_Libs 的静态库包（find_package(mkui) 可发现）============
 # 部署布局：

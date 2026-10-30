@@ -89,12 +89,28 @@ else
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("host")>().addPage(render);
 }
 
+// 页面总数（导航条目中非组标题的数量）：供键盘翻页等使用
+int pageCount() {
+int n = 0;
+for (const auto& e : shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().entries) {
+if (!e.header) ++n;
+}
+return n;
+}
+
 void refreshAll(State& s) {
+// 自适应比例：侧栏/侧面板宽度按当前字号推导（em），字号随窗口比例变化时三栏比例保持不变
+const float em = ImGui::GetFontSize();
+auto& nav = shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>();
+nav.state.size.prefW = 9.3f * em;
+nav.state.size.minW = 5.6f * em;
+auto& panel = shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel")>();
+panel.state.size.prefW = 9.6f * em;
+panel.state.size.minW = 6.7f * em;
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("host")>().refreshAll(s);
 updateStatus(s);
 }
 
-void renderShell(const Mk::wg2::Rect& r) { Mk::wg2::layout(shell, r); }
 
 private:
 void initMenus(State& s) {
@@ -168,7 +184,7 @@ shell.at<Mk::wg2::Id("aboutTree"), Mk::wg2::Id("aboutOk")>().onClick = [] { ImGu
 void initStatus(State& s) {
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFps")>().name = "FPS";
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFps")>().valueFn = [] {
-return std::to_string(static_cast<int>(ImGui::GetIO().Framerate)) + " fps";
+return std::to_string(static_cast<int>(ImGui::GetIO().Framerate));   // 单位由 name="FPS" 显示，避免重复
 };
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFrame")>().name = "帧";
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFrame")>().valueFn = [&s] { return std::to_string(s.frames); };

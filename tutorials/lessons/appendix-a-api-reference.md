@@ -10,7 +10,7 @@
 | `window::setUserUI(f)` / `MainWindow::setUI(f)` | 每帧 UI 回调（后调用覆盖） | 02 |
 | `window::setTheme(Theme)` | 本窗口换肤（独立上下文互不影响） | 08 |
 | `window::rescale(fontSize)` | 请求重烘焙字号（下一帧生效） | 08 |
-| `window::setAutoScaleFont(bool)` | 运行时自适应：跨屏 DPI + 宽度档位 | 08 |
+| `window::setAutoScaleFont(bool)` | 运行时自适应：跨屏 DPI + 窗口尺寸比例（无级；防抖 + 5% 滞回） | 08 |
 | `window::setFontLoader(f)` | 自定义字体链（重烘焙时调用） | 12 |
 | `window::show()/hide()/close()` | 显示/隐藏/真销毁 | 01 |
 | `window::getHandle()/shouldClose()` | 查询：OS 句柄（关闭后 nullptr）/关闭态 | 01 |

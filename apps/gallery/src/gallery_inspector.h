@@ -10,7 +10,8 @@ namespace gallery {
 // ============ Inspector 窗口 UI ============
 
 struct InsUi {
-using Root = Mk::wg2::VBox<
+// 根用 SubWindow：内容超出窗口时由子窗口滚动，不再被窗口下缘硬切
+using Root = Mk::wg2::SubWindow<
 Mk::wg2::Id("root"),
 Mk::wg2::SeparatorText<Mk::wg2::Id("head")>,
 Mk::wg2::SliderF<Mk::wg2::Id("volume")>,
@@ -28,6 +29,8 @@ Root root;
 };
 
 inline void buildIns(InsUi& u, State& s) {
+u.root.border = false;
+u.root.idname = "inspector_scroll";
 u.root.at<Mk::wg2::Id("head")>().name = "Shared state (live link with Gallery)";
 u.root.at<Mk::wg2::Id("volume")>().name = "Volume";
 u.root.at<Mk::wg2::Id("volume")>().value = &s.volume;
@@ -55,12 +58,12 @@ std::unique_ptr<Mk::window> win;      // 子窗口（父窗口经 mountChild 亦
 // 构造即装配并挂载到父窗口：中央挂载 + 帧回调 + 父关随关/点 X 隐藏
 InspectorWindow(Mk::window& parent, State& s) {
 buildIns(ui, s);
-const auto [w, h] = Mk::workAreaSize(0.3f, 0.7f, 420, 640);
+const float uiDpi = Mk::wg2::dpiScale();
+		const auto [w, h] = Mk::workAreaSize(0.3f, 0.7f,
+			static_cast<int>(420.0f * uiDpi), static_cast<int>(640.0f * uiDpi));
 win = std::make_unique<Mk::window>("Inspector", w, h);
 win->setAutoScaleFont(true);
-win->setCentralWidget([&](const Mk::wg2::Rect& r) {
-Mk::wg2::layout(ui.root, r);
-});   // 中央挂载 wg2 回调
+win->setCentralWidget(ui.root);   // 静态树直挂：窗口每帧自动 wg2::layout
 win->setUserUI([&s] { ++s.insFrames; });
 s.inspectorHandle = win->getHandle();
 parent.mountChild(*win);

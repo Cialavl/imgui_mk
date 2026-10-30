@@ -35,9 +35,10 @@ namespace Mk {
 		T& state() { return Mk::mkui<WindowT>::RegistrationWindow().template state<T>(); }
 		template<typename T>
 		const T& state() const { return Mk::mkui<WindowT>::RegistrationWindow().template state<T>(); }		// wg2 中央内容挂载：每帧把内容区 bounds 回调给应用层执行 layout()。
-		void setCentralWidget(std::function<void(const Mk::wg2::Rect&)> fn,
+		template<class F>
+void setCentralWidget(F&& fn,
 				float padX = 0.0f, float padY = 0.0f) {
-				m_Window.setCentralWidget(std::move(fn), padX, padY);
+				m_Window.setCentralWidget(std::forward<F>(fn), padX, padY);
 	}
 		// —— 主窗口特定功能 ——
 
@@ -54,12 +55,15 @@ namespace Mk {
 		// —— window.h API 的模板组合转发 ——
 
 		// 注入每帧 UI 回调（在 run() 之前调用；转发到内部窗口的 setUserUI）
-		void setUI(std::function<void()> ui) {
-			m_Window.setUserUI(std::move(ui));
-		}
+		// 统一 UI 入口：无参回调 = 普通每帧 UI；接收 Rect 的回调 = 中央布局 UI。
+template<class F>
+void setUI(F&& ui) { m_Window.setUI(std::forward<F>(ui)); }
+template<auto UI>
+void setUI() { m_Window.setUI<UI>(); }
 
-		// window.h 同名别名
-		void setUserUI(std::function<void()> ui) { m_Window.setUserUI(std::move(ui)); }
+// window.h 同名别名
+		template<class F>
+void setUserUI(F&& ui) { m_Window.setUserUI(std::forward<F>(ui)); }
 
 		// 子窗口挂载到本窗口：父关随关、子 X 隐藏（子窗口生命周期随父）
 		void mountChild(Mk::window& child) { m_Window.mountChild(child); }

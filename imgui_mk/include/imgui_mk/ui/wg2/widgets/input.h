@@ -295,8 +295,10 @@ struct ListBox {
 		return Size{160.0f, h};
 	}
 	Policy policy() const { return Policy{}; }
-	void draw(const Rect&) {
-		if (items && current) ImGui::ListBox(name.c_str(), current, items, count);
+	void draw(const Rect& r) {
+		if (!items || !current) return;
+		ImGui::SetNextItemWidth(detail::frameWidthFor(r.w, name.c_str()));
+		ImGui::ListBox(name.c_str(), current, items, count);
 	}
 };
 

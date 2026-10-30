@@ -87,6 +87,9 @@ struct MenuItem {
 	bool selected = false;
 	std::function<void()> onClick;
 
+	template<class F>
+	void setOnClick(F&& cb) { onClick = std::forward<F>(cb); }
+
 	Size hint(const Size&) const {
 		return Size{ImGui::CalcTextSize(name.c_str()).x + 40.0f, ImGui::GetFrameHeight()};
 	}
@@ -125,15 +128,11 @@ struct Menu {
 
 	Policy policy() const { return Policy{}; }
 
-	void draw(const Rect& r) {
+	void draw(const Rect&) {
 		if (!ImGui::BeginMenu(name.c_str())) return;
-		float y = r.y;
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
-				if (!child.state.visible) return;
-				const Size s = child.hint(Size{r.w, r.h - (y - r.y)});
-				drawWidget(child, Rect{r.x, y, s.w, s.h});
-				y += s.h;
+				if (child.state.visible) drawFlow(child);   // 弹菜单内流式排布（含内边距）
 			};
 			(one(c), ...);
 		}, children);
@@ -168,19 +167,17 @@ struct MenuBar {
 
 	Policy policy() const { return Policy{}; }
 
-	void draw(const Rect& r) {
-		if (!ImGui::BeginMenuBar()) return;
-		float x = r.x;
+	void draw(const Rect&) {
+		if (!ImGui::BeginMainMenuBar()) return;   // 浮顶独立菜单栏（宿主窗口无需 MenuBar 标志）
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
-				if (!child.state.visible) return;
-				const Size s = child.hint(Size{0.0f, 0.0f});
-				drawWidget(child, Rect{x, r.y, s.w, s.h});
-				x += s.w;
+				if (child.state.visible) drawFlow(child);   // 流式排布：菜单从左到右跟随光标
 			};
 			(one(c), ...);
 		}, children);
-		ImGui::EndMenuBar();
+		ImGui::EndMainMenuBar();
+		// 主菜单栏是浮顶独立窗口：宿主光标下移，防重叠
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetFrameHeight());
 	}
 
 	template<std::size_t I> constexpr decltype(auto) child() & { return std::get<I>(children); }
@@ -233,13 +230,9 @@ struct Popup {
 			*open = false;
 		}
 		if (!ImGui::BeginPopup(pid)) return;
-		float y = r.y;
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
-				if (!child.state.visible) return;
-				const Size s = child.hint(Size{r.w, r.h - (y - r.y)});
-				drawWidget(child, Rect{r.x, y, s.w, s.h});
-				y += s.h;
+				if (child.state.visible) drawFlow(child);   // 弹窗内流式排布（含内边距）
 			};
 			(one(c), ...);
 		}, children);
@@ -295,13 +288,9 @@ struct PopupModal {
 			*open = false;
 		}
 		if (!ImGui::BeginPopupModal(pid, nullptr, flags)) return;
-		float y = r.y;
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
-				if (!child.state.visible) return;
-				const Size s = child.hint(Size{r.w, r.h - (y - r.y)});
-				drawWidget(child, Rect{r.x, y, s.w, s.h});
-				y += s.h;
+				if (child.state.visible) drawFlow(child);   // 模态弹窗内流式排布（含内边距）
 			};
 			(one(c), ...);
 		}, children);
@@ -370,6 +359,9 @@ struct FnTable {
 	int rowCount = 0;
 	std::function<std::string(int, int)> cell;
 	std::string idname;
+
+	template<class F>
+	void setCell(F&& fn) { cell = std::forward<F>(fn); }
 
 	Size hint(const Size& avail) const {
 		const float line = ImGui::GetTextLineHeightWithSpacing();

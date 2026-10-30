@@ -29,7 +29,7 @@ inline constexpr std::string_view kLayout = R"(using Root = Mk::wg2::VBox<
     Mk::wg2::Label<Id("intro")>,
     Mk::wg2::HBox<Id("row"),
         Mk::wg2::VBox<Id("col"), SliderF<Id("v")>, CheckBox<Id("m")>>,
-        Mk::wg2::Label<Id("right")>
+        Mk::wg2::VBox<Id("rightCol"), Label<Id("right")>>
     >
 >;
 Root root;
@@ -88,7 +88,11 @@ inline constexpr std::string_view kFeedback = R"(Mk::wg2::ProgressBar<Id("pb")> 
 Mk::wg2::PlotLines<Id("pl")> pl;  pl.name = "曲线";  pl.values = &history;
 Mk::wg2::SeparatorText<Id("st")> st; st.name = "分组";)";
 
-inline constexpr std::string_view kContainers = R"(Mk::wg2::Overlay<Id("overlay"), Label<Id("l1")>, Button<Id("b1")>> overlay;
+inline constexpr std::string_view kContainers = R"(Mk::wg2::Overlay<Id("overlay"),
+    Button<Id("b1")>,
+    Mk::wg2::Offset<Id("off"), Label<Id("l1")>>   // 叠放错开，避免文字重叠
+> overlay;
+overlay.at<Id("off")>().dxEm = 7.5f;
 Mk::wg2::Collapsing<Id("coll"), Label<Id("cl")>> collapsing;
 Mk::wg2::Tree<Id("tree"), Label<Id("leaf1")>, Label<Id("leaf2")>> tree;
 Mk::wg2::SubWindow<Id("sub"), Label<Id("sl")>> sub;

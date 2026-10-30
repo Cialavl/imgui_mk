@@ -2,9 +2,12 @@
 #include <imgui_mk/windowRendereren.h>
 #include <imgui_mk/mkui.h>
 #include <imgui_mk/ui/wg2/style.h>
-
-#include <imgui_mk/ui/wg2/core.h>   // wg2::Rect（新 setCentralWidget 回调挂载）
+#include <imgui_mk/ui/wg2/widget.h>
+#include <imgui_mk/ui/wg2/core.h>
 #include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <type_traits>
 #include <functional>
 #include <memory>
 #include <utility>
@@ -23,6 +26,7 @@ namespace Mk {
 			std::function<void()> m_UserUI;
 			// 中央内容挂载（Qt setCentralWidget 语义）：窗口每帧自动对其做根布局
 						std::function<void(const wg2::Rect&)> m_CentralFn;   // wg2 回调挂载
+		void* m_CentralRoot = nullptr;                   // 直挂控件标记（幂等判重：帧内重复挂载安全）
 			float m_CentralPadX = 0.0f, m_CentralPadY = 0.0f;
 			// 注册式每帧机制（引擎在 user UI 之前统一分发）
 			struct Shortcut {
@@ -38,12 +42,16 @@ namespace Mk {
 
 			// —— 运行时字号自适应状态（见 rescale/processAdaptiveScaling）——
 			wg2::Theme m_Theme;                       // 当前已应用主题（字号保持实际烘焙值）
-			float m_BaseFontSize = 0.0f;              // 逻辑基准字号（构造字号 / 构造时 contentScale）
-			float m_ContentScale = 1.0f;              // 当前显示器缩放（跨屏时由回调更新）
-			float m_LastBakedSize = 0.0f;             // 实际烘焙字号（档位比对基准）
+			float m_BaseFontSize = 0.0f;              // 设计字号（构造字号 / 构造时窗口 contentScale）
+			float m_ContentScale = 1.0f;              // 当前窗口所在显示器缩放（跨屏时由回调更新）
+			float m_RefW = 0.0f, m_RefH = 0.0f;       // 构造时窗口尺寸：尺寸比例基准（该尺寸下比例 = 1.0）
+			float m_LastBakedSize = 0.0f;             // 实际烘焙字号（重烘焙比对基准）
 			float m_PendingScale = 0.0f;              // >0：contentScale 回调置位，帧内安全处理
 			float m_PendingRescale = -1.0f;             // >0：请求重烘焙（帧内安全时机执行）
-			bool m_AutoScaleFont = false;             // 自适应总开关（B 跨屏 DPI + C 宽度档位）
+			int m_LastW = 0, m_LastH = 0;             // 上一帧窗口尺寸（判断是否仍在拖动）
+			double m_LastSizeChangeT = 0.0;           // 最近一次尺寸变化时刻（glfwGetTime 秒）
+			bool m_ForceRescale = false;              // 跨屏 DPI 变化：跳过稳定等待立即重烘焙
+			bool m_AutoScaleFont = false;             // 自适应总开关（跨屏 DPI + 尺寸比例）
 			wg2::Theme m_PendingTheme;                  // 待应用主题（引擎广播 requestTheme 置位）
 			bool m_ThemePending = false;
 			std::function<bool(float)> m_FontLoader;  // 字号 → 装入字体图集；空 = 默认 CJK 链
@@ -70,6 +78,48 @@ namespace Mk {
 				return false;
 			}
 
+			// 追加字体（等宽编程字体）：优先系统常见编程字体，找不到则退回内置点阵字体。
+			// 再合并「常用汉字」子集——Consolas 之类没有 CJK，代码里写中文注释时不会出现 '?'。
+			static ImFont* loadMonoFont(float px) {
+				ImGuiIO& io = ImGui::GetIO();
+				static const char* kMonoFonts[] = {
+					"C:\\Windows\\Fonts\\consola.ttf",   // Consolas（VS / Windows 终端默认）
+					"C:\\Windows\\Fonts\\CascadiaMono.ttf",
+					"C:\\Windows\\Fonts\\CascadiaCode.ttf",
+					"C:\\Windows\\Fonts\\lucon.ttf",     // Lucida Console
+					"C:\\Windows\\Fonts\\cour.ttf",      // Courier New
+				};
+				auto exists = [](const char* path) {
+					std::FILE* f = std::fopen(path, "rb");
+					if(!f) return false;
+					std::fclose(f);
+					return true;
+				};
+				ImFont* mono = nullptr;
+				for(const char* path : kMonoFonts) {
+					if(!exists(path)) continue;
+					mono = io.Fonts->AddFontFromFileTTF(path, px);
+					if(mono) break;
+				}
+				if(!mono) {   // 兜底：内置点阵字体
+					ImFontConfig cfg;
+					cfg.SizePixels = px;
+					return io.Fonts->AddFontDefault(&cfg);
+				}
+				static const char* kCjkFonts[] = {
+					"C:\\Windows\\Fonts\\msyh.ttc",
+					"C:\\Windows\\Fonts\\simhei.ttf",
+				};
+				for(const char* path : kCjkFonts) {
+					if(!exists(path)) continue;
+					ImFontConfig merge;
+					merge.MergeMode = true;
+					if(io.Fonts->AddFontFromFileTTF(path, px, &merge,
+						   io.Fonts->GetGlyphRangesChineseSimplifiedCommon())) break;
+				}
+				return mono;
+			}
+
 			// 请求重烘焙：任意时机可调（含 UI 回调内），实际执行延迟到下一帧
 			// render 顶部（NewFrame 之前）——回调内立即销毁字体纹理会让本帧
 			// RenderDrawData 引用已删除的 GL 纹理
@@ -87,7 +137,7 @@ namespace Mk {
 
 			// 重烘焙字体图集并按新字号重应用主题（几何随字号自动等比）。
 			// 须在 GL 上下文 + ImGui 上下文均为本窗口时调用（render 顶部满足）。
-			// 注意：全量 CJK 图集重烘焙有约 0.3~0.5s 一次性卡顿（量化档位已把频率降到最低）
+			// 注意：全量 CJK 图集重烘焙有约 0.3~0.5s 一次性卡顿（防抖 + 5% 滞回已把频率降到最低）
 			void doRescale(float fontSize) {
 				if(!m_Handle || !m_ImGuiContext) return;
 				glfwMakeContextCurrent(m_Handle);
@@ -100,10 +150,8 @@ namespace Mk {
 				io.Fonts->Clear();   // 全量重置（含 ConfigData）：ClearFonts 不清配置，重复 Add 会触发 ImGui 断言
 				if(m_FontLoader) m_FontLoader(fontSize);
 				else defaultFontLoader(fontSize);
-				for(const auto& aux : m_AuxFonts) {   // 追加字体：默认链/自定义装载器之后按 scale 装载，句柄写回
-					ImFontConfig cfg;
-					cfg.SizePixels = fontSize * aux.scale;
-					if(ImFont* f = io.Fonts->AddFontDefault(&cfg)) {
+				for(const auto& aux : m_AuxFonts) {   // 追加字体：等宽编程字体（含常用汉字合并），句柄写回
+					if(ImFont* f = loadMonoFont(fontSize * aux.scale)) {
 						if(aux.out) *aux.out = f;
 					}
 				}
@@ -116,9 +164,11 @@ namespace Mk {
 			}
 
 			// 帧内自适应处理（render 顶部，上下文已安全切到本窗口）：
-			//   B 跨屏/系统 DPI：回调置 m_PendingScale → 窗口尺寸同步缩放 + 触发重烘焙
-			//   C 宽度档位：按窗口宽量化（<900:0.75 <1400:1.0 <2000:1.25 其余:1.5），
-			//      目标字号 = 基准 × 档位 × contentScale，与烘焙值不符才重烘焙（防抖动）
+			//   B 跨屏/系统 DPI：回调置 m_PendingScale → 窗口尺寸按比例同步 + 立即重烘焙（不等稳定）
+			//   C 尺寸比例：比例 = min(宽/构造宽, 高/构造高)——取小者，宽而矮的窗口不会把字号放大到溢出；
+			//      目标字号 = 设计字号 × 比例 × contentScale。
+			//      重烘焙代价高（全量 CJK 图集 0.3~0.5s），因此：拖动中不重烘焙（尺寸稳定 200ms 才允许），
+			//      且变化 < 5% 不重烘焙（滞回），避免边界抖动导致反复重建图集。
 			void processAdaptiveScaling() {
 				if(m_PendingRescale > 0.0f) {
 					doRescale(m_PendingRescale);
@@ -130,15 +180,29 @@ namespace Mk {
 					int w = 0, h = 0;
 					glfwGetWindowSize(m_Handle, &w, &h);
 					glfwSetWindowSize(m_Handle, (int)(w * k), (int)(h * k));
+					m_ForceRescale = true;
 				}
 				if(!m_AutoScaleFont) return;
+
 				int w = 0, h = 0;
 				glfwGetWindowSize(m_Handle, &w, &h);
-				const float bucket =
-					w < 900 ? 0.75f : w < 1400 ? 1.0f : w < 2000 ? 1.25f : 1.5f;
-				const float target = m_BaseFontSize * bucket * m_ContentScale;
-				if(target != m_LastBakedSize) {
-					doRescale(target);
+				if(w != m_LastW || h != m_LastH) {
+					m_LastW = w;
+					m_LastH = h;
+					m_LastSizeChangeT = glfwGetTime();
+				}
+
+				const float ratioW = m_RefW > 0.0f ? static_cast<float>(w) / m_RefW : 1.0f;
+				const float ratioH = m_RefH > 0.0f ? static_cast<float>(h) / m_RefH : 1.0f;
+				const float ratio = std::clamp(std::min(ratioW, ratioH), 0.70f, 1.60f);
+				const float target = m_BaseFontSize * ratio * m_ContentScale;
+
+				const bool settled = (glfwGetTime() - m_LastSizeChangeT) > 0.20;
+				const bool changed = m_LastBakedSize <= 0.0f
+					|| std::fabs(target - m_LastBakedSize) > m_LastBakedSize * 0.05f;
+				if(settled || m_ForceRescale) {
+					if(changed) doRescale(target);
+					m_ForceRescale = false;
 				}
 			}
 
@@ -317,11 +381,22 @@ ImGui::End();
 			// 按主题字号加载默认字体链（中文全量字形，见 defaultFontLoader）
 			Impl::defaultFontLoader(theme.fontSize);
 
-			// 自适应状态初始化：逻辑基准 = 构造字号 / 构造时显示器缩放
-			//（scaledForMonitor 预乘过的字号在此被剥离，档位计算不会双重缩放）
-			impl.m_ContentScale = wg2::dpiScale();
+			// 自适应状态初始化：
+			//   设计字号 = 构造字号 / 本窗口所在显示器的 contentScale（剥离 scaledForMonitor 预乘）
+			//   比例基准 = 构造时的窗口尺寸（此后按尺寸比例无级缩放，构造尺寸下比例恒为 1.0）
+			{
+				int w0 = 0, h0 = 0;
+				glfwGetWindowSize(impl.m_Handle, &w0, &h0);
+				impl.m_RefW = w0 > 0 ? static_cast<float>(w0) : 1.0f;
+				impl.m_RefH = h0 > 0 ? static_cast<float>(h0) : 1.0f;
+				float sx = 0.0f, sy = 0.0f;
+				glfwGetWindowContentScale(impl.m_Handle, &sx, &sy);
+				impl.m_ContentScale = (sx > 0.0f && sy > 0.0f) ? (sx + sy) * 0.5f : wg2::dpiScale();
+			}
 			impl.m_BaseFontSize = theme.fontSize / impl.m_ContentScale;
 			impl.m_LastBakedSize = theme.fontSize;
+			impl.m_LastW = static_cast<int>(impl.m_RefW);
+			impl.m_LastH = static_cast<int>(impl.m_RefH);
 
 			// 应用默认主题（几何随 fontSize 等比），可用 setTheme 换肤
 			wg2::applyTheme(impl.m_ImGuiContext, theme);
@@ -344,21 +419,77 @@ ImGui::End();
 		// 源对象仍然可用：所有操作委托给共享状态
 
 		// 注入每帧 UI 回调（回调由调用方保证在窗口存活期间有效）
-		void setUserUI(std::function<void()> ui) {
+		template<class F>
+void setUserUI(F&& ui) {
 			if(m_Impl) {
-				m_Impl->m_UserUI = std::move(ui);
+				m_Impl->m_UserUI = std::forward<F>(ui);
 			}
 		}
 
-		// wg2 中央内容挂载：每帧把内容区 bounds 回调给应用层执行 layout()。
-void setCentralWidget(std::function<void(const wg2::Rect&)> fn,
+		// wg2 中央内容挂载（回调式）：每帧把内容区 bounds 回调给应用层执行 layout()。
+template<class F>
+requires (!wg2::StaticWidget<std::remove_cvref_t<F>>)
+void setCentralWidget(F&& fn,
 float padX = 0.0f, float padY = 0.0f) {
 if(m_Impl) {
-m_Impl->m_CentralFn = std::move(fn);
+m_Impl->m_CentralRoot = nullptr;   // 回调式挂载：清直挂标记
+m_Impl->m_CentralFn = std::forward<F>(fn);
 m_Impl->m_CentralPadX = padX;
 m_Impl->m_CentralPadY = padY;
 }
 }
+
+	// wg2 静态树直挂：窗口每帧自动 wg2::layout(root, 内容区)——应用零回调。
+	// 同 root 重复挂载幂等（帧内 ui() 回调中调用安全，防 std::function 自替换 UB）；
+	// root 须与 run() 同寿（对象地址 = 稳定 ImGui ID）。
+	template<class W>
+	requires wg2::StaticWidget<std::remove_cvref_t<W>>
+	void setCentralWidget(W& root, float padX = 0.0f, float padY = 0.0f) {
+		if(m_Impl) {
+			void* p = static_cast<void*>(&root);
+			if(m_Impl->m_CentralRoot == p) return;   // 幂等：同 root 重复挂载直接跳过
+			m_Impl->m_CentralRoot = p;
+			m_Impl->m_CentralPadX = padX;
+			m_Impl->m_CentralPadY = padY;
+			m_Impl->m_CentralFn = [&root](const wg2::Rect& r) { wg2::layout(root, r); };
+		}
+	}
+
+	// 当前帧中央布局矩形（内容区 − pad 增量；须在帧内调用，手动布局应用按需取）
+	wg2::Rect contentRect() const {
+		if(!m_Impl) return {};
+		const ImVec2 avail = ImGui::GetContentRegionAvail();
+		const ImVec2 wp = ImGui::GetStyle().WindowPadding;
+		return wg2::Rect{
+			wp.x + m_Impl->m_CentralPadX, wp.y + m_Impl->m_CentralPadY,
+			std::max(0.0f, avail.x - m_Impl->m_CentralPadX * 2.0f),
+			std::max(0.0f, avail.y - m_Impl->m_CentralPadY * 2.0f)};
+	}
+
+	// 统一 UI 入口四分派：
+	//   (window&) 回调     = 每帧窗口回调（先于中央布局执行；可改状态/幂等挂控件）
+	//   StaticWidget 左值  = 控件直挂中央（等价 setCentralWidget(root)）
+	//   (const Rect&) 回调 = 中央布局回调（回调式挂载）
+	//   () 回调            = 普通每帧 UI
+	template<class F>
+	void setUI(F&& ui) {
+		if constexpr (std::is_invocable_v<F&, window&>) {
+			setUserUI([this, fn = std::forward<F>(ui)]() mutable { fn(*this); });
+		} else if constexpr (wg2::StaticWidget<std::remove_cvref_t<F>> && std::is_lvalue_reference_v<F&&>) {
+			setCentralWidget(std::forward<F>(ui));   // 仅左值：临时控件会悬垂
+		} else if constexpr (std::is_invocable_v<F&, const wg2::Rect&>) {
+			setCentralWidget(std::forward<F>(ui));
+		} else if constexpr (std::is_invocable_v<F&>) {
+			setUserUI(std::forward<F>(ui));
+		} else {
+			static_assert(std::is_invocable_v<F&, window&> || std::is_invocable_v<F&, const wg2::Rect&> || std::is_invocable_v<F&>,
+				"wg2 window::setUI callback must be invocable with (), (window&), (const Rect&) or be a StaticWidget lvalue");
+		}
+	}
+
+	template<auto UI>
+	void setUI() { setUI(UI); }
+
 // 切换本窗口主题（每窗口独立 ImGui 上下文，可各持一套皮肤）。
 		// 换肤不换字号：字体位图不重建，几何按当前烘焙字号推导
 		void setTheme(const wg2::Theme& theme) {
@@ -369,7 +500,7 @@ m_Impl->m_CentralPadY = padY;
 			}
 		}
 
-		// 当前烘焙字号（自适应档位/重缩放后的实际值）
+		// 当前烘焙字号（自适应比例/重缩放后的实际值）；除以设计字号即当前 UI 缩放
 		float fontSize() const { return m_Impl && m_Impl->m_Handle ? m_Impl->m_LastBakedSize : 0.0f; }
 
 		// —— 运行时字号自适应 API ——
@@ -383,8 +514,9 @@ m_Impl->m_CentralPadY = padY;
 		}
 
 		// 自适应总开关（默认关，测试保持确定性）：开启后——
-		//   跨屏拖动/系统缩放变化时字号与窗口尺寸同步重标定；
-		//   窗口宽度跨过档位阈值（900/1400/2000）时字号量化升降
+		//   跨屏拖动/系统缩放变化时字号与窗口尺寸同步重标定（立即重烘焙）；
+		//   窗口尺寸变化时按「比例 = min(宽/构造宽, 高/构造高)」无级缩放字号（0.70~1.60），
+		//   拖动中不重烘焙、尺寸稳定 200ms 且变化 >5% 才重建图集（见 processAdaptiveScaling）
 		void setAutoScaleFont(bool on) {
 			if(m_Impl) {
 				m_Impl->m_AutoScaleFont = on;

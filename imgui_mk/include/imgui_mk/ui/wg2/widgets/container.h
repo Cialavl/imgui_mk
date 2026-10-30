@@ -34,13 +34,16 @@ struct SubWindow {
 		if (height > 0.0f) return Size{w, height};
 
 		const float sp = spacing >= 0.0f ? spacing : ImGui::GetStyle().ItemSpacing.y;
-		const float pad = ImGui::GetStyle().WindowPadding.y * 2.0f;
+		const ImVec2 wpad = ImGui::GetStyle().WindowPadding;
+		const float pad = wpad.y * 2.0f;
+		// 子窗口内容区比外框窄（左右 WindowPadding）：量子项时按内容宽，绘制时才能对齐
+		const float innerW = std::max(0.0f, w - wpad.x * 2.0f);
 		float h = 0.0f;
 		std::size_t n = 0;
 		std::apply([&](const auto&... c) {
 			auto one = [&](const auto& child) {
 				if (!child.state.visible) return;
-				h += child.hint(Size{w, avail.h}).h;
+				h += child.hint(Size{innerW, avail.h}).h;
 				++n;
 			};
 			(one(c), ...);
@@ -54,23 +57,25 @@ struct SubWindow {
 	void draw(const Rect& r) {
 		const float hGuard = r.h > 1.0f ? r.h : ImGui::GetFrameHeight() * 2.0f;
 		const char* cid = idname.empty() ? id.data : idname.c_str();
-		if (!ImGui::BeginChild(cid, ImVec2(r.w, hGuard),
-			border ? ImGuiChildFlags_Border : 0)) {
-			return;
+		const bool open = ImGui::BeginChild(cid, ImVec2(r.w, hGuard),
+			border ? ImGuiChildFlags_Border : 0);
+		if (open) {
+			// 子项按内容区（去掉左右 WindowPadding）定位与定宽，否则右侧标签会被子窗口裁掉
+			const ImVec2 origin = ImGui::GetCursorPos();
+			const float innerW = std::max(0.0f, ImGui::GetContentRegionAvail().x);
+			const float sp = spacing >= 0.0f ? spacing : ImGui::GetStyle().ItemSpacing.y;
+			float y = 0.0f;
+			std::apply([&](auto&... c) {
+				auto one = [&](auto& child) {
+					if (!child.state.visible) return;
+					const Size s = child.hint(Size{innerW, r.h - y});
+					drawWidget(child, Rect{origin.x, origin.y + y, innerW, s.h});
+					y += s.h + sp;
+				};
+				(one(c), ...);
+			}, children);
 		}
-
-		const float sp = spacing >= 0.0f ? spacing : ImGui::GetStyle().ItemSpacing.y;
-		float y = 0.0f;
-		std::apply([&](auto&... c) {
-			auto one = [&](auto& child) {
-				if (!child.state.visible) return;
-				const Size s = child.hint(Size{r.w, r.h - y});
-				drawWidget(child, Rect{0.0f, y, r.w, s.h});
-				y += s.h + sp;
-			};
-			(one(c), ...);
-		}, children);
-		ImGui::EndChild();
+		ImGui::EndChild();   // BeginChild 即使返回 false 也必须配对 EndChild
 	}
 
 	template<std::size_t I> constexpr decltype(auto) child() & { return std::get<I>(children); }
@@ -119,12 +124,16 @@ struct Tab {
 	Policy policy() const { return Policy{}; }
 
 	void draw(const Rect& r) {
-		float y = r.y;
+		// 页签内容在页签条之后流式排布：以当前光标为原点逐行下移。
+		// （旧实现用 Rect{0,0,0,0} 里的绝对坐标定位，内容会被画到窗口左上角、压在页签条下面）
+		const ImVec2 origin = ImGui::GetCursorPos();
+		const float w = r.w > 0.0f ? r.w : ImGui::GetContentRegionAvail().x;
+		float y = origin.y;
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
 				if (!child.state.visible) return;
-				const Size s = child.hint(Size{r.w, r.h - (y - r.y)});
-				drawWidget(child, Rect{r.x, y, s.w, s.h});
+				const Size s = child.hint(Size{w, 0.0f});
+				drawWidget(child, Rect{origin.x, y, w, s.h});
 				y += s.h;
 			};
 			(one(c), ...);
@@ -166,7 +175,9 @@ struct TabBar {
 			};
 			(one(c), ...);
 		}, children);
-		return Size{w, h};
+		// 页签条（页签名那一行）本身也占高度：只报内容高会让后续控件压到页签内容上
+		const float barH = ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.y;
+		return Size{w, barH + h};
 	}
 
 	Policy policy() const { return Policy{}; }
@@ -176,8 +187,13 @@ struct TabBar {
 		if (!ImGui::BeginTabBar(cid)) return;
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
-				if (child.state.visible && ImGui::BeginTabItem(child.title.c_str())) {
-					drawWidget(child, r);
+				if (!child.state.visible) return;
+				// 页签宽度取标签自然宽：容器统一设置的 SetNextItemWidth(r.w) 会把首个页签拉满整行
+				const float tabW = ImGui::CalcTextSize(child.title.c_str()).x
+					+ ImGui::GetStyle().FramePadding.x * 2.0f;
+				ImGui::SetNextItemWidth(tabW);
+				if (ImGui::BeginTabItem(child.title.c_str())) {
+					drawFlow(child);   // 页签内容流式排布（位于 tab 条之后）
 					ImGui::EndTabItem();
 				}
 			};

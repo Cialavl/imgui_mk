@@ -27,7 +27,12 @@ struct Label {
 
 	Policy policy() const { return Policy{}; }
 
-	void draw(const Rect&) {
+	void draw(const Rect& r) {
+		// 容器给了宽度时按宽度省略，避免长文本被右缘硬切（r.w == 0 为流式上下文，原样输出）
+		if (r.w > 0.0f && ImGui::CalcTextSize(text.c_str()).x > r.w) {
+			ImGui::TextUnformatted(detail::ellipsize(text, r.w).c_str());
+			return;
+		}
 		ImGui::TextUnformatted(text.c_str());
 	}
 };
@@ -43,6 +48,9 @@ struct Button {
 	Button() = default;
 	Button(std::string l, std::function<void()> cb = {})
 		: label(std::move(l)), onClick(std::move(cb)) {}
+
+	template<class F>
+	void setOnClick(F&& cb) { onClick = std::forward<F>(cb); }
 
 	Size hint(const Size&) const {
 		const ImVec2 s = ImGui::CalcTextSize(label.c_str());
@@ -114,10 +122,16 @@ struct FnWidget {
 	FnWidget() = default;
 	FnWidget(F f) : fn(std::move(f)) {}
 
-	Size hint(const Size&) const { return Size{0.0f, 0.0f}; }
-	Policy policy() const { return Policy{Policy::Expanding, Policy::Expanding}; }
+	// 裸绘制默认占一行高：hint 为 0 时容器会给 0 高度，绘制内容会盖到下一个控件上
+	Size hint(const Size& avail) const {
+		return Size{avail.w > 0.0f ? avail.w : 220.0f, ImGui::GetFrameHeight()};
+	}
+	Policy policy() const { return Policy{Policy::Expanding, Policy::Preferred}; }
 
-	void draw(const Rect&) { fn(); }
+	void draw(const Rect& r) {
+		ImGui::SetCursorPos(ImVec2(r.x, r.y));
+		fn();
+	}
 };
 
 } // namespace Mk::wg2

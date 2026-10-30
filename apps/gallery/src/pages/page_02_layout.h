@@ -13,7 +13,10 @@ Mk::wg2::VBox<Mk::wg2::Id("col"),
 Mk::wg2::SliderF<Mk::wg2::Id("volume")>,
 Mk::wg2::CheckBox<Mk::wg2::Id("mute")>
 >,
+// 右侧标签同样套一层 VBox：与左列共享 WindowPadding 内边距，同一行才对得齐
+Mk::wg2::VBox<Mk::wg2::Id("rightCol"),
 Mk::wg2::Label<Mk::wg2::Id("right")>
+>
 >,
 Mk::wg2::Label<Mk::wg2::Id("note")>
 >;
@@ -32,7 +35,7 @@ root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("volume")>().name = 
 root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("volume")>().value = &s.volume;
 root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("mute")>().name = "静音";
 root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("mute")>().checked = &s.mute;
-root.at<Mk::wg2::Id("row"), Mk::wg2::Id("right")>().text = "H 行右格";
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("rightCol"), Mk::wg2::Id("right")>().text = "H 行右格";
 root.at<Mk::wg2::Id("note")>().text = "布局数据约束：子控件在父容器内，路径访问全程一致。";
 
 page.addWidget([&](const Mk::wg2::Rect& r) {

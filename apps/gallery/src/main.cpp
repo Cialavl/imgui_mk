@@ -55,9 +55,13 @@ void makeChecker(unsigned char* px) {
 } // namespace
 
 int main() {
-	// DPI + 全动态自适应（应用显式 opt-in）：字号 = 基准 18 × 显示器缩放 × 宽度档位
+	// DPI + 全动态自适应（应用显式 opt-in）：
+	//   字号 = 设计字号 × 窗口尺寸比例 × 显示器缩放（比例基准 = 本窗口构造尺寸，见 window::processAdaptiveScaling）
 	Mk::wg2::setDefaultTheme(Mk::wg2::scaledForMonitor(Mk::wg2::Theme::dark()));
-	const auto [galW, galH] = Mk::workAreaSize(0.75f, 0.8f, 1440, 880);
+	// 默认尺寸上限同样按显示器缩放放大：GLFW 窗口尺寸是屏幕坐标，HiDPI 下不放大窗口会显得局促
+	const float uiDpi = Mk::wg2::dpiScale();
+	const auto [galW, galH] = Mk::workAreaSize(0.75f, 0.8f,
+		static_cast<int>(1440.0f * uiDpi), static_cast<int>(880.0f * uiDpi));
 
 	// 主窗口创建即注册共享状态（引擎层数据联动：窗口/页面经引擎取用同一实例）
 	Mk::MainWindow<Mk::window, gallery::State> gallery("mkui Widget Gallery", galW, galH);
@@ -127,9 +131,16 @@ int main() {
 
 	// —— Inspector 子窗口由主窗 GalleryWindow 构造时全权装配（窗口/界面/回调）——
 
-	// 中央挂载一次性完成（引擎每帧自动根布局；Qt setCentralWidget 语义）
-	gallery.setCentralWidget([&](const Mk::wg2::Rect& r) {
-		window.renderShell(r);
+	// 中央直挂静态树（窗口每帧自动 wg2::layout；Qt setCentralWidget 语义）
+	gallery.setCentralWidget(window.shell);
+
+	// 键盘翻页（PgUp/PgDn，与侧栏选择共用一个下标）：方便逐页巡查 UI
+	const int pageCount = window.pageCount();
+	gallery.addShortcut(ImGuiKey_PageDown, [&s, pageCount] {
+		if(pageCount > 0) s.sel = (s.sel + 1) % pageCount;
+	});
+	gallery.addShortcut(ImGuiKey_PageUp, [&s, pageCount] {
+		if(pageCount > 0) s.sel = (s.sel + pageCount - 1) % pageCount;
 	});
 
 	// 注册式每帧机制：快捷键 + 文件对话框托管（引擎在 user UI 前统一分发）

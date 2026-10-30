@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <cmath>
 #include <functional>
 #include <limits>
@@ -81,6 +82,9 @@ struct LabelText {
 	std::string name;
 	std::string value;
 	std::function<std::string()> valueFn;
+
+	template<class F>
+	void setValueFn(F&& fn) { valueFn = std::forward<F>(fn); }
 
 	Size hint(const Size&) const {
 		const std::string shown = valueFn ? valueFn() : value;
@@ -167,6 +171,9 @@ struct ImageButton {
 	ImVec2 size{64.0f, 64.0f};
 	std::function<void()> onClick;
 
+	template<class F>
+	void setOnClick(F&& cb) { onClick = std::forward<F>(cb); }
+
 	Size hint(const Size&) const { return Size{size.x, size.y}; }
 	Policy policy() const { return Policy{}; }
 
@@ -199,22 +206,6 @@ struct PlotLines {
 	}
 };
 
-namespace detail {
-// 截断文本至指定显示宽（含 "..."）；不超宽则原样返回。
-inline std::string ellipsize(const std::string& text, float avail) {
-	if (avail <= 0.0f || ImGui::CalcTextSize(text.c_str()).x <= avail) return text;
-	if (text.empty()) return text;
-	std::string out;
-	for (std::size_t i = 1; i <= text.size(); ++i) {
-		out = text.substr(0, i) + "...";
-		if (ImGui::CalcTextSize(out.c_str()).x > avail) {
-			if (i > 1) return text.substr(0, i - 1) + "...";
-			return "...";
-		}
-	}
-	return out;
-}
-} // namespace detail
 
 template<FixedString Id>
 struct EllipsisLabel {
@@ -223,6 +214,9 @@ struct EllipsisLabel {
 	WidgetState<> state;
 	std::string text;
 	std::function<std::string()> valueFn;
+
+	template<class F>
+	void setValueFn(F&& fn) { valueFn = std::forward<F>(fn); }
 
 	Size hint(const Size& avail) const {
 		const std::string shown = valueFn ? valueFn() : text;

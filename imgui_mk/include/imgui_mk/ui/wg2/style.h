@@ -42,12 +42,12 @@ namespace Mk::wg2 {
 		// 显式写入绝对值（withItemSpacing 等）则优先于比例——显式意图覆盖自动推导
 		float rounding = 6.0f;        // 窗口/弹窗圆角（绝对像素）
 		float frameRounding = 4.0f;   // 控件框架圆角（绝对像素）
-		float windowPadding = -1.0f;  // 窗口内边距；<0 → 0.60×fontSize
-		float framePaddingX = -1.0f;  // 控件内边距 X；<0 → 0.45×fontSize
-		float framePaddingY = -1.0f;  // 控件内边距 Y；<0 → 0.22×fontSize
-		float itemSpacingX = -1.0f;   // 控件间距 X；<0 → 0.58×fontSize（容器默认间距来源）
-		float itemSpacingY = -1.0f;   // 控件间距 Y；<0 → 0.34×fontSize
-		float indentWidth = -1.0f;    // 缩进步进；<0 → 1.10×fontSize
+		float windowPadding = -1.0f;  // 窗口内边距；<0 → 0.40×fontSize
+		float framePaddingX = -1.0f;  // 控件内边距 X；<0 → 0.38×fontSize
+		float framePaddingY = -1.0f;  // 控件内边距 Y；<0 → 0.16×fontSize
+		float itemSpacingX = -1.0f;   // 控件间距 X；<0 → 0.42×fontSize（容器默认间距来源）
+		float itemSpacingY = -1.0f;   // 控件间距 Y；<0 → 0.23×fontSize
+		float indentWidth = -1.0f;    // 缩进步进；<0 → 0.90×fontSize
 		float fontSize = 18.0f;       // 基准字号：改此值整套 UI（文字/控件/间距/边距）等比联动
 
 		// —— 预设 ——
@@ -106,15 +106,16 @@ namespace Mk::wg2 {
 		s.TabRounding = t.frameRounding;
 
 		// 几何推导：字段 >=0 用绝对值（显式覆盖），否则按 基准字号×比值。
-		// 比值以 ImGui 官方 13px 风格标定，@18px ≈ 边距10.8/间距10.4×6.1/控件内距8.1×4.0
+		// 比值按紧凑桌面密度标定（@18px ≈ 边距 8.3 / 行距 8.6×4.7 / 控件内距 7.2×3.1）：
+		// 相比早先版本整体收紧约 20%，避免嵌套容器层层叠加内边距显得空旷。
 		const float F = t.fontSize;
 		const auto pick = [](float absOrSentinel, float ratio, float fontSize_) {
 			return absOrSentinel >= 0.0f ? absOrSentinel : ratio * fontSize_;
 		};
-		s.WindowPadding = ImVec2(pick(t.windowPadding, 0.60f, F), pick(t.windowPadding, 0.60f, F));
-		s.FramePadding = ImVec2(pick(t.framePaddingX, 0.45f, F), pick(t.framePaddingY, 0.22f, F));
-		s.ItemSpacing = ImVec2(pick(t.itemSpacingX, 0.58f, F), pick(t.itemSpacingY, 0.34f, F));
-		s.IndentSpacing = pick(t.indentWidth, 1.10f, F);
+		s.WindowPadding = ImVec2(pick(t.windowPadding, 0.40f, F), pick(t.windowPadding, 0.40f, F));
+		s.FramePadding = ImVec2(pick(t.framePaddingX, 0.38f, F), pick(t.framePaddingY, 0.16f, F));
+		s.ItemSpacing = ImVec2(pick(t.itemSpacingX, 0.42f, F), pick(t.itemSpacingY, 0.23f, F));
+		s.IndentSpacing = pick(t.indentWidth, 0.90f, F);
 		s.GrabMinSize = 0.55f * F;
 		s.ScrollbarSize = 0.78f * F;
 		s.WindowBorderSize = 1.0f;
@@ -214,11 +215,11 @@ namespace Mk::wg2 {
 			ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, t.header);
 			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, t.frameRounding);
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
-				ImVec2(t.framePaddingX >= 0.0f ? t.framePaddingX : 0.45f * t.fontSize,
-					t.framePaddingY >= 0.0f ? t.framePaddingY : 0.22f * t.fontSize));
+				ImVec2(t.framePaddingX >= 0.0f ? t.framePaddingX : 0.38f * t.fontSize,
+					t.framePaddingY >= 0.0f ? t.framePaddingY : 0.16f * t.fontSize));
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
-				ImVec2(t.itemSpacingX >= 0.0f ? t.itemSpacingX : 0.58f * t.fontSize,
-					t.itemSpacingY >= 0.0f ? t.itemSpacingY : 0.34f * t.fontSize));
+				ImVec2(t.itemSpacingX >= 0.0f ? t.itemSpacingX : 0.42f * t.fontSize,
+					t.itemSpacingY >= 0.0f ? t.itemSpacingY : 0.23f * t.fontSize));
 		}
 	} // namespace detail
 

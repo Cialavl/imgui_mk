@@ -8,8 +8,8 @@ struct PageContainer {
 using Root = Mk::wg2::VBox<
 Mk::wg2::Id("root"),
 Mk::wg2::Overlay<Mk::wg2::Id("overlay"),
-Mk::wg2::Label<Mk::wg2::Id("overlayLabel")>,
-Mk::wg2::Button<Mk::wg2::Id("overlayButton")>
+Mk::wg2::Button<Mk::wg2::Id("overlayButton")>,
+Mk::wg2::Offset<Mk::wg2::Id("overlayOffset"), Mk::wg2::Label<Mk::wg2::Id("overlayLabel")>>
 >,
 Mk::wg2::Collapsing<Mk::wg2::Id("collapsing"),
 Mk::wg2::Label<Mk::wg2::Id("collLabel")>
@@ -31,7 +31,10 @@ page.setup("容器控件",
 "wg2 Overlay 叠放 / Collapsing / Tree / SubWindow；子节点经模板参数编译期传入。",
 snips::kContainers);
 
-root.at<Mk::wg2::Id("overlay"), Mk::wg2::Id("overlayLabel")>().text = "Overlay 叠放（重叠渲染）";
+root.at<Mk::wg2::Id("overlay"), Mk::wg2::Id("overlayOffset"), Mk::wg2::Id("overlayLabel")>().text = "Overlay 叠放（重叠渲染）";
+	// 叠放时错开：标签浮到按钮右侧，避免两段文字完全叠在一起看不清
+	root.at<Mk::wg2::Id("overlay"), Mk::wg2::Id("overlayOffset")>().dxEm = 7.5f;
+	root.at<Mk::wg2::Id("overlay"), Mk::wg2::Id("overlayOffset")>().dyEm = 0.35f;
 root.at<Mk::wg2::Id("overlay"), Mk::wg2::Id("overlayButton")>().label = "叠放按钮";
 root.at<Mk::wg2::Id("overlay"), Mk::wg2::Id("overlayButton")>().onClick = [&] { ++s.clicks; };
 root.at<Mk::wg2::Id("collapsing")>().title = "折叠容器（默认展开）";
