@@ -37,6 +37,8 @@ if(BUILD_TESTING)
         wg2_comm_binding_test.cpp
         wg2_comm_dynamic_test.cpp
         wg2_comm_engine_test.cpp
+        # 窗口层
+        wg2_window_ui_test.cpp
         # 其它模块
         mk_string_test.cpp)
 
@@ -44,7 +46,7 @@ if(BUILD_TESTING)
     target_link_libraries(unit_tests PRIVATE imgui_mk GTest::gtest_main)
     add_test(NAME unit_tests COMMAND unit_tests)
     # 按层拆开跑：ctest -R Wg2Layout 只跑布局层
-    foreach(suite Wg2Core Wg2Component Wg2Layout Wg2Loop Wg2Comm)
+    foreach(suite Wg2Core Wg2Component Wg2Layout Wg2Loop Wg2Comm Wg2Window)
         add_test(NAME ${suite} COMMAND unit_tests --gtest_filter=${suite}.*)
     endforeach()
 endif()
