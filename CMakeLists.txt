@@ -27,8 +27,6 @@ endif()
 
 
 add_subdirectory(test)
-# 个人验证 demo（非自动化测试）
-add_subdirectory(dome)
 
 # ============ 安装到 C:\Cpp_Libs 的静态库包（find_package(mkui) 可发现）============
 # 部署布局：
