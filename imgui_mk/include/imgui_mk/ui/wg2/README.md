@@ -61,9 +61,9 @@ layout(root, Rect{20, 20, 800, 600});
 
 ## 验证
 
-- `test/wg2_smoke.cpp`：无 gtest 的离线冒烟程序（`cmake --build build --target wg2_smoke`）
-- `test/wg2_test.cpp`：gtest 单测，随 `BUILD_TESTING=ON` 自动加入 `unit_tests`
-- `tutorials/src/tutorial13_wg2.cpp`：新 API 教程示例
+- `test/`：gtest 单测按层拆分（见 `test/README.md`）：`wg2_core` / `wg2_components_*` / `wg2_layout_*` / `wg2_loop_*` / `wg2_comm_*`，
+  随 `BUILD_TESTING=ON` 编入 `unit_tests`；`ctest -R Wg2` 可按层跑（原 `wg2_smoke`、`wg2_test`、`mkui_test` 已并入该体系）
+- 教程程序已移出本仓库（原 `tutorials/`，现位于 `C:\Users\26495\source\repos\tutorials`）
 - `apps/gallery/src/pages/page_00..page_21`：旧演示页已逐页迁移到 wg2
 - `apps/gallery/src/pages/page_22..page_23`：wg2 新增演示页
 - `apps/gallery/src/gallery_wg2_bridge.h`：旧 PageHost ↔ wg2 的桥接节点
@@ -74,9 +74,7 @@ layout(root, Rect{20, 20, 800, 600});
 - `apps/gallery/src/gallery_state.h`：状态/主题/文件对话框改用 `Mk::wg2`
 
 - `apps/gallery/src/snippets.h`：代码片段已改为 `Mk::wg2`
-- `tutorials/README.md`：旧课程已标记为 legacy `Mk::wg`，新代码指向第 13 课
 
-- `tutorials/lessons/lesson-03..12`：已改写为 `Mk::wg2` API
 
 ## 已删除旧兼容层
 
@@ -87,7 +85,11 @@ layout(root, Rect{20, 20, 800, 600});
 - `imgui_mk/ui/wg_file.h`
 - `apps/gallery/src/gallery_pagehost.h`
 - 旧 wg 测试源码（`wg_test.cpp` / `windowstest16..22.cpp`）
+- 旧离线冒烟与散装单测（`test/wg2_smoke.cpp`、`test/wg2_test.cpp`、`test/mkui_test.cpp`、`test/window_test.cpp`），
+  内容已并入 `test/wg2_*_test.cpp` 分层单测
+- 旧窗口演示程序（`test/windowstest.cpp`、`windowstest2.cpp`、`windowstest3.cpp`）
 
 ## 尚未迁移
 
-- 旧教程配套源码 `tutorial03..12`（当前 CMake 已禁用，作为历史参考保留）
+- 旧教程配套源码 `tutorial03..12`：教程已整体移出本仓库（`C:\Users\26495\source\repos\tutorials`），
+  其中仍使用已移除的 `Mk::wg` 兼容层，在那边以 `find_package(mkui)` 独立构建时自动跳过
