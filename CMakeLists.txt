@@ -25,8 +25,6 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/apps/CMakeLists.txt")
     add_subdirectory(apps)
 endif()
 
-# 教学课程配套程序（tutorial00..12，见 tutorials/README.md）
-add_subdirectory(tutorials)
 
 add_subdirectory(test)
 # 个人验证 demo（非自动化测试）

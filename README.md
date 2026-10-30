@@ -10,7 +10,6 @@ C++23 GUI 库：封装 ImGui + GLFW + OpenGL，Windows 优先。唯一的控件�
 |---|---|
 | `imgui_mk/` | 库（头部为主）：`window.h/mkui.h/Mainwindow.h` + `ui/`（wg 体系四头：wg.h / wg_controls.h / wg_style.h / wg_file.h）+ `string_mk/` |
 | `apps/gallery/` | 控件画廊（wg 全量展示，双窗口 + 文件对话框 + 主题） |
-| `tutorials/` | 12 课教学程序 + lessons 文档（见 `tutorials/README.md`） |
 | `test/` | GUI 示例（test/test2/test3 + test16..20 wg 验证）+ gtest 单元测试 |
 
 ## 构建
