@@ -99,3 +99,4 @@ TEST(Wg2Nav, PageBookDrawsCurrentPageOnly) {
 	EXPECT_EQ(first, 1);
 	EXPECT_EQ(second, 1);
 }
+
