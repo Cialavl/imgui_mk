@@ -5,6 +5,7 @@
 #include "gallery_inspector.h"
 #include "gallery_pages.h"
 #include "gallery_nav.h"
+#include <imgui_mk/ui/wg2/texture.h>
 #include <Mainwindow.h>
 #include <cstdlib>
 #include <functional>
@@ -12,6 +13,19 @@
 #include <vector>
 
 namespace gallery {
+
+// 程序生成 64x64 棋盘格纹理（无外部文件依赖）
+inline ImTextureID makeCheckerTexture() {
+	static unsigned char px[64 * 64 * 4];
+	for(int y = 0; y < 64; ++y)
+		for(int x = 0; x < 64; ++x) {
+			const bool odd = ((x / 8) + (y / 8)) % 2 == 1;
+			unsigned char* p = &px[(y * 64 + x) * 4];
+			p[0] = odd ? 220 : 60; p[1] = odd ? 160 : 120;
+			p[2] = odd ? 60 : 220; p[3] = 255;
+		}
+	return Mk::wg2::loadTextureRGBA(px, 64, 64);
+}
 
 struct GalleryWindow {
 
@@ -69,8 +83,7 @@ Mk::MainWindow<Mk::window>* winRef = nullptr;
 InspectorWindow inspector;
 
 	GalleryWindow(Mk::MainWindow<Mk::window>& w)
-		: winRef(&w), inspector(w.getWindow()) {
-		win = &w.getWindow();
+		: winRef(&w), win(&w.getWindow()), inspector(w.getWindow()) {
 		// 主题事件：本窗口组件自己应用
 		Mk::mkui<Mk::window>::RegistrationWindow().on<ThemeChanged>([this](const ThemeChanged& e) {
 			winRef->setTheme(e.theme);
@@ -80,6 +93,26 @@ InspectorWindow inspector;
 		initPopups();
 		initStatus();
 		initShell();
+
+		// 注册表：{页, 分组}；分组为空 = 沿用上一组
+		const std::pair<Page*, const char*> kRegistry[] = {
+			{&pageLayoutBasic.page, kGroupLayout}, {&pageLayoutSize.page, nullptr},
+			{&pageLayoutGrid.page, nullptr}, {&pageLayoutRuntime.page, nullptr},
+			{&pageLayoutDynamic.page, nullptr}, {&pageBase.page, kGroupWg},
+			{&pageLifecycle.page, nullptr}, {&pageWg2.page, nullptr},
+			{&pageWg2Catalog.page, nullptr}, {&pageLayout.page, nullptr},
+			{&pageSplit.page, nullptr}, {&pageText.page, kGroupAtoms},
+			{&pageButton.page, nullptr}, {&pageInput.page, nullptr},
+			{&pageNumber.page, nullptr}, {&pageDrag.page, nullptr},
+			{&pageSelect.page, nullptr}, {&pageFeedback.page, nullptr},
+			{&pageContainer.page, kGroupContainers}, {&pageTab.page, nullptr},
+			{&pageMenu.page, nullptr}, {&pageTable.page, nullptr},
+			{&pagePopup.page, kGroupPopColor}, {&pageColor.page, nullptr},
+			{&pageDeco.page, kGroupDeco}, {&pageTheme.page, kGroupApp},
+			{&pageWindow.page, nullptr}, {&pageFile.page, nullptr},
+			{&pageFnRender.page, nullptr},
+		};
+		for (const auto& [page, group] : kRegistry) addPage(*page, group);
 	}
 
 	// —— 应用壳自己的数据（选中页 / 主题 / 侧栏演示值 / 弹窗开关 / 纹理句柄）——
@@ -88,7 +121,38 @@ InspectorWindow inspector;
 	bool popupOpen = false, modalOpen = false, aboutOpen = false;
 	Mk::wg2::Theme theme = Mk::wg2::Theme::dark();
 	bool darkActive = true;
-	ImTextureID tex{};
+	ImTextureID tex = makeCheckerTexture();   // 声明即创建
+
+	// —— 29 个演示页：由应用壳持有并注册（main 不再关心）——
+	gallery::PageLayoutBasic   pageLayoutBasic;
+	gallery::PageLayoutSize    pageLayoutSize;
+	gallery::PageLayoutGrid    pageLayoutGrid;
+	gallery::PageLayoutRuntime pageLayoutRuntime;
+	gallery::PageLayoutDynamic pageLayoutDynamic;
+	gallery::PageBase          pageBase;
+	gallery::PageLifecycle     pageLifecycle;
+	gallery::PageWg2           pageWg2;
+	gallery::PageWg2Catalog    pageWg2Catalog;
+	gallery::PageLayout        pageLayout;
+	gallery::PageSplit         pageSplit;
+	gallery::PageText          pageText;
+	gallery::PageInput         pageInput;
+	gallery::PageNumber        pageNumber;
+	gallery::PageDrag          pageDrag;
+	gallery::PageSelect        pageSelect;
+	gallery::PageContainer     pageContainer;
+	gallery::PageTab           pageTab;
+	gallery::PageTable         pageTable;
+	gallery::PagePopup         pagePopup;
+	gallery::PageColor         pageColor;
+	gallery::PageDeco          pageDeco;
+	gallery::PageTheme         pageTheme;
+	gallery::PageFnRender      pageFnRender;
+	gallery::PageButton        pageButton{tex};
+	gallery::PageFeedback      pageFeedback{win};
+	gallery::PageMenu          pageMenu{win};
+	gallery::PageWindow        pageWindow{win, inspector.win.get()};
+	gallery::PageFile          pageFile{win};
 
 	Mk::window* inspectorWin() { return inspector.win.get(); }
 
