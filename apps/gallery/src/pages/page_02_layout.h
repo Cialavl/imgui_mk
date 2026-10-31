@@ -24,7 +24,7 @@ Mk::wg2::Label<Mk::wg2::Id("note")>
 Page page;
 Root root;
 
-PageLayout(State& s) {
+PageLayout(float& volume, bool& mute) {
 page.setup("布局：编译期 HBox/VBox 嵌套",
 "wg2 静态布局 = VBox/HBox/Grid/Wrap/SplitH/SplitV/Overlay 模板容器。"
 "本页 = HBox 嵌 VBox，子节点经模板参数传入，布局嵌布局自然递归。",
@@ -32,9 +32,9 @@ snips::kLayout);
 
 root.at<Mk::wg2::Id("intro")>().text = "布局步骤：hint（计算尺寸）→ draw（求解并递归子节点）";
 root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("volume")>().name = "音量";
-root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("volume")>().value = &s.volume;
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("volume")>().value = &volume;
 root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("mute")>().name = "静音";
-root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("mute")>().checked = &s.mute;
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("mute")>().checked = &mute;
 root.at<Mk::wg2::Id("row"), Mk::wg2::Id("rightCol"), Mk::wg2::Id("right")>().text = "H 行右格";
 root.at<Mk::wg2::Id("note")>().text = "布局数据约束：子控件在父容器内，路径访问全程一致。";
 

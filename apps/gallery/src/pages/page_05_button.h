@@ -20,22 +20,22 @@ Mk::wg2::Image<Mk::wg2::Id("imageB")>
 Page page;
 Root root;
 
-PageButton(State& s) {
+PageButton(int& clicks, int& imgBtnClicks, ImTextureID& tex) {
 page.setup("按钮与图片",
 "wg2 Button（onClick）/ ImageButton / Image（loadTextureRGBA 生成纹理）。",
 snips::kButton);
 
 root.at<Mk::wg2::Id("plain")>().label = "普通按钮";
-root.at<Mk::wg2::Id("plain")>().onClick = [&] { ++s.clicks; };
+root.at<Mk::wg2::Id("plain")>().onClick = [&] { ++clicks; };
 root.at<Mk::wg2::Id("count")>().label = "计数按钮";
-root.at<Mk::wg2::Id("count")>().onClick = [&] { s.clicks += 10; };
-root.at<Mk::wg2::Id("imgbtn")>().tex = s.tex;
+root.at<Mk::wg2::Id("count")>().onClick = [&] { clicks += 10; };
+root.at<Mk::wg2::Id("imgbtn")>().tex = tex;
 root.at<Mk::wg2::Id("imgbtn")>().size = ImVec2(96, 96);
-root.at<Mk::wg2::Id("imgbtn")>().onClick = [&] { ++s.imgBtnClicks; };
+root.at<Mk::wg2::Id("imgbtn")>().onClick = [&] { ++imgBtnClicks; };
 root.at<Mk::wg2::Id("clicks")>().name = "图片按钮点击";
-root.at<Mk::wg2::Id("clicks")>().valueFn = [&s] { return std::to_string(s.imgBtnClicks); };
-root.at<Mk::wg2::Id("imageRow"), Mk::wg2::Id("imageA")>().tex = s.tex;
-root.at<Mk::wg2::Id("imageRow"), Mk::wg2::Id("imageB")>().tex = s.tex;
+root.at<Mk::wg2::Id("clicks")>().valueFn = [&] { return std::to_string(imgBtnClicks); };
+root.at<Mk::wg2::Id("imageRow"), Mk::wg2::Id("imageA")>().tex = tex;
+root.at<Mk::wg2::Id("imageRow"), Mk::wg2::Id("imageB")>().tex = tex;
 
 page.addWidget([&](const Mk::wg2::Rect& r) {
  Mk::wg2::layout(root, r);

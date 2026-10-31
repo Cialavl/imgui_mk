@@ -16,7 +16,7 @@ Mk::wg2::FnTable<Mk::wg2::Id("fn")>
 Page page;
 Root root;
 
-PageTable(State& s) {
+PageTable(std::vector<std::vector<std::string>>& rows) {
 page.setup("表格",
 "wg2 TextTable（数据驱动：外部 vector 只读绑定）；FnTable（单元回调 cell(r,c)）。",
 snips::kTable);
@@ -24,7 +24,7 @@ snips::kTable);
 root.at<Mk::wg2::Id("data")>().idname = "tbl";
 root.at<Mk::wg2::Id("data")>().headers = State::kHeaders;
 root.at<Mk::wg2::Id("data")>().headerCount = 3;
-root.at<Mk::wg2::Id("data")>().rows = &s.rows;
+root.at<Mk::wg2::Id("data")>().rows = &rows;
 root.at<Mk::wg2::Id("fn")>().idname = "fn";
 root.at<Mk::wg2::Id("fn")>().headers = State::kHeaders;
 root.at<Mk::wg2::Id("fn")>().headerCount = 3;

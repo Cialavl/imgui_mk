@@ -20,8 +20,7 @@ Mk::wg2::SeparatorText<Mk::wg2::Id("section")>
 Page page;
 Root root;
 
-PageText(State& s) {
-(void)s;
+PageText() {
 page.setup("文本显示",
 "wg2 显示控件直接使用 Label/TextColored/TextWrapped/BulletText/"
 "LabelText/EllipsisLabel/SeparatorText。",

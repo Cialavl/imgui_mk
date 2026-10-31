@@ -36,8 +36,7 @@ Mk::wg2::Label<Mk::wg2::Id("g12")>
 Page page;
 Root root;
 
-PageSplit(State& s) {
-(void)s;
+PageSplit() {
 page.setup("分格模式",
 "wg2 SplitH/SplitV 是 HBox/VBox 别名；stretch 与 fixed size 都存在 WidgetState。"
 "Wrap 换行、Grid 固定列网格。",

@@ -17,19 +17,19 @@ Mk::wg2::SeparatorText<Mk::wg2::Id("section")>
 Page page;
 Root root;
 
-PageFeedback(State& s) {
+PageFeedback(float& volume, Mk::window* win) {
 page.setup("反馈与指示",
 "wg2 ProgressBar（fraction 绑定）/ PlotLines（外部 vector 只读绑定）/ Separator(Text)。",
 snips::kFeedback);
 
-root.at<Mk::wg2::Id("bar1")>().fraction = &s.volume;
+root.at<Mk::wg2::Id("bar1")>().fraction = &volume;
 root.at<Mk::wg2::Id("bar1")>().overlay = "Loading";
-root.at<Mk::wg2::Id("bar2")>().fraction = &s.volume;
+root.at<Mk::wg2::Id("bar2")>().fraction = &volume;
 root.at<Mk::wg2::Id("plot")>().name = "波形历史";
 // 曲线自己算：不依赖外部缓冲，也就不需要每帧填数据
-	root.at<Mk::wg2::Id("plot")>().valuesFn = [&s]() -> const std::vector<float>& {
+	root.at<Mk::wg2::Id("plot")>().valuesFn = [&]() -> const std::vector<float>& {
 		static std::vector<float> buf(240);
-		const auto f = s.win->frameIndex();
+		const auto f = win->frameIndex();
 		for (std::size_t i = 0; i < buf.size(); ++i)
 			buf[i] = 0.5f + 0.4f * std::sin(static_cast<float>(i + f) * 0.08f);
 		return buf;

@@ -79,35 +79,36 @@ int main() {
 	s.tex = Mk::wg2::loadTextureRGBA(pixels, 64, 64);
 
 	// —— 29 个演示页：main 组装一次，UI 回调按选中下标切换可见性 ——
-	gallery::PageBase      pageBase(s);
-	gallery::PageLifecycle pageLifecycle(s);
-	gallery::PageLayout    pageLayout(s);
-	gallery::PageSplit     pageSplit(s);
-	gallery::PageText      pageText(s);
-	gallery::PageButton    pageButton(s);
-	gallery::PageInput     pageInput(s);
-	gallery::PageNumber    pageNumber(s);
-	gallery::PageDrag      pageDrag(s);
-	gallery::PageSelect    pageSelect(s);
-	gallery::PageFeedback  pageFeedback(s);
-	gallery::PageContainer pageContainer(s);
-	gallery::PageTab       pageTab(s);
-	gallery::PageMenu      pageMenu(s);
-	gallery::PageTable     pageTable(s);
-	gallery::PagePopup     pagePopup(s);
-	gallery::PageColor     pageColor(s);
-	gallery::PageDeco      pageDeco(s);
-	gallery::PageTheme     pageTheme(s);
-	gallery::PageWindow    pageWindow(s);
-	gallery::PageFile      pageFile(s);
-	gallery::PageFnRender  pageFnRender(s);
-	gallery::PageWg2       pageWg2(s);
-	gallery::PageWg2Catalog pageWg2Catalog(s);
-	gallery::PageLayoutBasic   pageLayoutBasic(s);
-	gallery::PageLayoutSize    pageLayoutSize(s);
-	gallery::PageLayoutGrid    pageLayoutGrid(s);
-	gallery::PageLayoutRuntime pageLayoutRuntime(s);
-	gallery::PageLayoutDynamic pageLayoutDynamic(s);
+	gallery::PageBase      pageBase(s.clicks);
+	gallery::PageLifecycle pageLifecycle(s.mute);
+	gallery::PageLayout    pageLayout(s.volume, s.mute);
+	gallery::PageSplit     pageSplit;
+	gallery::PageText      pageText;
+	gallery::PageButton    pageButton(s.clicks, s.imgBtnClicks, s.tex);
+	gallery::PageInput     pageInput;
+	gallery::PageNumber    pageNumber(s.iVal, s.fVal, s.dVal, s.iv, s.fv);
+	gallery::PageDrag      pageDrag(s.drag, s.dragInt, s.slideI, s.angle, s.volume);
+	gallery::PageSelect    pageSelect(s.mute, s.radioBool, s.radio, s.comboSel, s.listSel, s.rowSel, s.bitFlags);
+	gallery::PageFeedback  pageFeedback(s.volume, s.win);
+	gallery::PageContainer pageContainer(s.clicks);
+	gallery::PageTab       pageTab;
+	gallery::PageMenu      pageMenu(s.volume, s.win);
+	gallery::PageTable     pageTable(s.rows);
+	gallery::PagePopup     pagePopup(s.popupOpen, s.modalOpen);
+	gallery::PageColor     pageColor(s.col3, s.col4, s.pick3, s.pick4);
+	gallery::PageDeco      pageDeco(s.drag, s.mute);
+	gallery::PageTheme     pageTheme([&s](const Mk::wg2::Theme& t) { s.applyTheme(t); });
+	gallery::PageWindow    pageWindow([&s] { s.toggleInspector(); }, s.win, s.inspectorWin);
+	gallery::PageFile      pageFile(s.filePath, s.fileSize, s.fileBinary, s.fileMissing,
+		[&s] { s.openFileDlg(); });
+	gallery::PageFnRender  pageFnRender;
+	gallery::PageWg2       pageWg2(s.clicks);
+	gallery::PageWg2Catalog pageWg2Catalog(s.clicks);
+	gallery::PageLayoutBasic   pageLayoutBasic;
+	gallery::PageLayoutSize    pageLayoutSize;
+	gallery::PageLayoutGrid    pageLayoutGrid;
+	gallery::PageLayoutRuntime pageLayoutRuntime;
+	gallery::PageLayoutDynamic pageLayoutDynamic;
 
 	// —— 布局大类：简单/复杂 × 静态/动态 ——
 	window.addPage(pageLayoutBasic,   gallery::kGroupLayout);

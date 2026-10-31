@@ -32,7 +32,7 @@ struct PageLayoutGrid {
 	Page page;
 	Root root;
 
-	PageLayoutGrid(State&) {
+	PageLayoutGrid() {
 		page.setup("布局·复杂静态：Grid / Wrap / Overlay",
 			"Grid 按列数铺网格、Wrap 放不下自动换行、Overlay 同区域叠放（配合 Offset 错位）。"
 			"三者都可以再套 VBox/HBox 组成任意复杂结构。",

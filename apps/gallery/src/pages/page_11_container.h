@@ -26,7 +26,7 @@ Mk::wg2::Label<Mk::wg2::Id("subLabel")>
 Page page;
 Root root;
 
-PageContainer(State& s) {
+PageContainer(int& clicks) {
 page.setup("容器控件",
 "wg2 Overlay 叠放 / Collapsing / Tree / SubWindow；子节点经模板参数编译期传入。",
 snips::kContainers);
@@ -36,7 +36,7 @@ root.at<Mk::wg2::Id("overlay"), Mk::wg2::Id("overlayOffset"), Mk::wg2::Id("overl
 	root.at<Mk::wg2::Id("overlay"), Mk::wg2::Id("overlayOffset")>().dxEm = 7.5f;
 	root.at<Mk::wg2::Id("overlay"), Mk::wg2::Id("overlayOffset")>().dyEm = 0.35f;
 root.at<Mk::wg2::Id("overlay"), Mk::wg2::Id("overlayButton")>().label = "叠放按钮";
-root.at<Mk::wg2::Id("overlay"), Mk::wg2::Id("overlayButton")>().onClick = [&] { ++s.clicks; };
+root.at<Mk::wg2::Id("overlay"), Mk::wg2::Id("overlayButton")>().onClick = [&] { ++clicks; };
 root.at<Mk::wg2::Id("collapsing")>().title = "折叠容器（默认展开）";
 root.at<Mk::wg2::Id("collapsing")>().defaultOpen = true;
 root.at<Mk::wg2::Id("collapsing"), Mk::wg2::Id("collLabel")>().text = "折叠内容";

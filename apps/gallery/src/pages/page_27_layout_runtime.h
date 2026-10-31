@@ -19,7 +19,7 @@ struct PageLayoutRuntime {
 	Root root;
 	int added = 0;
 
-	PageLayoutRuntime(State&) {
+	PageLayoutRuntime() {
 		page.setup("布局·简单动态：RuntimeList 增删",
 			"静态树里嵌一个 RuntimeList：运行时 add/remove 项不破坏兄弟节点，"
 			"渲染回调内增删也安全（墓碑 + pending）。",

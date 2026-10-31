@@ -23,20 +23,20 @@ Mk::wg2::Label<Mk::wg2::Id("modalText")>
 Page page;
 Root root;
 
-PagePopup(State& s) {
+PagePopup(bool& popupOpen, bool& modalOpen) {
 page.setup("弹窗",
 "wg2 Popup/PopupModal：open 标志位 + 帧内 OpenPopup 自动配对。",
 snips::kPopup);
 
 root.at<Mk::wg2::Id("buttons"), Mk::wg2::Id("popBtn")>().label = "打开普通弹窗";
-root.at<Mk::wg2::Id("buttons"), Mk::wg2::Id("popBtn")>().onClick = [&] { s.popupOpen = true; };
+root.at<Mk::wg2::Id("buttons"), Mk::wg2::Id("popBtn")>().onClick = [&] { popupOpen = true; };
 root.at<Mk::wg2::Id("buttons"), Mk::wg2::Id("modalBtn")>().label = "打开模态弹窗";
-root.at<Mk::wg2::Id("buttons"), Mk::wg2::Id("modalBtn")>().onClick = [&] { s.modalOpen = true; };
+root.at<Mk::wg2::Id("buttons"), Mk::wg2::Id("modalBtn")>().onClick = [&] { modalOpen = true; };
 root.at<Mk::wg2::Id("note")>().text = "模态弹窗阻挡主窗口交互，普通弹窗可随处关闭。";
-root.at<Mk::wg2::Id("pop")>().open = &s.popupOpen;
+root.at<Mk::wg2::Id("pop")>().open = &popupOpen;
 root.at<Mk::wg2::Id("pop")>().idname = "wg2pop";
 root.at<Mk::wg2::Id("pop"), Mk::wg2::Id("popText")>().text = "wg2 普通弹窗";
-root.at<Mk::wg2::Id("modal")>().open = &s.modalOpen;
+root.at<Mk::wg2::Id("modal")>().open = &modalOpen;
 root.at<Mk::wg2::Id("modal")>().idname = "wg2modal";
 root.at<Mk::wg2::Id("modal"), Mk::wg2::Id("modalText")>().text = "wg2 模态弹窗";
 

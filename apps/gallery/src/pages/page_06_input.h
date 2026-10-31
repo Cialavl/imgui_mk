@@ -15,8 +15,7 @@ Mk::wg2::InputText<Mk::wg2::Id("small"), 64>
 Page page;
 Root root;
 
-PageInput(State& s) {
-(void)s;
+PageInput() {
 page.setup("文本输入",
 "wg2 InputText<N>（N = 缓冲容量）编辑内部文本；name 作标签；setName 写入内容。",
 snips::kInputText);

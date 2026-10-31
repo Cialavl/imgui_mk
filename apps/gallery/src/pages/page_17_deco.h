@@ -31,7 +31,7 @@ Mk::wg2::Button<Mk::wg2::Id("disabled")>
 Page page;
 Root root;
 
-PageDeco(State& s) {
+PageDeco(float& drag, bool& mute) {
 page.setup("装饰件",
 "wg2 Tooltip/Colored/Indent/ItemWidth/When 均为编译期包装；禁用用 state.enabled=false。",
 snips::kDeco);
@@ -44,7 +44,7 @@ root.at<Mk::wg2::Id("indent")>().amount = 24.0f;
 root.at<Mk::wg2::Id("indent"), Mk::wg2::Id("indentText")>().text = "缩进的文本";
 root.at<Mk::wg2::Id("width")>().width = 180.0f;
 root.at<Mk::wg2::Id("width"), Mk::wg2::Id("drag")>().name = "限宽拖拽";
-root.at<Mk::wg2::Id("width"), Mk::wg2::Id("drag")>().value = &s.drag;
+root.at<Mk::wg2::Id("width"), Mk::wg2::Id("drag")>().value = &drag;
 root.at<Mk::wg2::Id("when"), Mk::wg2::Id("whenText")>().text = "When 包裹的文本，show=false 时不渲染不占位。";
 root.at<Mk::wg2::Id("styled")>().color = ImVec4(0.4f, 0.7f, 1.0f, 1.0f);
 root.at<Mk::wg2::Id("styled"), Mk::wg2::Id("styledBtn")>().label = "Styled 主题按钮";
@@ -56,7 +56,7 @@ page.addWidget([&](const Mk::wg2::Rect& r) {
 }, [&](const Mk::wg2::Size& avail) {
 return root.hint(avail);
 });
-	root.at<Mk::wg2::Id("when")>().showFn = [&s] { return !s.mute; };
+	root.at<Mk::wg2::Id("when")>().showFn = [&] { return !mute; };
 }
 
 

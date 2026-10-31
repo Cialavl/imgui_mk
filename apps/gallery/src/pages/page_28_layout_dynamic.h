@@ -22,7 +22,7 @@ struct PageLayoutDynamic {
 	int tiles = 0;
 	int tabs = 0;
 
-	PageLayoutDynamic(State&) {
+	PageLayoutDynamic() {
 		page.setup("布局·复杂动态：RuntimeGrid + RuntimeTabs",
 			"两个动态容器并排：左边网格随窗口宽度自动排布列，右边页签运行时追加；"
 			"整体由 HBox 分配，SubWindow 给各自滚动。",

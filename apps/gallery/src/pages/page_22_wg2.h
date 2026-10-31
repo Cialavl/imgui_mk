@@ -25,7 +25,7 @@ struct PageWg2 {
 	Page page;
 	Wg2Root root;
 
-	PageWg2(State& s) {
+	PageWg2(int& clicks) {
 		page.setup("wg2：静态树 + 动态列表 opt-in",
 			"普通控件是直接 struct：VBox<Id(\"...\"), ...> 编译期组合，"
 			"字符串路径访问；只有 RuntimeList 内部才有 AnyWidget 类型擦除。",
@@ -44,17 +44,17 @@ struct PageWg2 {
 		root.at<Mk::wg2::Id("listwin")>().idname = "wg2:list";
 
 		root.at<Mk::wg2::Id("row"), Mk::wg2::Id("add")>().onClick = [&] {
-			++s.clicks;
+			++clicks;
 			auto label = std::make_unique<Mk::wg2::Label<Mk::wg2::Id("item")>>(
-				"wg2 动态项 #" + std::to_string(s.clicks));
+				"wg2 动态项 #" + std::to_string(clicks));
 			Mk::wg2::AnyWidget any = Mk::wg2::AnyWidget::own(std::move(label));
-			any.idname = "wg2item" + std::to_string(s.clicks);
+			any.idname = "wg2item" + std::to_string(clicks);
 			root.at<Mk::wg2::Id("listwin"), Mk::wg2::Id("list")>().add(std::move(any));
 		};
 
 		page.addWidget([&](const Mk::wg2::Rect& r) {
 			root.at<Mk::wg2::Id("row"), Mk::wg2::Id("count")>().value =
-				std::to_string(s.clicks);
+				std::to_string(clicks);
 			Mk::wg2::layout(root, r);
 }, [&](const Mk::wg2::Size& avail) {
 return root.hint(avail);

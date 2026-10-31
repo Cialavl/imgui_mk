@@ -18,7 +18,7 @@ Mk::wg2::LabelText<Mk::wg2::Id("clicks")>
 Page page;
 Root root;
 
-PageBase(State& s) {
+PageBase(int& clicks) {
 page.setup("基础：wg2 直接 struct 控件",
 "wg2 不再使用 Control<Self> 外壳和 Node 成员；控件就是 template struct，"
 "静态树由 VBox<Id(\"...\"), ...> 编译期组合，字符串路径访问。",
@@ -29,9 +29,9 @@ root.at<Mk::wg2::Id("l2")>().text = "VBox<Id(\"root\"), A, B, C> 编译期组合
 root.at<Mk::wg2::Id("l3")>().text = "at<Id(\"a\"), Id(\"b\")>() 字符串路径访问";
 root.at<Mk::wg2::Id("l4")>().text = "动态能力仅在 RuntimeList/RuntimeTabs/RuntimeGrid 中 opt-in";
 root.at<Mk::wg2::Id("btn")>().label = "点我看看行为";
-root.at<Mk::wg2::Id("btn")>().onClick = [&] { ++s.clicks; };
+root.at<Mk::wg2::Id("btn")>().onClick = [&] { ++clicks; };
 root.at<Mk::wg2::Id("clicks")>().name = "点击次数";
-root.at<Mk::wg2::Id("clicks")>().valueFn = [&s] { return std::to_string(s.clicks); };
+root.at<Mk::wg2::Id("clicks")>().valueFn = [&] { return std::to_string(clicks); };
 
 page.addWidget([&](const Mk::wg2::Rect& r) {
  Mk::wg2::layout(root, r);

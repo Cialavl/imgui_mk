@@ -17,7 +17,7 @@ Mk::wg2::Label<Mk::wg2::Id("note")>
 Page page;
 Root root;
 
-PageMenu(State& s) {
+PageMenu(float& volume, Mk::window* win) {
 page.setup("菜单与面板",
 "wg2 Panel = SubWindow 别名；面板内容经模板参数编译期传入。",
 snips::kPanel);
@@ -25,9 +25,9 @@ snips::kPanel);
 root.at<Mk::wg2::Id("panel")>().idname = "面板";
 root.at<Mk::wg2::Id("panel")>().height = 110.0f;
 root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("slider")>().name = "面板内滑块";
-root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("slider")>().value = &s.volume;
+root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("slider")>().value = &volume;
 root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("frames")>().name = "帧";
-root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("frames")>().valueFn = [&s] { return std::to_string(s.win->frameIndex()); };
+root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("frames")>().valueFn = [&] { return std::to_string(win->frameIndex()); };
 root.at<Mk::wg2::Id("note")>().text = "Panel 是浮动窗口；菜单栏是常驻点（主窗口顶部）。";
 
 page.addWidget([&](const Mk::wg2::Rect& r) {

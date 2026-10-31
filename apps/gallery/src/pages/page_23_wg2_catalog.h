@@ -44,7 +44,7 @@ struct PageWg2Catalog {
 	float volume = 0.6f;
 	bool checked = false;
 
-	PageWg2Catalog(State& s) {
+	PageWg2Catalog(int& clicks) {
 		page.setup("wg2：控件巡礼",
 			"输入、显示、装饰件、页签等控件全部是直接 struct，"
 			"经 VBox/HBox/SubWindow 编译期组合，字符串路径访问。",
@@ -72,7 +72,7 @@ struct PageWg2Catalog {
 		root.at<Mk::wg2::Id("colored"), Mk::wg2::Id("color_label")>().text = "Colored 装饰件";
 
 		root.at<Mk::wg2::Id("tip"), Mk::wg2::Id("tip_btn")>().label = "悬停看提示";
-		root.at<Mk::wg2::Id("tip"), Mk::wg2::Id("tip_btn")>().onClick = [&] { ++s.clicks; };
+		root.at<Mk::wg2::Id("tip"), Mk::wg2::Id("tip_btn")>().onClick = [&] { ++clicks; };
 		root.at<Mk::wg2::Id("tip")>().text = "这是 Tooltip 装饰件";
 
 		root.at<Mk::wg2::Id("tabwin")>().height = 170.0f;
@@ -84,7 +84,7 @@ struct PageWg2Catalog {
 
 		page.addWidget([&](const Mk::wg2::Rect& r) {
 			root.at<Mk::wg2::Id("display_row"), Mk::wg2::Id("count")>().value =
-				std::to_string(s.clicks);
+				std::to_string(clicks);
 			Mk::wg2::layout(root, r);
 }, [&](const Mk::wg2::Size& avail) {
 return root.hint(avail);

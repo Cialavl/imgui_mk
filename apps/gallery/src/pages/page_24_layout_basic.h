@@ -24,7 +24,7 @@ struct PageLayoutBasic {
 	Page page;
 	Root root;
 
-	PageLayoutBasic(State&) {
+	PageLayoutBasic() {
 		page.setup("布局·基础：VBox 堆叠 / HBox 横排",
 			"最简单的两种组合：VBox 按行堆叠、HBox 按列排布；"
 			"子项间距由容器 spacing、整体边距由 marginX/marginY 控制。",

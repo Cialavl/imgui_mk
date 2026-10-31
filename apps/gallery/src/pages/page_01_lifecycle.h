@@ -25,7 +25,7 @@ Mk::wg2::RuntimeList<Mk::wg2::Id("dynamic")>
 Page page;
 Root root;
 
-PageLifecycle(State& s) {
+PageLifecycle(bool& mute) {
 page.setup("基础：生命周期",
 "wg2 静态树没有全局 Node 状态机；动态叶子通过 RuntimeList opt-in，"
 "When 装饰件负责显示/隐藏。",
@@ -44,7 +44,7 @@ root.at<Mk::wg2::Id("buttons"), Mk::wg2::Id("remove")>().onClick = [&] {
 root.at<Mk::wg2::Id("dynamic")>().removeLast();
 };
 root.at<Mk::wg2::Id("hide")>().name = "隐藏叶子（When show=false）";
-root.at<Mk::wg2::Id("hide")>().checked = &s.mute;
+root.at<Mk::wg2::Id("hide")>().checked = &mute;
 root.at<Mk::wg2::Id("state")>().name = "叶子状态";
 root.at<Mk::wg2::Id("state")>().valueFn = [this] {
 return root.at<Mk::wg2::Id("dynamic")>().size()
@@ -60,7 +60,7 @@ page.addWidget([&](const Mk::wg2::Rect& r) {
 }, [&](const Mk::wg2::Size& avail) {
 return root.hint(avail);
 });
-	root.at<Mk::wg2::Id("when")>().showFn = [&s] { return !s.mute; };
+	root.at<Mk::wg2::Id("when")>().showFn = [&] { return !mute; };
 }
 
 

@@ -113,12 +113,11 @@ inline void engineRescale(float fontSize) {
 	Mk::mkui<Mk::window>::RegistrationWindow().rescaleAll(fontSize);
 }
 
-// FnRender 页演示用的自定义 callable（可默认构造，State 用指针绑定）
-struct FnDrawerImpl {
-	State* s = nullptr;
-	void operator()() {
-		if(s) ImGui::ProgressBar(s->volume, ImVec2(-FLT_MIN, 0), "FnRender 演示条");
-	}
-};
+	// FnRender 页演示用的裸绘制桥：自带演示值，不依赖应用状态
+	struct FnDrawerImpl {
+		void operator()() const {
+			ImGui::ProgressBar(0.42f, ImVec2(-FLT_MIN, 0), "FnRender 演示条");
+		}
+	};
 
 } // namespace gallery

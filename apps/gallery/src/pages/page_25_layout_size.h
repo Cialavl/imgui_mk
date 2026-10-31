@@ -21,7 +21,7 @@ struct PageLayoutSize {
 	Page page;
 	Root root;
 
-	PageLayoutSize(State&) {
+	PageLayoutSize() {
 		page.setup("布局·尺寸策略：fixed / pref / min / max / stretch / em",
 			"state.size 覆盖控件尺寸：fixedW 钉死、prefW 期望值、stretch 分配剩余、"
 			"prefWEm 按字号换算（字体缩放后宽度自动跟随）。",

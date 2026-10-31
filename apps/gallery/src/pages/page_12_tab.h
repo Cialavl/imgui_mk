@@ -20,8 +20,7 @@ Mk::wg2::Label<Mk::wg2::Id("text2")>
 Page page;
 Root root;
 
-PageTab(State& s) {
-(void)s;
+PageTab() {
 page.setup("标签页",
 "wg2 TabBar/Tab 是编译期模板；页签标题为 Tab::title。",
 snips::kTabBar);
