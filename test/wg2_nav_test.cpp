@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 
 #include <imgui_mk/ui/wg2/widgets/nav.h>
+#include "wg2_test_harness.h"
 
 using namespace Mk::wg2;
 
@@ -60,4 +61,41 @@ TEST(Wg2Nav, PageBookCurrentTitleFollowsSelection) {
 	EXPECT_STREQ(book.currentTitle(), "第二页");
 	book.current = 99;                 // 越界返回空串，不越界读
 	EXPECT_STREQ(book.currentTitle(), "");
+}
+
+// ============ 绘制路径（需要 ImGui 上下文，走 harness）============
+
+TEST(Wg2Nav, DrawRendersWithoutCrashAndHeightMatchesEntries) {
+	wg2test::Harness h;
+	NavList<Id("nav")> nav;
+	int sel = 0;
+	nav.current = &sel;
+	nav.addEntry("分组 A", true);
+	nav.addEntry("页 1", false);
+	nav.addEntry("页 2", false);
+
+	h.inFrame([&] { Mk::wg2::layout(nav, Rect{0.0f, 0.0f, 300.0f, 200.0f}); });
+
+	// 高度 = 2 行 + 1 个组标题（行高/标题高都按当前字号度量）
+	const float expected = ImGui::GetFrameHeight() * 2.0f
+		+ ImGui::GetTextLineHeightWithSpacing() + ImGui::GetStyle().ItemSpacing.y;
+	EXPECT_FLOAT_EQ(nav.hint(Size{300.0f, 0.0f}).h, expected);
+}
+
+TEST(Wg2Nav, PageBookDrawsCurrentPageOnly) {
+	wg2test::Harness h;
+	PageBook<Id("book")> book;
+	int first = 0, second = 0;
+	book.addGroup("分组 A");
+	book.addPage("页 1", [&](const Rect&) { ++first; });
+	book.addPage("页 2", [&](const Rect&) { ++second; });
+
+	h.inFrame([&] { Mk::wg2::layout(book, Rect{0.0f, 0.0f, 600.0f, 300.0f}); });
+	EXPECT_EQ(first, 1);
+	EXPECT_EQ(second, 0);
+
+	book.current = 1;                                   // 切到第二页
+	h.inFrame([&] { Mk::wg2::layout(book, Rect{0.0f, 0.0f, 600.0f, 300.0f}); });
+	EXPECT_EQ(first, 1);
+	EXPECT_EQ(second, 1);
 }
