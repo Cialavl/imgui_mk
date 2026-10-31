@@ -9,6 +9,13 @@ project(imgui_mk LANGUAGES  CXX)
 
 if (MSVC)
     add_compile_options(/Zc:preprocessor /utf-8 /DNOMINMAX /D_USE_MATH_DEFINES /EHsc /bigobj)
+
+    # ninja 靠解析 cl 的 /showIncludes 输出建依赖表；中文版 VS 的输出前缀是
+    # "注意: 包含文件: "，不匹配会导致依赖表为空（改头文件不触发重编）。
+    # 英文版 VS 上用 -DCMAKE_CL_SHOWINCLUDES_PREFIX="Note: including file: " 覆盖。
+    if (NOT DEFINED CMAKE_CL_SHOWINCLUDES_PREFIX)
+        set(CMAKE_CL_SHOWINCLUDES_PREFIX "注意: 包含文件: " CACHE STRING "cl /showIncludes 前缀（随语言本地化）")
+    endif()
 else()
     if (WIN32)
         add_compile_options(-finput-charset=utf-8 -fexec-charset=utf-8)
