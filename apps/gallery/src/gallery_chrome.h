@@ -220,6 +220,11 @@ ImGui::PopStyleVar();
 // 页面只负责建树 + 绑数据，布局细节不收在页面里。
 template<class Root>
 void bindPage(Page& page, Root& root) {
+	// Root 必须是 wg2 控件：可布局、可量高
+	static_assert(requires(const Root& r, const Mk::wg2::Size& s) { r.hint(s); },
+		"bindPage: Root 需要 hint(const Size&) 成员（wg2 控件）");
+	static_assert(requires(Root& r, const Mk::wg2::Rect& rc) { Mk::wg2::layout(r, rc); },
+		"bindPage: Root 需要能被 Mk::wg2::layout 布局");
 	page.addWidget(
 		[&root](const Mk::wg2::Rect& r) { Mk::wg2::layout(root, r); },
 		[&root](const Mk::wg2::Size& avail) { return root.hint(avail); });
