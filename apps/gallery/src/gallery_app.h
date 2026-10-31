@@ -228,7 +228,7 @@ const int target = shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), M
 int i = 0;
  for (const auto& e : shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().entries) {
 if (!e.header) {
-if (i++ == target) return e.label;
+if (i++ == target) return e.label.c_str();
 }
 }
 return "(none)";
