@@ -1,5 +1,5 @@
 #pragma once
-// gallery 页面聚合：24 页头聚合 + kGroupXxx 分组常量（页面对象在 main 组装注册）
+// gallery 页面聚合：29 页头聚合 + kGroupXxx 分组常量（页面对象在 main 组装注册）
 #include "gallery_chrome.h"
 #include "pages/page_00_base.h"
 #include "pages/page_01_lifecycle.h"
@@ -25,10 +25,16 @@
 #include "pages/page_21_fnrender.h"
 #include "pages/page_22_wg2.h"
 #include "pages/page_23_wg2_catalog.h"
+#include "pages/page_24_layout_basic.h"
+#include "pages/page_25_layout_size.h"
+#include "pages/page_26_layout_grid.h"
+#include "pages/page_27_layout_runtime.h"
+#include "pages/page_28_layout_dynamic.h"
 
 namespace gallery {
 
 // ============ 侧栏分组常量（addPage 组首传参用）============
+inline constexpr const char* kGroupLayout     = "布局";
 inline constexpr const char* kGroupWg          = "wg 体系";
 inline constexpr const char* kGroupAtoms       = "原子控件";
 inline constexpr const char* kGroupContainers  = "容器控件";

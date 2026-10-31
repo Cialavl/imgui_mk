@@ -75,7 +75,7 @@ int main() {
 	makeChecker(pixels);
 	s.tex = Mk::wg2::loadTextureRGBA(pixels, 64, 64);
 
-	// —— 24 个演示页：main 组装一次，UI 回调按选中下标切换可见性 ——
+	// —— 29 个演示页：main 组装一次，UI 回调按选中下标切换可见性 ——
 	gallery::GalleryWindow window(gallery, s);
 
 	gallery::PageBase      pageBase(s);
@@ -102,6 +102,18 @@ int main() {
 	gallery::PageFnRender  pageFnRender(s);
 	gallery::PageWg2       pageWg2(s);
 	gallery::PageWg2Catalog pageWg2Catalog(s);
+	gallery::PageLayoutBasic   pageLayoutBasic(s);
+	gallery::PageLayoutSize    pageLayoutSize(s);
+	gallery::PageLayoutGrid    pageLayoutGrid(s);
+	gallery::PageLayoutRuntime pageLayoutRuntime(s);
+	gallery::PageLayoutDynamic pageLayoutDynamic(s);
+
+	// —— 布局大类：简单/复杂 × 静态/动态 ——
+	window.addPage(pageLayoutBasic,   gallery::kGroupLayout);
+	window.addPage(pageLayoutSize);
+	window.addPage(pageLayoutGrid);
+	window.addPage(pageLayoutRuntime);
+	window.addPage(pageLayoutDynamic);
 
 	window.addPage(pageBase,      gallery::kGroupWg);
 	window.addPage(pageLifecycle);
