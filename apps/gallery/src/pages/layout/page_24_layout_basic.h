@@ -31,18 +31,24 @@ struct PageLayoutBasic {
 			snips::kLayoutBasic);
 
 		root.at<Id("intro")>().text = "HBox：三个按钮自动均分宽度（都可增长）";
-		root.at<Id("row1"), Id("a1")>().label = "左";
-		root.at<Id("row1"), Id("a2")>().label = "中";
-		root.at<Id("row1"), Id("a3")>().label = "右";
 
-		root.at<Id("row2"), Id("b1")>().label = "固定 160";
-		root.at<Id("row2"), Id("b1")>().state.size.fixedW = 160.0f;
-		root.at<Id("row2"), Id("b2")>().label = "吃掉剩余宽度（stretch = 1）";
-		root.at<Id("row2"), Id("b2")>().state.stretch = 1.0f;
+		auto& row1 = root.at<Id("row1")>();
+		row1.at<Id("a1")>().label = "左";
+		row1.at<Id("a2")>().label = "中";
+		row1.at<Id("a3")>().label = "右";
 
-		root.at<Id("stack"), Id("s1")>().text = "VBox 第一行";
-		root.at<Id("stack"), Id("s2")>().text = "VBox 第二行";
-		root.at<Id("stack"), Id("s3")>().text = "VBox 第三行";
+		auto& b1 = root.at<Id("row2"), Id("b1")>();
+		b1.label = "固定 160";
+		b1.state.size.fixedW = 160.0f;
+
+		auto& b2 = root.at<Id("row2"), Id("b2")>();
+		b2.label = "吃掉剩余宽度（stretch = 1）";
+		b2.state.stretch = 1.0f;
+
+		auto& stack = root.at<Id("stack")>();
+		stack.at<Id("s1")>().text = "VBox 第一行";
+		stack.at<Id("s2")>().text = "VBox 第二行";
+		stack.at<Id("s3")>().text = "VBox 第三行";
 		root.at<Id("note")>().text = "把窗口拖宽：HBox 跟着变宽，VBox 只吃高度。";
 
 		bindPage(page, root);
