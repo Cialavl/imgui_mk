@@ -52,6 +52,9 @@ void setCentralWidget(F&& fn,
 			m_Window.hide();
 		}
 
+		// 当前帧中央布局矩形（内容区 − pad 增量；须在帧内调用）
+		Mk::wg2::Rect contentRect() const { return m_Window.contentRect(); }
+
 		// 窗口是否可见 / 请求关闭 / X 按钮只隐藏（检查器模式）
 		bool visible() const { return m_Window.visible(); }
 		void requestClose() { m_Window.requestClose(); }
