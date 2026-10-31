@@ -42,6 +42,7 @@ root.at<Mk::wg2::Id("compact")>().spacing = 2.0f;
 root.at<Mk::wg2::Id("compact"), Mk::wg2::Id("compact1")>().label = "紧凑按钮一";
 root.at<Mk::wg2::Id("compact"), Mk::wg2::Id("compact2")>().label = "紧凑按钮二";
 root.at<Mk::wg2::Id("rescaleNote")>().text = "rescale(24)：重载字号图标集；布局/控件/行高/间距全等比";
+	root.at<Mk::wg2::Id("rescale")>().label = "切换字号 18 / 24";
 root.at<Mk::wg2::Id("rescale")>().onClick = [&] {
 const float cur = engineFontSize();
 engineRescale(cur >= 23.5f ? 18.0f : 24.0f);
@@ -54,11 +55,6 @@ return root.hint(avail);
 });
 }
 
-void refresh(State& s) {
-(void)s;
-const float cur = engineFontSize();
-root.at<Mk::wg2::Id("rescale")>().label = cur >= 23.5f ? "rescale(18)" : "rescale(24)";
-}
 
 };
 

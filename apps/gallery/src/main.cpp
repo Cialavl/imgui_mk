@@ -19,15 +19,14 @@
 namespace {
 
 // —— 崩溃自诊断：未处理异常时把异常地址/调用栈/运行状态写盘（调试用；SEH 下 CRT IO 为 best-effort）——
-static volatile LONG g_crashFrame = 0;
-static volatile LONG g_crashSel = -1;
+static gallery::State* g_state = nullptr;   // 崩溃自诊断直接读状态，不做每帧快照
 static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
 	FILE* f = nullptr;
 	if(fopen_s(&f, "C:\\Users\\26495\\AppData\\Local\\Temp\\opencode\\gallery_crash.txt", "w") == 0 && f) {
 		std::fprintf(f, "exception=0x%08X addr=0x%p\n",
 			ep->ExceptionRecord->ExceptionCode,
 			ep->ExceptionRecord->ExceptionAddress);
-		std::fprintf(f, "state: frame=%ld sel=%ld\n", g_crashFrame, g_crashSel);
+		std::fprintf(f, "state: frame=%llu sel=%d\n", g_state ? g_state->win->frameIndex() : 0ull, g_state ? g_state->sel : -1);
 		void* bt[40];
 		const USHORT n = RtlCaptureStackBackTrace(0, 40, bt, nullptr);
 		for(USHORT i = 0; i < n; ++i) {
@@ -172,19 +171,8 @@ int main() {
 	// 视图直挂（Qt setCentralWidget 语义）：窗口每帧自动布局整棵树
 	gallery.setCentralWidget(window.shell);
 
-	// 每帧驱动放在树里的 Update 控件：先跑演示逻辑，再由各页拉取
-	window.shell.at<Mk::wg2::Id("tick")>().fn = [&] {
-		g_crashFrame = s.frames;
-		g_crashSel = s.sel;
-		// 动画驱动（演示内容）
-		++s.frames;
-		s.volume = 0.5f + 0.5f * std::sin(s.frames * 0.02f);
-		s.history.push_back(0.5f + 0.5f * std::sin(s.frames * 0.05f));
-		if(s.history.size() > 300) s.history.erase(s.history.begin());
-
-		// 每帧动态绑定刷新（show 标志/主题跟随等；字符串型已改 valueFn 拉取式）
-		window.refreshAll(s);
-	};
+	// 状态交给控件自己拉取：帧序号来自引擎，界面值由各控件 valueFn 取
+	s.win = &gallery.getWindow();
 
 	Mk::mkui<Mk::window>::run();
 	return 0;

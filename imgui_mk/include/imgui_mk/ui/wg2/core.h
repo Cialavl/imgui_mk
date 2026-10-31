@@ -40,6 +40,12 @@ struct SizeOverrides {
 	float maxW = -1.0f, maxH = -1.0f;
 	float prefW = -1.0f, prefH = -1.0f;
 	float fixedW = -1.0f, fixedH = -1.0f;
+
+	// em 版：> 0 时按当前字号换算（字体缩放后宽度自动跟随，不需要每帧同步数值）
+	float minWEm = -1.0f, minHEm = -1.0f;
+	float maxWEm = -1.0f, maxHEm = -1.0f;
+	float prefWEm = -1.0f, prefHEm = -1.0f;
+	float fixedWEm = -1.0f, fixedHEm = -1.0f;
 };
 
 // ============ 编译期字符串 ID ============

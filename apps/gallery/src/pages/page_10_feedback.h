@@ -26,7 +26,14 @@ root.at<Mk::wg2::Id("bar1")>().fraction = &s.volume;
 root.at<Mk::wg2::Id("bar1")>().overlay = "Loading";
 root.at<Mk::wg2::Id("bar2")>().fraction = &s.volume;
 root.at<Mk::wg2::Id("plot")>().name = "波形历史";
-root.at<Mk::wg2::Id("plot")>().values = &s.history;
+// 曲线自己算：不依赖外部缓冲，也就不需要每帧填数据
+	root.at<Mk::wg2::Id("plot")>().valuesFn = [&s]() -> const std::vector<float>& {
+		static std::vector<float> buf(240);
+		const auto f = s.win->frameIndex();
+		for (std::size_t i = 0; i < buf.size(); ++i)
+			buf[i] = 0.5f + 0.4f * std::sin(static_cast<float>(i + f) * 0.08f);
+		return buf;
+	};
 root.at<Mk::wg2::Id("section")>().name = "分隔标题";
 
 page.addWidget([&](const Mk::wg2::Rect& r) {

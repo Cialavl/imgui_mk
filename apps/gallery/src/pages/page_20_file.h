@@ -36,6 +36,8 @@ root.at<Mk::wg2::Id("path")>().valueFn = [&s] { return s.filePath.empty() ? std:
 root.at<Mk::wg2::Id("binary"), Mk::wg2::Id("binaryText")>().name = "二进制";
 root.at<Mk::wg2::Id("missing"), Mk::wg2::Id("missingText")>().name = "错误";
 root.at<Mk::wg2::Id("missing"), Mk::wg2::Id("missingText")>().value = "文件不可读";
+	root.at<Mk::wg2::Id("binary")>().showFn = [&s] { return !s.filePath.empty() && s.fileBinary; };
+	root.at<Mk::wg2::Id("missing")>().showFn = [&s] { return s.fileMissing; };
 
 page.addWidget([&](const Mk::wg2::Rect& r) {
  Mk::wg2::layout(root, r);
@@ -44,11 +46,6 @@ return root.hint(avail);
 });
 }
 
-void refresh(State& s) {
-root.at<Mk::wg2::Id("binary")>().show = !s.filePath.empty() && s.fileBinary;
-root.at<Mk::wg2::Id("binary"), Mk::wg2::Id("binaryText")>().value = "二进制文件，预览不显示内容";
-root.at<Mk::wg2::Id("missing")>().show = s.fileMissing;
-}
 
 };
 

@@ -24,11 +24,17 @@ inline float spacingX(float s) { return s >= 0.0f ? s : ImGui::GetStyle().ItemSp
 inline float spacingY(float s) { return s >= 0.0f ? s : ImGui::GetStyle().ItemSpacing.y; }
 inline float marginX(float m) { return m >= 0.0f ? m : ImGui::GetStyle().WindowPadding.x; }
 inline float marginY(float m) { return m >= 0.0f ? m : ImGui::GetStyle().WindowPadding.y; }
-
 template<class W>
 LayoutItem makeLayoutItem(const W& w, bool axis, float availCross) {
 	const auto& ov = w.state.size;
 	const Size hs = w.hint(Size{axis ? 0.0f : availCross, axis ? availCross : 0.0f});
+
+	// em 覆盖换算：字号变化时自动跟随（字体缩放后无需应用层重设数值）
+	auto emOr = [](float px, float rel) { return rel >= 0.0f ? rel * ImGui::GetFontSize() : px; };
+	const float prefW = emOr(ov.prefW, ov.prefWEm), fixedW = emOr(ov.fixedW, ov.fixedWEm);
+	const float minWv = emOr(ov.minW, ov.minWEm), maxWv = emOr(ov.maxW, ov.maxWEm);
+	const float prefH = emOr(ov.prefH, ov.prefHEm), fixedH = emOr(ov.fixedH, ov.fixedHEm);
+	const float minHv = emOr(ov.minH, ov.minHEm), maxHv = emOr(ov.maxH, ov.maxHEm);
 
 	LayoutItem it;
 	it.hint = axis ? hs.w : hs.h;
@@ -36,17 +42,16 @@ LayoutItem makeLayoutItem(const W& w, bool axis, float availCross) {
 	it.mx = 1.0e9f;
 
 	if (axis) {
-		if (ov.prefW >= 0.0f) it.hint = ov.prefW;
-		if (ov.fixedW >= 0.0f) { it.hint = ov.fixedW; it.mn = ov.fixedW; it.mx = ov.fixedW; }
-		if (ov.minW >= 0.0f) it.mn = std::max(it.mn, ov.minW);
-		if (ov.maxW >= 0.0f) it.mx = std::min(it.mx, ov.maxW);
+		if (prefW >= 0.0f) it.hint = prefW;
+		if (fixedW >= 0.0f) { it.hint = fixedW; it.mn = fixedW; it.mx = fixedW; }
+		if (minWv >= 0.0f) it.mn = std::max(it.mn, minWv);
+		if (maxWv >= 0.0f) it.mx = std::min(it.mx, maxWv);
 	} else {
-		if (ov.prefH >= 0.0f) it.hint = ov.prefH;
-		if (ov.fixedH >= 0.0f) { it.hint = ov.fixedH; it.mn = ov.fixedH; it.mx = ov.fixedH; }
-		if (ov.minH >= 0.0f) it.mn = std::max(it.mn, ov.minH);
-		if (ov.maxH >= 0.0f) it.mx = std::min(it.mx, ov.maxH);
+		if (prefH >= 0.0f) it.hint = prefH;
+		if (fixedH >= 0.0f) { it.hint = fixedH; it.mn = fixedH; it.mx = fixedH; }
+		if (minHv >= 0.0f) it.mn = std::max(it.mn, minHv);
+		if (maxHv >= 0.0f) it.mx = std::min(it.mx, maxHv);
 	}
-
 	it.mn = std::min(it.mn, it.hint);
 	it.mn = std::min(it.mn, it.mx);
 

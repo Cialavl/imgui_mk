@@ -56,11 +56,9 @@ page.addWidget([&](const Mk::wg2::Rect& r) {
 }, [&](const Mk::wg2::Size& avail) {
 return root.hint(avail);
 });
+	root.at<Mk::wg2::Id("when")>().showFn = [&s] { return !s.mute; };
 }
 
-void refresh(State& s) {
-root.at<Mk::wg2::Id("when")>().show = !s.mute;
-}
 
 };
 

@@ -85,6 +85,9 @@ struct MenuItem {
 	std::string name;
 	std::string shortcut;
 	bool selected = false;
+	std::function<bool()> selectedFn;   // 拉取式勾选态（如"当前主题"菜单项）
+
+	bool selectedNow() const { return selectedFn ? selectedFn() : selected; }
 	std::function<void()> onClick;
 
 	template<class F>
@@ -97,7 +100,7 @@ struct MenuItem {
 	Policy policy() const { return Policy{}; }
 
 	void draw(const Rect&) {
-		if (ImGui::MenuItem(name.c_str(), shortcut.empty() ? nullptr : shortcut.c_str(), selected) && onClick) {
+		if (ImGui::MenuItem(name.c_str(), shortcut.empty() ? nullptr : shortcut.c_str(), selectedNow()) && onClick) {
 			onClick();
 		}
 	}

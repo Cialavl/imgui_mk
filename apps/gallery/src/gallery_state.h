@@ -25,12 +25,13 @@ inline ImFont* gMono = nullptr;
 // ============ 共享状态 ============
 
 struct State {
-	int frames = 0, insFrames = 0;
+	// 帧序号由引擎提供（window::frameIndex()），这里只存窗口指针
+	Mk::window* win = nullptr;
+	Mk::window* inspectorWin = nullptr;   // 检查器窗口（帧序号/可见性由它自己提供）
 	int sel = 0;
 	int clicks = 0, imgBtnClicks = 0;
 	float volume = 0.6f;
 	bool mute = false;
-	std::vector<float> history;
 
 	int iVal = 42;
 	float fVal = 3.14f;

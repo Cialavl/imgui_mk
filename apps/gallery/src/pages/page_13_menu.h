@@ -27,7 +27,7 @@ root.at<Mk::wg2::Id("panel")>().height = 110.0f;
 root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("slider")>().name = "面板内滑块";
 root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("slider")>().value = &s.volume;
 root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("frames")>().name = "帧";
-root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("frames")>().valueFn = [&s] { return std::to_string(s.frames); };
+root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("frames")>().valueFn = [&s] { return std::to_string(s.win->frameIndex()); };
 root.at<Mk::wg2::Id("note")>().text = "Panel 是浮动窗口；菜单栏是常驻点（主窗口顶部）。";
 
 page.addWidget([&](const Mk::wg2::Rect& r) {

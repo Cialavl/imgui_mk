@@ -56,11 +56,9 @@ page.addWidget([&](const Mk::wg2::Rect& r) {
 }, [&](const Mk::wg2::Size& avail) {
 return root.hint(avail);
 });
+	root.at<Mk::wg2::Id("bits")>().valueFn = [&s] { return "0b" + std::bitset<3>(s.bitFlags).to_string(); };
 }
 
-void refresh(State& s) {
-root.at<Mk::wg2::Id("bits")>().value = "0b" + std::bitset<3>(s.bitFlags).to_string();
-}
 
 };
 

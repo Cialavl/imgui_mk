@@ -80,20 +80,15 @@ int* current = nullptr;
 
 struct PageFn {
 std::function<void(const Mk::wg2::Rect&)> render;
-std::function<void(State&)> refresh;
 };
 
 std::vector<PageFn> pages;
 
 template<class F, class G = std::nullptr_t>
-void addPage(F&& render,
-G&& refresh = nullptr) {
-pages.push_back(PageFn{std::forward<F>(render), std::forward<G>(refresh)});
+void addPage(F&& render) {
+		pages.push_back(PageFn{std::forward<F>(render)});
 }
 
-void refreshAll(State& s) {
-for (auto& p : pages) if (p.refresh) p.refresh(s);
-}
 
 Mk::wg2::Size hint(const Mk::wg2::Size& avail) const {
 return Mk::wg2::Size{avail.w, avail.h};

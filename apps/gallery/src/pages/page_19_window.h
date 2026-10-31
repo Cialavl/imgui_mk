@@ -22,9 +22,9 @@ page.setup("多窗口链接",
 snips::kMultiWindow);
 
 root.at<Mk::wg2::Id("gal")>().name = "Gallery 帧";
-root.at<Mk::wg2::Id("gal")>().valueFn = [&s] { return std::to_string(s.frames); };
+root.at<Mk::wg2::Id("gal")>().valueFn = [&s] { return std::to_string(s.win->frameIndex()); };
 root.at<Mk::wg2::Id("ins")>().name = "Inspector 帧";
-root.at<Mk::wg2::Id("ins")>().valueFn = [&s] { return std::to_string(s.insFrames); };
+root.at<Mk::wg2::Id("ins")>().valueFn = [&s] { return s.inspectorWin ? std::to_string(s.inspectorWin->frameIndex()) : std::string("-"); };
 root.at<Mk::wg2::Id("toggle")>().label = "显示/隐藏 Inspector";
 root.at<Mk::wg2::Id("toggle")>().onClick = [&] { s.toggleInspector(); };
 root.at<Mk::wg2::Id("note")>().text = "拖动一个窗口的滑块，另一个同帧刷新（绑同一变量）。"
