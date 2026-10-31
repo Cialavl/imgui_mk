@@ -290,7 +290,7 @@ struct PopupModal {
 			ImGui::OpenPopup(pid);
 			*open = false;
 		}
-		if (!ImGui::BeginPopupModal(pid, nullptr, flags)) return;
+		if (!ImGui::BeginPopupModal(pid, nullptr, flags)) { if (open) *open = false; return; }   // 关闭后同步外部开关，否则下一帧会重新打开
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
 				if (child.state.visible) drawFlow(child);   // 模态弹窗内流式排布（含内边距）

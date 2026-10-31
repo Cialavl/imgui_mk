@@ -219,20 +219,20 @@ shell.at<Mk::wg2::Id("popupTree")>().idname = "gpop";
 shell.at<Mk::wg2::Id("popupTree")>().open = &popupOpen;
 shell.at<Mk::wg2::Id("popupTree"), Mk::wg2::Id("popupText")>().text = "A regular popup.";
 shell.at<Mk::wg2::Id("popupTree"), Mk::wg2::Id("popupClose")>().label = "关闭";
-shell.at<Mk::wg2::Id("popupTree"), Mk::wg2::Id("popupClose")>().onClick = [] { ImGui::CloseCurrentPopup(); };
+shell.at<Mk::wg2::Id("popupTree"), Mk::wg2::Id("popupClose")>().onClick = [this] { popupOpen = false; ImGui::CloseCurrentPopup(); };
 
 shell.at<Mk::wg2::Id("modalTree")>().idname = "gmodal";
 shell.at<Mk::wg2::Id("modalTree")>().open = &modalOpen;
 shell.at<Mk::wg2::Id("modalTree"), Mk::wg2::Id("modalText")>().text = "A modal popup blocks interaction with the host.";
 shell.at<Mk::wg2::Id("modalTree"), Mk::wg2::Id("modalClose")>().label = "关闭";
-shell.at<Mk::wg2::Id("modalTree"), Mk::wg2::Id("modalClose")>().onClick = [] { ImGui::CloseCurrentPopup(); };
+shell.at<Mk::wg2::Id("modalTree"), Mk::wg2::Id("modalClose")>().onClick = [this] { modalOpen = false; ImGui::CloseCurrentPopup(); };
 
 shell.at<Mk::wg2::Id("aboutTree")>().idname = "about";
 shell.at<Mk::wg2::Id("aboutTree")>().open = &aboutOpen;
 shell.at<Mk::wg2::Id("aboutTree"), Mk::wg2::Id("aboutText")>().text =
 "mkui Widget Gallery\nImGui + GLFW + OpenGL wrapper\nwg2 template struct widget library";
 shell.at<Mk::wg2::Id("aboutTree"), Mk::wg2::Id("aboutOk")>().label = "OK";
-shell.at<Mk::wg2::Id("aboutTree"), Mk::wg2::Id("aboutOk")>().onClick = [] { ImGui::CloseCurrentPopup(); };
+shell.at<Mk::wg2::Id("aboutTree"), Mk::wg2::Id("aboutOk")>().onClick = [this] { aboutOpen = false; ImGui::CloseCurrentPopup(); };
 }
 
 void initStatus() {
