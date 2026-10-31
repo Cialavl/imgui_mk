@@ -23,6 +23,8 @@ Mk::wg2::LabelText<Mk::wg2::Id("bits")>
 Page page;
 Root root;
 
+	static constexpr const char* kItems[] = {"Option A", "Option B", "Option C"};
+
 	// 本页自己的数据（不共享、不依赖外部状态容器）
 	bool mute = false;
 	bool radioBool = false;

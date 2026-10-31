@@ -4,6 +4,11 @@
 
 namespace gallery {
 
+// FnRender 页的裸绘制桥：自带演示值，不依赖任何外部状态
+struct FnDrawerImpl {
+	void operator()() const { ImGui::ProgressBar(0.42f, ImVec2(-FLT_MIN, 0), "FnRender 演示条"); }
+};
+
 struct PageFnRender {
 using Root = Mk::wg2::VBox<
 Mk::wg2::Id("root"),

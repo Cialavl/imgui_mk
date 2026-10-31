@@ -16,6 +16,8 @@ Mk::wg2::FnTable<Mk::wg2::Id("fn")>
 Page page;
 Root root;
 
+	static constexpr const char* kHeaders[] = {"Name", "Value", "Note"};
+
 	// 本页自己的数据（不共享、不依赖外部状态容器）
 	std::vector<std::vector<std::string>> rows{
 		{"A", "1", "data driven"},

@@ -1,7 +1,6 @@
 #pragma once
 // gallery wg2 基础设施：PageNavWg2 / PageHostWg2。
 
-#include "gallery_state.h"
 #include <imgui_mk/ui/wg2/wg2.h>
 
 #include <functional>

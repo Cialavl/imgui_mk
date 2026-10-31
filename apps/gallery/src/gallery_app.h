@@ -5,6 +5,7 @@
 #include "gallery_inspector.h"
 #include "gallery_pages.h"
 #include "gallery_wg2_bridge.h"
+#include <Mainwindow.h>
 #include <functional>
 #include <memory>
 #include <vector>

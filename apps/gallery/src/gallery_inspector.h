@@ -2,6 +2,7 @@
 // gallery Inspector 子窗口：独立文件分层。
 // 子窗口挂载语义保持不变（构造即创建窗口并 mountChild 到父窗口）；
 #include "gallery_chrome.h"
+#include <imgui_mk/window.h>
 #include <memory>
 
 namespace gallery {
