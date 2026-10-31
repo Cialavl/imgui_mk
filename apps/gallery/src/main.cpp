@@ -16,6 +16,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <utility>
 
 namespace {
 
@@ -81,68 +82,70 @@ int main() {
 	if (const char* startPage = std::getenv("GALLERY_START_PAGE"))
 		window.sel = std::atoi(startPage);   // 巡检/复现：直接打开指定页
 
-	// —— 29 个演示页：数据由各页自己持有，main 只做组装 ——
-	gallery::PageBase      pageBase;
-	gallery::PageLifecycle pageLifecycle;
-	gallery::PageLayout    pageLayout;
-	gallery::PageSplit     pageSplit;
-	gallery::PageText      pageText;
-	gallery::PageButton    pageButton(window.tex);
-	gallery::PageInput     pageInput;
-	gallery::PageNumber    pageNumber;
-	gallery::PageDrag      pageDrag;
-	gallery::PageSelect    pageSelect;
-	gallery::PageFeedback  pageFeedback(window.win);
-	gallery::PageContainer pageContainer;
-	gallery::PageTab       pageTab;
-	gallery::PageMenu      pageMenu(window.win);
-	gallery::PageTable     pageTable;
-	gallery::PagePopup     pagePopup;
-	gallery::PageColor     pageColor;
-	gallery::PageDeco      pageDeco;
-	gallery::PageTheme     pageTheme;
-	gallery::PageWindow    pageWindow(window.win, window.inspectorWin());
-	gallery::PageFile      pageFile(window.win);
-	gallery::PageFnRender  pageFnRender;
-	gallery::PageWg2       pageWg2;
-	gallery::PageWg2Catalog pageWg2Catalog;
+	// —— 29 个演示页：对象各自持有数据，注册表决定导航顺序与分组 ——
 	gallery::PageLayoutBasic   pageLayoutBasic;
 	gallery::PageLayoutSize    pageLayoutSize;
 	gallery::PageLayoutGrid    pageLayoutGrid;
 	gallery::PageLayoutRuntime pageLayoutRuntime;
 	gallery::PageLayoutDynamic pageLayoutDynamic;
+	gallery::PageBase          pageBase;
+	gallery::PageLifecycle     pageLifecycle;
+	gallery::PageWg2           pageWg2;
+	gallery::PageWg2Catalog    pageWg2Catalog;
+	gallery::PageLayout        pageLayout;
+	gallery::PageSplit         pageSplit;
+	gallery::PageText          pageText;
+	gallery::PageButton        pageButton(window.tex);
+	gallery::PageInput         pageInput;
+	gallery::PageNumber        pageNumber;
+	gallery::PageDrag          pageDrag;
+	gallery::PageSelect        pageSelect;
+	gallery::PageFeedback      pageFeedback(window.win);
+	gallery::PageContainer     pageContainer;
+	gallery::PageTab           pageTab;
+	gallery::PageMenu          pageMenu(window.win);
+	gallery::PageTable         pageTable;
+	gallery::PagePopup         pagePopup;
+	gallery::PageColor         pageColor;
+	gallery::PageDeco          pageDeco;
+	gallery::PageTheme         pageTheme;
+	gallery::PageWindow        pageWindow(window.win, window.inspectorWin());
+	gallery::PageFile          pageFile(window.win);
+	gallery::PageFnRender      pageFnRender;
 
-	// —— 布局大类：简单/复杂 × 静态/动态 ——
-	window.addPage(pageLayoutBasic,   gallery::kGroupLayout);
-	window.addPage(pageLayoutSize);
-	window.addPage(pageLayoutGrid);
-	window.addPage(pageLayoutRuntime);
-	window.addPage(pageLayoutDynamic);
-
-	window.addPage(pageBase,      gallery::kGroupWg);
-	window.addPage(pageLifecycle);
-	window.addPage(pageWg2);
-	window.addPage(pageWg2Catalog);
-	window.addPage(pageLayout);
-	window.addPage(pageSplit);
-	window.addPage(pageText,      gallery::kGroupAtoms);
-	window.addPage(pageButton);
-	window.addPage(pageInput);
-	window.addPage(pageNumber);
-	window.addPage(pageDrag);
-	window.addPage(pageSelect);
-	window.addPage(pageFeedback);
-	window.addPage(pageContainer, gallery::kGroupContainers);
-	window.addPage(pageTab);
-	window.addPage(pageMenu);
-	window.addPage(pageTable);
-	window.addPage(pagePopup,     gallery::kGroupPopColor);
-	window.addPage(pageColor);
-	window.addPage(pageDeco,      gallery::kGroupDeco);
-	window.addPage(pageTheme,     gallery::kGroupApp);
-	window.addPage(pageWindow);
-	window.addPage(pageFile);
-	window.addPage(pageFnRender);
+	// 注册表：{页, 分组}；分组为空 = 沿用上一组
+	const std::pair<gallery::Page*, const char*> kRegistry[] = {
+		{&pageLayoutBasic.page,   gallery::kGroupLayout},
+		{&pageLayoutSize.page,    nullptr},
+		{&pageLayoutGrid.page,    nullptr},
+		{&pageLayoutRuntime.page, nullptr},
+		{&pageLayoutDynamic.page, nullptr},
+		{&pageBase.page,          gallery::kGroupWg},
+		{&pageLifecycle.page,     nullptr},
+		{&pageWg2.page,           nullptr},
+		{&pageWg2Catalog.page,    nullptr},
+		{&pageLayout.page,        nullptr},
+		{&pageSplit.page,         nullptr},
+		{&pageText.page,          gallery::kGroupAtoms},
+		{&pageButton.page,        nullptr},
+		{&pageInput.page,         nullptr},
+		{&pageNumber.page,        nullptr},
+		{&pageDrag.page,          nullptr},
+		{&pageSelect.page,        nullptr},
+		{&pageFeedback.page,      nullptr},
+		{&pageContainer.page,     gallery::kGroupContainers},
+		{&pageTab.page,           nullptr},
+		{&pageMenu.page,          nullptr},
+		{&pageTable.page,         nullptr},
+		{&pagePopup.page,         gallery::kGroupPopColor},
+		{&pageColor.page,         nullptr},
+		{&pageDeco.page,          gallery::kGroupDeco},
+		{&pageTheme.page,         gallery::kGroupApp},
+		{&pageWindow.page,        nullptr},
+		{&pageFile.page,          nullptr},
+		{&pageFnRender.page,      nullptr},
+	};
+	for (const auto& [page, group] : kRegistry) window.addPage(*page, group);
 
 	// —— Inspector 子窗口由主窗 GalleryWindow 构造时全权装配（窗口/界面/回调）——
 

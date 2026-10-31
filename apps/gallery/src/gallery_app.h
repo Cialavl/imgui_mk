@@ -100,13 +100,10 @@ InspectorWindow inspector;
 		Mk::mkui<Mk::window>::RegistrationWindow().emit(ThemeChanged{t});
 	}
 
-template<typename P>
-void addPage(P& page, const char* group = nullptr) {
+void addPage(Page& page, const char* group = nullptr) {
 if (group && *group) shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().addEntry(group, true);
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().addEntry(page.page.title, false);
- auto render = [&page](const Mk::wg2::Rect& r) {
- page.page.renderTo(r);
- };
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().addEntry(page.title, false);
+ auto render = [&page](const Mk::wg2::Rect& r) { page.renderTo(r); };
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("host")>().addPage(render);
 }
 
