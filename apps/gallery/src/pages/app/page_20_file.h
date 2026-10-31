@@ -36,15 +36,19 @@ page.setup("文件对话框",
 "帧循环每帧 poll() 取结果。对话框期间不冻结。",
 snips::kFile);
 
-root.at<Id("open")>().label = "选文件…";
-root.at<Id("open")>().onClick = [this] { openDialog(); };
-root.at<Id("size")>().name = "文件大小";
-root.at<Id("size")>().valueFn = [&] { return std::to_string(fileSize) + " bytes"; };
-root.at<Id("path")>().text = "(none)";
-root.at<Id("path")>().valueFn = [&] { return filePath.empty() ? std::string("(none)") : filePath; };
+auto& _w1 = root.at<Id("open")>();
+_w1.label = "选文件…";
+_w1.onClick = [this] { openDialog(); };
+auto& _w2 = root.at<Id("size")>();
+_w2.name = "文件大小";
+_w2.valueFn = [&] { return std::to_string(fileSize) + " bytes"; };
+auto& _w3 = root.at<Id("path")>();
+_w3.text = "(none)";
+_w3.valueFn = [&] { return filePath.empty() ? std::string("(none)") : filePath; };
 root.at<Id("binary"), Id("binaryText")>().name = "二进制";
-root.at<Id("missing"), Id("missingText")>().name = "错误";
-root.at<Id("missing"), Id("missingText")>().value = "文件不可读";
+auto& _w4 = root.at<Id("missing"), Id("missingText")>();
+_w4.name = "错误";
+_w4.value = "文件不可读";
 	root.at<Id("binary")>().showFn = [&] { return !filePath.empty() && fileBinary; };
 	root.at<Id("missing")>().showFn = [&] { return fileMissing; };
 

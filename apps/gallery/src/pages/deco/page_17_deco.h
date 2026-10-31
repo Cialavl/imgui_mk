@@ -47,13 +47,15 @@ root.at<Id("colored"), Id("coloredText")>().text = "彩色文字（colored 包�
 root.at<Id("indent")>().amount = 24.0f;
 root.at<Id("indent"), Id("indentText")>().text = "缩进的文本";
 root.at<Id("width")>().width = 180.0f;
-root.at<Id("width"), Id("drag")>().name = "限宽拖拽";
-root.at<Id("width"), Id("drag")>().value = &drag;
+auto& _w1 = root.at<Id("width"), Id("drag")>();
+_w1.name = "限宽拖拽";
+_w1.value = &drag;
 root.at<Id("when"), Id("whenText")>().text = "When 包裹的文本，show=false 时不渲染不占位。";
 root.at<Id("styled")>().color = ImVec4(0.4f, 0.7f, 1.0f, 1.0f);
 root.at<Id("styled"), Id("styledBtn")>().label = "Styled 主题按钮";
-root.at<Id("disabled")>().label = "禁用按钮（state.enabled=false）";
-root.at<Id("disabled")>().state.enabled = false;
+auto& _w2 = root.at<Id("disabled")>();
+_w2.label = "禁用按钮（state.enabled=false）";
+_w2.state.enabled = false;
 
 bindPage(page, root);
 	root.at<Id("when")>().showFn = [&] { return !mute; };

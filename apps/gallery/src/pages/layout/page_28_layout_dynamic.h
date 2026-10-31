@@ -29,36 +29,41 @@ struct PageLayoutDynamic {
 			snips::kLayoutDynamic);
 
 		root.at<Id("intro")>().text = "左边网格加卡片、右边页签加页；窗口变窄时网格自动压列宽";
-		root.at<Id("bar"), Id("addTile")>().label = "网格 +1";
-		root.at<Id("bar"), Id("addTile")>().onClick = [this] {
+		auto& _w1 = root.at<Id("bar"), Id("addTile")>();
+		_w1.label = "网格 +1";
+		_w1.onClick = [this] {
 			auto tile = std::make_unique<Label<Id("tile")>>(
 				"卡片 " + std::to_string(++tiles));
 			AnyWidget any = AnyWidget::own(std::move(tile));
 			any.idname = "tile" + std::to_string(tiles);
 			root.at<Id("body"), Id("gridZone")>().child<0>().add(std::move(any));
 		};
-		root.at<Id("bar"), Id("addTab")>().label = "页签 +1";
-		root.at<Id("bar"), Id("addTab")>().onClick = [this] {
+		auto& _w2 = root.at<Id("bar"), Id("addTab")>();
+		_w2.label = "页签 +1";
+		_w2.onClick = [this] {
 			auto body = std::make_unique<Label<Id("tabBody")>>(
 				"第 " + std::to_string(++tabs) + " 页的内容");
 			AnyWidget any = AnyWidget::own(std::move(body));
 			any.idname = "tab" + std::to_string(tabs);
 			root.at<Id("body"), Id("tabZone")>().child<0>().add("页 " + std::to_string(tabs), std::move(any));
 		};
-		root.at<Id("bar"), Id("clearTiles")>().label = "清空网格";
-		root.at<Id("bar"), Id("clearTiles")>().onClick = [this] {
+		auto& _w3 = root.at<Id("bar"), Id("clearTiles")>();
+		_w3.label = "清空网格";
+		_w3.onClick = [this] {
 			root.at<Id("body"), Id("gridZone")>().child<0>().clear();
 		};
 
-		root.at<Id("body"), Id("gridZone")>().idname = "layoutDynGrid";
-		root.at<Id("body"), Id("gridZone")>().height = 220.0f;
-		root.at<Id("body"), Id("gridZone")>().border = true;
-		root.at<Id("body"), Id("gridZone")>().child<0>().cols = 2;
-		root.at<Id("body"), Id("gridZone")>().child<0>().spacing = 8.0f;
+		auto& _w4 = root.at<Id("body"), Id("gridZone")>();
+		_w4.idname = "layoutDynGrid";
+		_w4.height = 220.0f;
+		_w4.border = true;
+		_w4.child<0>().cols = 2;
+		_w4.child<0>().spacing = 8.0f;
 
-		root.at<Id("body"), Id("tabZone")>().idname = "layoutDynTabs";
-		root.at<Id("body"), Id("tabZone")>().height = 220.0f;
-		root.at<Id("body"), Id("tabZone")>().border = true;
+		auto& _w5 = root.at<Id("body"), Id("tabZone")>();
+		_w5.idname = "layoutDynTabs";
+		_w5.height = 220.0f;
+		_w5.border = true;
 		root.at<Id("note")>().text = "两个容器都是 wg2 的动态层（AnyWidget 类型擦除），静态树其余部分完全不受影响。";
 
 		bindPage(page, root);

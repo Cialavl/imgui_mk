@@ -29,15 +29,19 @@ page.setup("按钮与图片",
 "wg2 Button（onClick）/ ImageButton / Image（loadTextureRGBA 生成纹理）。",
 snips::kButton);
 
-root.at<Id("plain")>().label = "普通按钮";
-root.at<Id("plain")>().onClick = [&] { ++clicks; };
-root.at<Id("count")>().label = "计数按钮";
-root.at<Id("count")>().onClick = [&] { clicks += 10; };
-root.at<Id("imgbtn")>().tex = tex;
-root.at<Id("imgbtn")>().size = ImVec2(96, 96);
-root.at<Id("imgbtn")>().onClick = [&] { ++imgBtnClicks; };
-root.at<Id("clicks")>().name = "图片按钮点击";
-root.at<Id("clicks")>().valueFn = [&] { return std::to_string(imgBtnClicks); };
+auto& _w1 = root.at<Id("plain")>();
+_w1.label = "普通按钮";
+_w1.onClick = [&] { ++clicks; };
+auto& _w2 = root.at<Id("count")>();
+_w2.label = "计数按钮";
+_w2.onClick = [&] { clicks += 10; };
+auto& _w3 = root.at<Id("imgbtn")>();
+_w3.tex = tex;
+_w3.size = ImVec2(96, 96);
+_w3.onClick = [&] { ++imgBtnClicks; };
+auto& _w4 = root.at<Id("clicks")>();
+_w4.name = "图片按钮点击";
+_w4.valueFn = [&] { return std::to_string(imgBtnClicks); };
 root.at<Id("imageRow"), Id("imageA")>().tex = tex;
 root.at<Id("imageRow"), Id("imageB")>().tex = tex;
 

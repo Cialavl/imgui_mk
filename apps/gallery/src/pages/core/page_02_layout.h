@@ -35,10 +35,12 @@ page.setup("布局：编译期 HBox/VBox 嵌套",
 snips::kLayout);
 
 root.at<Id("intro")>().text = "布局步骤：hint（计算尺寸）→ draw（求解并递归子节点）";
-root.at<Id("row"), Id("col"), Id("volume")>().name = "音量";
-root.at<Id("row"), Id("col"), Id("volume")>().value = &volume;
-root.at<Id("row"), Id("col"), Id("mute")>().name = "静音";
-root.at<Id("row"), Id("col"), Id("mute")>().checked = &mute;
+auto& _w1 = root.at<Id("row"), Id("col"), Id("volume")>();
+_w1.name = "音量";
+_w1.value = &volume;
+auto& _w2 = root.at<Id("row"), Id("col"), Id("mute")>();
+_w2.name = "静音";
+_w2.checked = &mute;
 root.at<Id("row"), Id("rightCol"), Id("right")>().text = "H 行右格";
 root.at<Id("note")>().text = "布局数据约束：子控件在父容器内，路径访问全程一致。";
 

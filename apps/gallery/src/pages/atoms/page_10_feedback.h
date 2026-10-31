@@ -26,8 +26,9 @@ page.setup("反馈与指示",
 "wg2 ProgressBar（fraction 绑定）/ PlotLines（外部 vector 只读绑定）/ Separator(Text)。",
 snips::kFeedback);
 
-root.at<Id("bar1")>().fraction = &volume;
-root.at<Id("bar1")>().overlay = "Loading";
+auto& _w1 = root.at<Id("bar1")>();
+_w1.fraction = &volume;
+_w1.overlay = "Loading";
 root.at<Id("bar2")>().fraction = &volume;
 root.at<Id("plot")>().name = "波形历史";
 // 曲线自己算：不依赖外部缓冲，也就不需要每帧填数据

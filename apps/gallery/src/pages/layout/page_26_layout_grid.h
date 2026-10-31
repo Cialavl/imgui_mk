@@ -39,8 +39,9 @@ struct PageLayoutGrid {
 			snips::kLayoutGrid);
 
 		root.at<Id("intro")>().text = "Grid：3 列 × 2 行，列宽均分";
-		root.at<Id("grid")>().cols = 3;
-		root.at<Id("grid")>().spacing = 8.0f;
+		auto& _w1 = root.at<Id("grid")>();
+		_w1.cols = 3;
+		_w1.spacing = 8.0f;
 		for (int i = 0; i < 6; ++i) {
 			auto label = "格子 " + std::to_string(i);
 			switch (i) {
@@ -64,9 +65,10 @@ struct PageLayoutGrid {
 
 		root.at<Id("ovTitle")>().text = "Overlay：文字在底层，按钮用 Offset 浮在上面";
 		root.at<Id("ov"), Id("ovBase")>().text = "底层文字（会被上面的按钮压住一部分）";
-		root.at<Id("ov"), Id("ovOff")>().dxEm = 9.0f;
-		root.at<Id("ov"), Id("ovOff")>().dyEm = 0.2f;
-		root.at<Id("ov"), Id("ovOff")>().child.label = "浮层按钮";
+		auto& _w2 = root.at<Id("ov"), Id("ovOff")>();
+		_w2.dxEm = 9.0f;
+		_w2.dyEm = 0.2f;
+		_w2.child.label = "浮层按钮";
 		root.at<Id("note")>().text = "复杂布局 = 这些容器随意嵌套，路径 at<Id, Id, ...>() 依旧可直达。";
 
 		bindPage(page, root);

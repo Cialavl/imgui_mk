@@ -60,12 +60,15 @@ struct PageWg2Catalog {
 >;)");
 
 		root.at<Id("input_head")>().name = "输入";
-		root.at<Id("input_row"), Id("check")>().name = "静音";
-		root.at<Id("input_row"), Id("check")>().checked = &checked;
-		root.at<Id("input_row"), Id("text")>().name = "文本";
-		root.at<Id("input_row"), Id("text")>().setName("hello wg2");
-		root.at<Id("input_row"), Id("volume")>().name = "音量";
-		root.at<Id("input_row"), Id("volume")>().value = &volume;
+		auto& _w1 = root.at<Id("input_row"), Id("check")>();
+		_w1.name = "静音";
+		_w1.checked = &checked;
+		auto& _w2 = root.at<Id("input_row"), Id("text")>();
+		_w2.name = "文本";
+		_w2.setName("hello wg2");
+		auto& _w3 = root.at<Id("input_row"), Id("volume")>();
+		_w3.name = "音量";
+		_w3.value = &volume;
 
 		root.at<Id("display_head")>().name = "显示";
 		root.at<Id("display_row"), Id("bar")>().fraction = &volume;
@@ -74,12 +77,14 @@ struct PageWg2Catalog {
 		root.at<Id("colored")>().color = ImVec4(0.4f, 0.9f, 0.6f, 1.0f);
 		root.at<Id("colored"), Id("color_label")>().text = "Colored 装饰件";
 
-		root.at<Id("tip"), Id("tip_btn")>().label = "悬停看提示";
-		root.at<Id("tip"), Id("tip_btn")>().onClick = [&] { ++clicks; };
+		auto& _w4 = root.at<Id("tip"), Id("tip_btn")>();
+		_w4.label = "悬停看提示";
+		_w4.onClick = [&] { ++clicks; };
 		root.at<Id("tip")>().text = "这是 Tooltip 装饰件";
 
-		root.at<Id("tabwin")>().height = 170.0f;
-		root.at<Id("tabwin")>().idname = "wg2catalog:tabs";
+		auto& _w5 = root.at<Id("tabwin")>();
+		_w5.height = 170.0f;
+		_w5.idname = "wg2catalog:tabs";
 		root.at<Id("tabwin"), Id("tabs"), Id("tab_a")>().title = "页 A";
 		root.at<Id("tabwin"), Id("tabs"), Id("tab_a"), Id("tab_a_text")>().text = "编译期 Tab A";
 		root.at<Id("tabwin"), Id("tabs"), Id("tab_b")>().title = "页 B";

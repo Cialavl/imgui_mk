@@ -36,19 +36,24 @@ snips::kContainers);
 
 root.at<Id("overlay"), Id("overlayOffset"), Id("overlayLabel")>().text = "Overlay 叠放（重叠渲染）";
 	// 叠放时错开：标签浮到按钮右侧，避免两段文字完全叠在一起看不清
-	root.at<Id("overlay"), Id("overlayOffset")>().dxEm = 7.5f;
-	root.at<Id("overlay"), Id("overlayOffset")>().dyEm = 0.35f;
-root.at<Id("overlay"), Id("overlayButton")>().label = "叠放按钮";
-root.at<Id("overlay"), Id("overlayButton")>().onClick = [&] { ++clicks; };
-root.at<Id("collapsing")>().title = "折叠容器（默认展开）";
-root.at<Id("collapsing")>().defaultOpen = true;
+	auto& _w1 = root.at<Id("overlay"), Id("overlayOffset")>();
+	_w1.dxEm = 7.5f;
+	_w1.dyEm = 0.35f;
+auto& _w2 = root.at<Id("overlay"), Id("overlayButton")>();
+_w2.label = "叠放按钮";
+_w2.onClick = [&] { ++clicks; };
+auto& _w3 = root.at<Id("collapsing")>();
+_w3.title = "折叠容器（默认展开）";
+_w3.defaultOpen = true;
 root.at<Id("collapsing"), Id("collLabel")>().text = "折叠内容";
-root.at<Id("tree")>().title = "树节点（默认展开）";
-root.at<Id("tree")>().defaultOpen = true;
+auto& _w4 = root.at<Id("tree")>();
+_w4.title = "树节点（默认展开）";
+_w4.defaultOpen = true;
 root.at<Id("tree"), Id("leaf1")>().text = "叶子一";
 root.at<Id("tree"), Id("leaf2")>().text = "叶子二";
-root.at<Id("sub")>().idname = "subwin";
-root.at<Id("sub")>().height = 70.0f;
+auto& _w5 = root.at<Id("sub")>();
+_w5.idname = "subwin";
+_w5.height = 70.0f;
 root.at<Id("sub"), Id("subLabel")>().text = "SubWindow：嵌套滚动子窗口";
 
 bindPage(page, root);

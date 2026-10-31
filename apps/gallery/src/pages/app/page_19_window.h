@@ -25,12 +25,15 @@ struct PageWindow {
 			"两个顶层窗口各自一个 ImGui 上下文与帧循环；绑定 wg2 控件到同一批外部变量 = 实时链接。",
 			snips::kMultiWindow);
 
-		root.at<Id("gal")>().name = "Gallery 帧";
-		root.at<Id("gal")>().valueFn = [this] { return std::to_string(win->frameIndex()); };
-		root.at<Id("ins")>().name = "Inspector 帧";
-		root.at<Id("ins")>().valueFn = [this] { return inspectorWin ? std::to_string(inspectorWin->frameIndex()) : std::string("-"); };
-		root.at<Id("toggle")>().label = "显示/隐藏 Inspector";
-		root.at<Id("toggle")>().onClick = [] {
+		auto& _w1 = root.at<Id("gal")>();
+		_w1.name = "Gallery 帧";
+		_w1.valueFn = [this] { return std::to_string(win->frameIndex()); };
+		auto& _w2 = root.at<Id("ins")>();
+		_w2.name = "Inspector 帧";
+		_w2.valueFn = [this] { return inspectorWin ? std::to_string(inspectorWin->frameIndex()) : std::string("-"); };
+		auto& _w3 = root.at<Id("toggle")>();
+		_w3.label = "显示/隐藏 Inspector";
+		_w3.onClick = [] {
 			Mk::mkui<Mk::window>::RegistrationWindow().emit(ToggleInspector{});
 		};
 		root.at<Id("note")>().text = "Inspector 只隐藏；Gallery 关闭后跟随退出。";
