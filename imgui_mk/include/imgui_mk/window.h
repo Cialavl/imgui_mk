@@ -466,29 +466,25 @@ m_Impl->m_CentralPadY = padY;
 			std::max(0.0f, avail.y - m_Impl->m_CentralPadY * 2.0f)};
 	}
 
-	// 统一 UI 入口五分派：
-	//   (window&) 回调     = 每帧窗口回调（先于中央布局执行；可改状态/幂等挂控件）
-	//   StaticWidget 左值  = 控件直挂中央（等价 setCentralWidget(root)）
-	//   (const Rect&) 回调 = 中央布局回调（回调式挂载）
-	//   (ImGuiIO&) 回调    = 每帧 UI，框架在帧内注入当前 io（不必再写 ImGui::GetIO()）
-	//   () 回调            = 普通每帧 UI
+	// 每帧逻辑入口：setUI 只负责"每帧干什么"，挂视图请用 setCentralWidget（两者职责不重叠）。
+	//   (window&) 回调  = 每帧窗口回调（先于中央布局执行；可改状态/幂等挂控件）
+	//   (ImGuiIO&) 回调 = 每帧 UI，框架在帧内注入当前 io（不必再写 ImGui::GetIO()）
+	//   () 回调         = 普通每帧 UI
+	// 视图挂载：
+	//   setCentralWidget(root)                  静态树直挂（窗口每帧自动布局）
+	//   setCentralWidget([](const Rect& r){...}) 回调式布局（自己决定画什么）
 	template<class F>
 	void setUI(F&& ui) {
 		if constexpr (std::is_invocable_v<F&, window&>) {
 			setUserUI([this, fn = std::forward<F>(ui)]() mutable { fn(*this); });
-		} else if constexpr (wg2::StaticWidget<std::remove_cvref_t<F>> && std::is_lvalue_reference_v<F&&>) {
-			setCentralWidget(std::forward<F>(ui));   // 仅左值：临时控件会悬垂
-		} else if constexpr (std::is_invocable_v<F&, const wg2::Rect&>) {
-			setCentralWidget(std::forward<F>(ui));
 		} else if constexpr (std::is_invocable_v<F&, ImGuiIO&>) {
 			// 回调签名写成 [](ImGuiIO& io){ ... }：每帧由框架传入当前 io
 			setUserUI([fn = std::forward<F>(ui)]() mutable { fn(ImGui::GetIO()); });
 		} else if constexpr (std::is_invocable_v<F&>) {
 			setUserUI(std::forward<F>(ui));
 		} else {
-			static_assert(std::is_invocable_v<F&, window&> || std::is_invocable_v<F&, const wg2::Rect&> ||
-				std::is_invocable_v<F&, ImGuiIO&> || std::is_invocable_v<F&>,
-				"wg2 window::setUI callback must be invocable with (), (window&), (ImGuiIO&), (const Rect&) or be a StaticWidget lvalue");
+			static_assert(std::is_invocable_v<F&, window&> || std::is_invocable_v<F&, ImGuiIO&> || std::is_invocable_v<F&>,
+				"setUI 只接受每帧回调 (), (window&), (ImGuiIO&)；挂视图请用 setCentralWidget(root) 或 setCentralWidget([](const Rect&){})");
 		}
 	}
 

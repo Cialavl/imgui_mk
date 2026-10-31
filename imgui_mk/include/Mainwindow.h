@@ -63,8 +63,8 @@ void setCentralWidget(F&& fn,
 		// —— window.h API 的模板组合转发 ——
 
 		// 注入每帧 UI 回调（在 run() 之前调用；转发到内部窗口的 setUserUI）
-		// 统一 UI 入口：无参回调 = 普通每帧 UI；接收 Rect 的回调 = 中央布局 UI；
-		// 接收 ImGuiIO& 的回调 = 每帧 UI（框架注入 io，省去手写 ImGui::GetIO()）。
+		// 每帧逻辑入口（视图挂载走 setCentralWidget，两者不重叠）：
+		// () = 普通每帧 UI；(window&) = 带窗口的每帧回调；(ImGuiIO&) = 框架注入 io 的每帧回调。
 template<class F>
 void setUI(F&& ui) { m_Window.setUI(std::forward<F>(ui)); }
 template<auto UI>
