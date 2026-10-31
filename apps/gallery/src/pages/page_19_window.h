@@ -16,7 +16,7 @@ Mk::wg2::TextWrapped<Mk::wg2::Id("note")>
 Page page;
 Root root;
 
-PageWindow(std::function<void()> toggleInspector, Mk::window* win, Mk::window* inspectorWin) {
+PageWindow(Mk::window* win, Mk::window* inspectorWin) {
 page.setup("多窗口链接",
 "两个顶层窗口各自一个 ImGui 上下文与帧循环；绑定 wg2 控件到同一批外部变量 = 实时链接。",
 snips::kMultiWindow);
@@ -26,7 +26,9 @@ root.at<Mk::wg2::Id("gal")>().valueFn = [&] { return std::to_string(win->frameIn
 root.at<Mk::wg2::Id("ins")>().name = "Inspector 帧";
 root.at<Mk::wg2::Id("ins")>().valueFn = [&] { return inspectorWin ? std::to_string(inspectorWin->frameIndex()) : std::string("-"); };
 root.at<Mk::wg2::Id("toggle")>().label = "显示/隐藏 Inspector";
-root.at<Mk::wg2::Id("toggle")>().onClick = [&] { toggleInspector(); };
+root.at<Mk::wg2::Id("toggle")>().onClick = [] {
+		Mk::mkui<Mk::window>::RegistrationWindow().emit(ToggleInspector{});
+	};
 root.at<Mk::wg2::Id("note")>().text = "拖动一个窗口的滑块，另一个同帧刷新（绑同一变量）。"
 " Inspector 只隐藏；Gallery 关闭后跟随退出。";
 

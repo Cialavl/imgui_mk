@@ -17,7 +17,14 @@ Mk::wg2::SliderAngle<Mk::wg2::Id("slideA")>
 Page page;
 Root root;
 
-PageDrag(float& drag, int& dragInt, int& slideI, float& angle, float& volume) {
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	float drag = 0.5f;
+	int dragInt = 100;
+	int slideI = 50;
+	float angle = 0.785f;
+	float volume = 0.6f;
+
+PageDrag() {
 page.setup("拖拽与滑块",
 "wg2 DragF/DragI（speed/mn/mx）与 SliderF/SliderInt/SliderAngle（角度转弧度）。值直接写回外部变量。",
 snips::kDrag);

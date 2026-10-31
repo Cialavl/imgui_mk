@@ -23,7 +23,11 @@ Mk::wg2::Label<Mk::wg2::Id("modalText")>
 Page page;
 Root root;
 
-PagePopup(bool& popupOpen, bool& modalOpen) {
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	bool popupOpen = false;
+	bool modalOpen = false;
+
+PagePopup() {
 page.setup("弹窗",
 "wg2 Popup/PopupModal：open 标志位 + 帧内 OpenPopup 自动配对。",
 snips::kPopup);

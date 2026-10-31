@@ -24,18 +24,21 @@ Mk::wg2::Button<Mk::wg2::Id("rescale")>
 Page page;
 Root root;
 
-PageTheme(std::function<void(const Mk::wg2::Theme&)> applyTheme) {
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	Mk::wg2::Theme theme = Mk::wg2::Theme::dark();
+
+PageTheme() {
 page.setup("主题与自适应",
 "wg2 全局 Theme 切换与 rescale 重载字号；局部主题可用 Colored/样式作用域代替。",
 snips::kTheme);
 
 root.at<Mk::wg2::Id("row"), Mk::wg2::Id("dark")>().label = "Dark";
-root.at<Mk::wg2::Id("row"), Mk::wg2::Id("dark")>().onClick = [&] { applyTheme(Theme::dark()); };
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("dark")>().onClick = [&] { Mk::mkui<Mk::window>::RegistrationWindow().emit(ThemeChanged{Theme::dark()}); };
 root.at<Mk::wg2::Id("row"), Mk::wg2::Id("light")>().label = "Light";
-root.at<Mk::wg2::Id("row"), Mk::wg2::Id("light")>().onClick = [&] { applyTheme(Theme::light()); };
+root.at<Mk::wg2::Id("row"), Mk::wg2::Id("light")>().onClick = [&] { Mk::mkui<Mk::window>::RegistrationWindow().emit(ThemeChanged{Theme::light()}); };
 root.at<Mk::wg2::Id("row"), Mk::wg2::Id("accent")>().label = "Accent 红";
 root.at<Mk::wg2::Id("row"), Mk::wg2::Id("accent")>().onClick = [&] {
-applyTheme(Theme::dark().withAccent(ImVec4(1.0f, 0.0f, 0.0f, 1.0f)));
+Mk::mkui<Mk::window>::RegistrationWindow().emit(ThemeChanged{Theme::dark().withAccent(ImVec4(1.0f, 0.0f, 0.0f, 1.0f))});
 };
 root.at<Mk::wg2::Id("scopeNote")>().text = "局部主题：wg2 当前使用 Colored 装饰件替代 Styled";
 root.at<Mk::wg2::Id("compact")>().spacing = 2.0f;
@@ -48,7 +51,7 @@ const float cur = engineFontSize();
 engineRescale(cur >= 23.5f ? 18.0f : 24.0f);
 };
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
+	page.addWidget([&](const Mk::wg2::Rect& r) {
  Mk::wg2::layout(root, r);
 }, [&](const Mk::wg2::Size& avail) {
 return root.hint(avail);

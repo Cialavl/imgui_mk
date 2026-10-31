@@ -18,7 +18,10 @@ Mk::wg2::LabelText<Mk::wg2::Id("clicks")>
 Page page;
 Root root;
 
-PageBase(int& clicks) {
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	int clicks = 0;
+
+PageBase() {
 page.setup("基础：wg2 直接 struct 控件",
 "wg2 不再使用 Control<Self> 外壳和 Node 成员；控件就是 template struct，"
 "静态树由 VBox<Id(\"...\"), ...> 编译期组合，字符串路径访问。",

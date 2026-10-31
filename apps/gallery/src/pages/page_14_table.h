@@ -16,17 +16,23 @@ Mk::wg2::FnTable<Mk::wg2::Id("fn")>
 Page page;
 Root root;
 
-PageTable(std::vector<std::vector<std::string>>& rows) {
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	std::vector<std::vector<std::string>> rows{
+		{"A", "1", "data driven"},
+		{"B", "2", "external vector"},
+		{"C", "3", "session-local"}};
+
+PageTable() {
 page.setup("表格",
 "wg2 TextTable（数据驱动：外部 vector 只读绑定）；FnTable（单元回调 cell(r,c)）。",
 snips::kTable);
 
 root.at<Mk::wg2::Id("data")>().idname = "tbl";
-root.at<Mk::wg2::Id("data")>().headers = State::kHeaders;
+root.at<Mk::wg2::Id("data")>().headers = kHeaders;
 root.at<Mk::wg2::Id("data")>().headerCount = 3;
 root.at<Mk::wg2::Id("data")>().rows = &rows;
 root.at<Mk::wg2::Id("fn")>().idname = "fn";
-root.at<Mk::wg2::Id("fn")>().headers = State::kHeaders;
+root.at<Mk::wg2::Id("fn")>().headers = kHeaders;
 root.at<Mk::wg2::Id("fn")>().headerCount = 3;
 root.at<Mk::wg2::Id("fn")>().rowCount = 4;
 root.at<Mk::wg2::Id("fn")>().cell = [](int r, int c) {

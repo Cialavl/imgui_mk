@@ -31,7 +31,11 @@ Mk::wg2::Button<Mk::wg2::Id("disabled")>
 Page page;
 Root root;
 
-PageDeco(float& drag, bool& mute) {
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	float drag = 0.5f;
+	bool mute = false;
+
+PageDeco() {
 page.setup("装饰件",
 "wg2 Tooltip/Colored/Indent/ItemWidth/When 均为编译期包装；禁用用 state.enabled=false。",
 snips::kDeco);

@@ -24,7 +24,11 @@ Mk::wg2::Label<Mk::wg2::Id("note")>
 Page page;
 Root root;
 
-PageLayout(float& volume, bool& mute) {
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	float volume = 0.6f;
+	bool mute = false;
+
+PageLayout() {
 page.setup("布局：编译期 HBox/VBox 嵌套",
 "wg2 静态布局 = VBox/HBox/Grid/Wrap/SplitH/SplitV/Overlay 模板容器。"
 "本页 = HBox 嵌 VBox，子节点经模板参数传入，布局嵌布局自然递归。",

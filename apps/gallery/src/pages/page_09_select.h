@@ -23,7 +23,14 @@ Mk::wg2::LabelText<Mk::wg2::Id("bits")>
 Page page;
 Root root;
 
-PageSelect(bool& mute, bool& radioBool, int& radio, int& comboSel, int& listSel, bool& rowSel, int& bitFlags) {
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	bool mute = false;
+	bool radioBool = false;
+	int radio = 1, comboSel = 0, listSel = 0;
+	bool rowSel = false;
+	int bitFlags = 0b101;
+
+PageSelect() {
 page.setup("选择控件",
 "wg2 CheckBox/RadioButton/RadioGroup/Combo/ListBox/Selectable/CheckboxFlags。"
 "items 数组需长寿命（static constexpr）。",
@@ -33,16 +40,16 @@ root.at<Mk::wg2::Id("check")>().name = "勾选";
 root.at<Mk::wg2::Id("check")>().checked = &mute;
 root.at<Mk::wg2::Id("radio")>().name = "单选（布尔）";
 root.at<Mk::wg2::Id("radio")>().active = &radioBool;
-root.at<Mk::wg2::Id("group")>().items = State::kItems;
+root.at<Mk::wg2::Id("group")>().items = kItems;
 root.at<Mk::wg2::Id("group")>().count = 3;
 root.at<Mk::wg2::Id("group")>().current = &radio;
 root.at<Mk::wg2::Id("combo")>().name = "下拉";
 root.at<Mk::wg2::Id("combo")>().current = &comboSel;
-root.at<Mk::wg2::Id("combo")>().items = State::kItems;
+root.at<Mk::wg2::Id("combo")>().items = kItems;
 root.at<Mk::wg2::Id("combo")>().count = 3;
 root.at<Mk::wg2::Id("list")>().name = "列表";
 root.at<Mk::wg2::Id("list")>().current = &listSel;
-root.at<Mk::wg2::Id("list")>().items = State::kItems;
+root.at<Mk::wg2::Id("list")>().items = kItems;
 root.at<Mk::wg2::Id("list")>().count = 3;
 root.at<Mk::wg2::Id("row")>().name = "可选中行";
 root.at<Mk::wg2::Id("row")>().selected = &rowSel;

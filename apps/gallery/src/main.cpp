@@ -19,14 +19,14 @@
 namespace {
 
 // —— 崩溃自诊断：未处理异常时把异常地址/调用栈/运行状态写盘（调试用；SEH 下 CRT IO 为 best-effort）——
-static gallery::State* g_state = nullptr;   // 崩溃自诊断直接读状态，不做每帧快照
+static Mk::window* g_win = nullptr;   // 崩溃自诊断读窗口帧序号
 static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
 	FILE* f = nullptr;
 	if(fopen_s(&f, "C:\\Users\\26495\\AppData\\Local\\Temp\\opencode\\gallery_crash.txt", "w") == 0 && f) {
 		std::fprintf(f, "exception=0x%08X addr=0x%p\n",
 			ep->ExceptionRecord->ExceptionCode,
 			ep->ExceptionRecord->ExceptionAddress);
-		std::fprintf(f, "state: frame=%llu sel=%d\n", g_state ? g_state->win->frameIndex() : 0ull, g_state ? g_state->sel : -1);
+		std::fprintf(f, "window frame=%llu\n", g_win ? g_win->frameIndex() : 0ull);
 		void* bt[40];
 		const USHORT n = RtlCaptureStackBackTrace(0, 40, bt, nullptr);
 		for(USHORT i = 0; i < n; ++i) {
@@ -69,41 +69,40 @@ int main() {
 	gallery.addAuxFont(0.85f, &gallery::gMono);
 	gallery.setAutoScaleFont(true);
 
-	// 应用组件：拥有共享状态 + 主壳 + 检查器子窗口
+	// 应用组件：主壳 + 检查器子窗口（数据各页/各窗自己持有）
 	gallery::GalleryWindow window(gallery);
-	gallery::State& s = window.state();
 
-	// 棋盘纹理（Image/ImageButton 页共用）
+	// 棋盘纹理（Image/ImageButton 页共用）：应用壳持有，页面按句柄取用
 	static unsigned char pixels[64 * 64 * 4];
 	makeChecker(pixels);
-	s.tex = Mk::wg2::loadTextureRGBA(pixels, 64, 64);
+	window.tex = Mk::wg2::loadTextureRGBA(pixels, 64, 64);
+	g_win = &gallery.getWindow();   // 崩溃诊断用
 
-	// —— 29 个演示页：main 组装一次，UI 回调按选中下标切换可见性 ——
-	gallery::PageBase      pageBase(s.clicks);
-	gallery::PageLifecycle pageLifecycle(s.mute);
-	gallery::PageLayout    pageLayout(s.volume, s.mute);
+	// —— 29 个演示页：数据由各页自己持有，main 只做组装 ——
+	gallery::PageBase      pageBase;
+	gallery::PageLifecycle pageLifecycle;
+	gallery::PageLayout    pageLayout;
 	gallery::PageSplit     pageSplit;
 	gallery::PageText      pageText;
-	gallery::PageButton    pageButton(s.clicks, s.imgBtnClicks, s.tex);
+	gallery::PageButton    pageButton(window.tex);
 	gallery::PageInput     pageInput;
-	gallery::PageNumber    pageNumber(s.iVal, s.fVal, s.dVal, s.iv, s.fv);
-	gallery::PageDrag      pageDrag(s.drag, s.dragInt, s.slideI, s.angle, s.volume);
-	gallery::PageSelect    pageSelect(s.mute, s.radioBool, s.radio, s.comboSel, s.listSel, s.rowSel, s.bitFlags);
-	gallery::PageFeedback  pageFeedback(s.volume, s.win);
-	gallery::PageContainer pageContainer(s.clicks);
+	gallery::PageNumber    pageNumber;
+	gallery::PageDrag      pageDrag;
+	gallery::PageSelect    pageSelect;
+	gallery::PageFeedback  pageFeedback(window.win);
+	gallery::PageContainer pageContainer;
 	gallery::PageTab       pageTab;
-	gallery::PageMenu      pageMenu(s.volume, s.win);
-	gallery::PageTable     pageTable(s.rows);
-	gallery::PagePopup     pagePopup(s.popupOpen, s.modalOpen);
-	gallery::PageColor     pageColor(s.col3, s.col4, s.pick3, s.pick4);
-	gallery::PageDeco      pageDeco(s.drag, s.mute);
-	gallery::PageTheme     pageTheme([&s](const Mk::wg2::Theme& t) { s.applyTheme(t); });
-	gallery::PageWindow    pageWindow([&s] { s.toggleInspector(); }, s.win, s.inspectorWin);
-	gallery::PageFile      pageFile(s.filePath, s.fileSize, s.fileBinary, s.fileMissing,
-		[&s] { s.openFileDlg(); });
+	gallery::PageMenu      pageMenu(window.win);
+	gallery::PageTable     pageTable;
+	gallery::PagePopup     pagePopup;
+	gallery::PageColor     pageColor;
+	gallery::PageDeco      pageDeco;
+	gallery::PageTheme     pageTheme;
+	gallery::PageWindow    pageWindow(window.win, window.inspectorWin());
+	gallery::PageFile      pageFile(window.win);
 	gallery::PageFnRender  pageFnRender;
-	gallery::PageWg2       pageWg2(s.clicks);
-	gallery::PageWg2Catalog pageWg2Catalog(s.clicks);
+	gallery::PageWg2       pageWg2;
+	gallery::PageWg2Catalog pageWg2Catalog;
 	gallery::PageLayoutBasic   pageLayoutBasic;
 	gallery::PageLayoutSize    pageLayoutSize;
 	gallery::PageLayoutGrid    pageLayoutGrid;
@@ -145,48 +144,25 @@ int main() {
 	// —— Inspector 子窗口由主窗 GalleryWindow 构造时全权装配（窗口/界面/回调）——
 
 
-	// 键盘翻页（PgUp/PgDn，与侧栏选择共用一个下标）：方便逐页巡查 UI
+	// 键盘翻页（PgUp/PgDn）：直接改应用组件的选中页
 	const int pageCount = window.pageCount();
-	gallery.addShortcut(ImGuiKey_PageDown, [&s, pageCount] {
-		if(pageCount > 0) s.sel = (s.sel + 1) % pageCount;
+	gallery.addShortcut(ImGuiKey_PageDown, [&window, pageCount] {
+		if (pageCount > 0) window.sel = (window.sel + 1) % pageCount;
 	});
-	gallery.addShortcut(ImGuiKey_PageUp, [&s, pageCount] {
-		if(pageCount > 0) s.sel = (s.sel + pageCount - 1) % pageCount;
+	gallery.addShortcut(ImGuiKey_PageUp, [&window, pageCount] {
+		if (pageCount > 0) window.sel = (window.sel + pageCount - 1) % pageCount;
 	});
 
-	// 注册式每帧机制：快捷键 + 文件对话框托管（引擎在 user UI 前统一分发）
-	gallery.addShortcut(ImGuiKey_O, [&] { s.openFileDlg(); }, true);
-	gallery.watchFileDialog(s.fileDlg, [&](std::string picked) {
-		s.filePath = picked;
-		s.filePreview.clear();
-		s.fileSize = 0;
-		s.fileBinary = false;
-		s.fileMissing = false;
-		if(!s.filePath.empty()) {
-			std::error_code ec;
-			s.fileSize = std::filesystem::file_size(s.filePath, ec);
-			if(ec) {
-				s.fileMissing = true;
-			}
-			else {
-				std::ifstream in(s.filePath, std::ios::binary);
-				constexpr std::size_t kCap = 64 * 1024;
-				std::string buf(kCap, '\0');
-				in.read(buf.data(), (std::streamsize)kCap);
-				buf.resize((size_t)in.gcount());
-				s.fileBinary = buf.find('\0') != std::string::npos;
-				if(!s.fileBinary) s.filePreview = std::move(buf);
-			}
-		}
-	});
+	// Ctrl+O：发打开文件事件，由文件页自己处理（页面持有对话框）
+	gallery.addShortcut(ImGuiKey_O, [] {
+		Mk::mkui<Mk::window>::RegistrationWindow().emit(gallery::OpenFile{});
+	}, true);
 
 	SetUnhandledExceptionFilter(CrashHandler);
 
 	// 视图直挂（Qt setCentralWidget 语义）：窗口每帧自动布局整棵树
 	gallery.setCentralWidget(window.shell);
 
-	// 状态交给控件自己拉取：帧序号来自引擎，界面值由各控件 valueFn 取
-	s.win = &gallery.getWindow();
 
 	Mk::mkui<Mk::window>::run();
 	return 0;

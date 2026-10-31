@@ -26,7 +26,10 @@ Mk::wg2::Label<Mk::wg2::Id("subLabel")>
 Page page;
 Root root;
 
-PageContainer(int& clicks) {
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	int clicks = 0;
+
+PageContainer() {
 page.setup("容器控件",
 "wg2 Overlay 叠放 / Collapsing / Tree / SubWindow；子节点经模板参数编译期传入。",
 snips::kContainers);

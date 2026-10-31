@@ -20,7 +20,11 @@ Mk::wg2::Image<Mk::wg2::Id("imageB")>
 Page page;
 Root root;
 
-PageButton(int& clicks, int& imgBtnClicks, ImTextureID& tex) {
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	int clicks = 0;
+	int imgBtnClicks = 0;
+
+PageButton(ImTextureID tex) {
 page.setup("按钮与图片",
 "wg2 Button（onClick）/ ImageButton / Image（loadTextureRGBA 生成纹理）。",
 snips::kButton);

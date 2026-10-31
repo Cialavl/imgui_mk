@@ -17,7 +17,10 @@ Mk::wg2::Label<Mk::wg2::Id("note")>
 Page page;
 Root root;
 
-PageMenu(float& volume, Mk::window* win) {
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	float volume = 0.6f;
+
+PageMenu(Mk::window* win) {
 page.setup("菜单与面板",
 "wg2 Panel = SubWindow 别名；面板内容经模板参数编译期传入。",
 snips::kPanel);

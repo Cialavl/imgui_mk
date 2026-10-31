@@ -63,27 +63,40 @@ Mk::wg2::Button<Mk::wg2::Id("aboutOk")>
 
 ShellRoot shell;
 
-State* sRef = nullptr;
 Mk::MainWindow<Mk::window>* winRef = nullptr;
+	Mk::window* win = nullptr;
 InspectorWindow inspector;
 
-	GalleryWindow(Mk::MainWindow<Mk::window>& win)
-		: sRef(&s), winRef(&win), inspector(win.getWindow(), s) {
-		s.win = &win.getWindow();
-		// 主题事件：本窗口组件自己应用（数据/行为都在组件里）
+	GalleryWindow(Mk::MainWindow<Mk::window>& w)
+		: winRef(&w), inspector(w.getWindow()) {
+		win = &w.getWindow();
+		// 主题事件：本窗口组件自己应用
 		Mk::mkui<Mk::window>::RegistrationWindow().on<ThemeChanged>([this](const ThemeChanged& e) {
 			winRef->setTheme(e.theme);
 		});
-		initMenus(s);
-		initPanels(s);
-		initPopups(s);
-		initStatus(s);
+		initMenus();
+		initPanels();
+		initPopups();
+		initStatus();
 		initShell();
 	}
 
-	// 组件的共享数据：归本组件所有，页面/子窗口按引用取用
-	State s;
-	State& state() { return s; }
+	// —— 应用壳自己的数据（选中页 / 主题 / 侧栏演示值 / 弹窗开关 / 纹理句柄）——
+	int sel = 0;
+	float panelVolume = 0.6f;
+	bool popupOpen = false, modalOpen = false, aboutOpen = false;
+	Mk::wg2::Theme theme = Mk::wg2::Theme::dark();
+	bool darkActive = true;
+	ImTextureID tex{};
+
+	Mk::window* inspectorWin() { return inspector.win.get(); }
+
+	// 换肤：自己的状态 + 通知各窗口组件
+	void applyTheme(const Mk::wg2::Theme& t) {
+		theme = t;
+		darkActive = t.windowBg.x < 0.5f;
+		Mk::mkui<Mk::window>::RegistrationWindow().emit(ThemeChanged{t});
+	}
 
 template<typename P>
 void addPage(P& page, const char* group = nullptr) {
@@ -107,37 +120,41 @@ return n;
 
 
 private:
-void initMenus(State& s) {
+void initMenus() {
 auto& f = shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile")>();
 f.name = "File";
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miOpen")>().name = "Open...";
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miOpen")>().shortcut = "Ctrl+O";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miOpen")>().onClick = [&] { s.openFileDlg(); };
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miOpen")>().onClick = [] {
+		Mk::mkui<Mk::window>::RegistrationWindow().emit(OpenFile{});
+	};
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miExit")>().name = "Exit";
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miExit")>().onClick = [&] {
-glfwSetWindowShouldClose(winRef->getHandle(), true);
+winRef->requestClose();
 };
 
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme")>().name = "Theme";
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miDark")>().name = "Dark";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miDark")>().onClick = [&] { s.applyTheme(Theme::dark()); };
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miDark")>().selectedFn = [&s] { return s.darkActive; };
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miDark")>().onClick = [this] { applyTheme(Theme::dark()); };
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miDark")>().selectedFn = [this] { return darkActive; };
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miLight")>().name = "Light";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miLight")>().onClick = [&] { s.applyTheme(Theme::light()); };
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miLight")>().selectedFn = [&s] { return !s.darkActive; };
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miLight")>().onClick = [this] { applyTheme(Theme::light()); };
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miLight")>().selectedFn = [this] { return !darkActive; };
 
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuWindow")>().name = "Window";
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuWindow"), Mk::wg2::Id("miInspector")>().name = "Show/Hide Inspector";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuWindow"), Mk::wg2::Id("miInspector")>().onClick = [&] { s.toggleInspector(); };
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuWindow"), Mk::wg2::Id("miInspector")>().onClick = [] {
+		Mk::mkui<Mk::window>::RegistrationWindow().emit(ToggleInspector{});
+	};
 
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp")>().name = "Help";
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp"), Mk::wg2::Id("miAbout")>().name = "About Gallery";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp"), Mk::wg2::Id("miAbout")>().onClick = [&] { s.aboutOpen = true; };
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp"), Mk::wg2::Id("miAbout")>().onClick = [this] { aboutOpen = true; };
 }
 
-void initPanels(State& s) {
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().current = &s.sel;
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("host")>().current = &s.sel;
+void initPanels() {
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().current = &sel;
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("host")>().current = &sel;
 
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().state.size.prefW = 250.0f;
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("nav")>().state.size.minW = 150.0f;
@@ -149,41 +166,41 @@ shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePan
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel")>().state.size.prefW = 260.0f;
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel")>().state.size.minW = 180.0f;
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel"), Mk::wg2::Id("panelSlider")>().name = "Panel slider";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel"), Mk::wg2::Id("panelSlider")>().value = &s.volume;
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel"), Mk::wg2::Id("panelSlider")>().value = &panelVolume;
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel"), Mk::wg2::Id("panelFrame")>().name = "Frame";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel"), Mk::wg2::Id("panelFrame")>().valueFn = [&s] {
-return std::to_string(s.win->frameIndex());
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel"), Mk::wg2::Id("panelFrame")>().valueFn = [this] {
+return std::to_string(win->frameIndex());
 };
 }
 
-void initPopups(State& s) {
+void initPopups() {
 shell.at<Mk::wg2::Id("popupTree")>().idname = "gpop";
-shell.at<Mk::wg2::Id("popupTree")>().open = &s.popupOpen;
+shell.at<Mk::wg2::Id("popupTree")>().open = &popupOpen;
 shell.at<Mk::wg2::Id("popupTree"), Mk::wg2::Id("popupText")>().text = "A regular popup.";
 shell.at<Mk::wg2::Id("popupTree"), Mk::wg2::Id("popupClose")>().label = "关闭";
 shell.at<Mk::wg2::Id("popupTree"), Mk::wg2::Id("popupClose")>().onClick = [] { ImGui::CloseCurrentPopup(); };
 
 shell.at<Mk::wg2::Id("modalTree")>().idname = "gmodal";
-shell.at<Mk::wg2::Id("modalTree")>().open = &s.modalOpen;
+shell.at<Mk::wg2::Id("modalTree")>().open = &modalOpen;
 shell.at<Mk::wg2::Id("modalTree"), Mk::wg2::Id("modalText")>().text = "A modal popup blocks interaction with the host.";
 shell.at<Mk::wg2::Id("modalTree"), Mk::wg2::Id("modalClose")>().label = "关闭";
 shell.at<Mk::wg2::Id("modalTree"), Mk::wg2::Id("modalClose")>().onClick = [] { ImGui::CloseCurrentPopup(); };
 
 shell.at<Mk::wg2::Id("aboutTree")>().idname = "about";
-shell.at<Mk::wg2::Id("aboutTree")>().open = &s.aboutOpen;
+shell.at<Mk::wg2::Id("aboutTree")>().open = &aboutOpen;
 shell.at<Mk::wg2::Id("aboutTree"), Mk::wg2::Id("aboutText")>().text =
 "mkui Widget Gallery\nImGui + GLFW + OpenGL wrapper\nwg2 template struct widget library";
 shell.at<Mk::wg2::Id("aboutTree"), Mk::wg2::Id("aboutOk")>().label = "OK";
 shell.at<Mk::wg2::Id("aboutTree"), Mk::wg2::Id("aboutOk")>().onClick = [] { ImGui::CloseCurrentPopup(); };
 }
 
-void initStatus(State& s) {
+void initStatus() {
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFps")>().name = "FPS";
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFps")>().valueFn = [] {
 return std::to_string(static_cast<int>(ImGui::GetIO().Framerate));   // 单位由 name="FPS" 显示，避免重复
 };
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFrame")>().name = "帧";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFrame")>().valueFn = [&s] { return std::to_string(s.win->frameIndex()); };
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFrame")>().valueFn = [this] { return std::to_string(win->frameIndex()); };
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stPage")>().name = "页";
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stPage")>().valueFn = [this] { return std::string(currentPageTitle()); };
 }

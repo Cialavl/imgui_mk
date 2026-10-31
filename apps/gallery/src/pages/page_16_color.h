@@ -20,7 +20,13 @@ Mk::wg2::ColorPicker4<Mk::wg2::Id("pick4")>
 Page page;
 Root root;
 
-PageColor(std::array<float, 3>& col3, std::array<float, 4>& col4, std::array<float, 3>& pick3, std::array<float, 4>& pick4) {
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	std::array<float, 3> col3{0.9f, 0.3f, 0.2f};
+	std::array<float, 4> col4{0.2f, 0.6f, 0.9f, 1.0f};
+	std::array<float, 3> pick3{0.4f, 0.6f, 0.8f};
+	std::array<float, 4> pick4{0.8f, 0.6f, 0.4f, 1.0f};
+
+PageColor() {
 page.setup("颜色编辑",
 "wg2 ColorEdit3/4 与 ColorPicker3/4：std::array<float,3|4>* 绑定；拾取器可包进折叠容器。",
 snips::kColor);

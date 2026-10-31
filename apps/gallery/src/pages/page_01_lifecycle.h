@@ -25,7 +25,10 @@ Mk::wg2::RuntimeList<Mk::wg2::Id("dynamic")>
 Page page;
 Root root;
 
-PageLifecycle(bool& mute) {
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	bool mute = false;
+
+PageLifecycle() {
 page.setup("基础：生命周期",
 "wg2 静态树没有全局 Node 状态机；动态叶子通过 RuntimeList opt-in，"
 "When 装饰件负责显示/隐藏。",

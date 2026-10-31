@@ -25,7 +25,10 @@ struct PageWg2 {
 	Page page;
 	Wg2Root root;
 
-	PageWg2(int& clicks) {
+	// 本页自己的数据
+	int clicks = 0;
+
+	PageWg2() {
 		page.setup("wg2：静态树 + 动态列表 opt-in",
 			"普通控件是直接 struct：VBox<Id(\"...\"), ...> 编译期组合，"
 			"字符串路径访问；只有 RuntimeList 内部才有 AnyWidget 类型擦除。",

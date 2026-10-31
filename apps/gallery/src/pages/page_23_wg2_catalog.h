@@ -41,10 +41,13 @@ struct PageWg2Catalog {
 	Page page;
 	Root root;
 
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	int clicks = 0;
+
 	float volume = 0.6f;
 	bool checked = false;
 
-	PageWg2Catalog(int& clicks) {
+	PageWg2Catalog() {
 		page.setup("wg2：控件巡礼",
 			"输入、显示、装饰件、页签等控件全部是直接 struct，"
 			"经 VBox/HBox/SubWindow 编译期组合，字符串路径访问。",

@@ -17,7 +17,10 @@ Mk::wg2::SeparatorText<Mk::wg2::Id("section")>
 Page page;
 Root root;
 
-PageFeedback(float& volume, Mk::window* win) {
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	float volume = 0.6f;
+
+PageFeedback(Mk::window* win) {
 page.setup("反馈与指示",
 "wg2 ProgressBar（fraction 绑定）/ PlotLines（外部 vector 只读绑定）/ Separator(Text)。",
 snips::kFeedback);

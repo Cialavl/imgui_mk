@@ -17,7 +17,14 @@ Mk::wg2::InputFloat2<Mk::wg2::Id("fv2")>
 Page page;
 Root root;
 
-PageNumber(int& iVal, float& fVal, double& dVal, std::array<int, 2>& iv, std::array<float, 2>& fv) {
+	// 本页自己的数据（不共享、不依赖外部状态容器）
+	int iVal = 42;
+	float fVal = 3.14f;
+	double dVal = 2.718;
+	std::array<int, 2> iv{10, 20};
+	std::array<float, 2> fv{1.5f, 2.5f};
+
+PageNumber() {
 page.setup("数值输入",
 "wg2 InputInt/Float/Double 与 vec2 变体（std::array<T,2>* 绑定）。数值直接写回外部变量。",
 snips::kInputNum);
