@@ -22,7 +22,13 @@ using namespace Mk::wg2;
 // 等宽代码字体（main 在创建窗口后、首帧前 AddFontDefault 装载填充）
 inline ImFont* gMono = nullptr;
 
-// ============ 共享状态 ============
+// ============ 组件间事件（引擎通道，类型化）============
+struct ThemeChanged {
+	Theme theme;
+};
+struct ToggleInspector {};
+
+// ============ 共享状态（归 GalleryWindow 组件所有，经引用传给页面）============
 
 struct State {
 	// 帧序号由引擎提供（window::frameIndex()），这里只存窗口指针
@@ -62,7 +68,6 @@ struct State {
 	std::uintmax_t fileSize = 0;
 	bool fileBinary = false, fileMissing = false;
 
-	GLFWwindow* inspectorHandle = nullptr;
 
 	static constexpr const char* kItems[] = {"Option A", "Option B", "Option C"};
 	static constexpr const char* kHeaders[] = {"Name", "Value", "Note"};
@@ -72,22 +77,19 @@ struct State {
 		{"C", "3", "refreshed per frame"},
 	};
 
-	// 统一换肤：引擎广播 applyThemeAll（各窗口自己帧内应用，跨窗口安全）；
+	// 统一换肤：发主题事件，各窗口组件自己应用；
 	// darkActive 供菜单勾选态（按背景亮度推导）
 	void applyTheme(const Theme& t) {
 		theme = t;
 		darkActive = t.windowBg.x < 0.5f;
-		Mk::mkui<Mk::window>::RegistrationWindow().applyThemeAll(t);
+		// 发事件给各窗口组件（各自 setTheme），状态本身不碰窗口
+		Mk::mkui<Mk::window>::RegistrationWindow().emit(ThemeChanged{t});
 	}
 
 	// 显示/隐藏 Inspector（菜单项与多窗口页共用）
 	void toggleInspector() {
-		if(inspectorHandle) {
-			if(glfwGetWindowAttrib(inspectorHandle, GLFW_VISIBLE))
-				glfwHideWindow(inspectorHandle);
-			else
-				glfwShowWindow(inspectorHandle);
-		}
+		// 谁拥有 Inspector 谁处理显隐：这里只发事件
+		Mk::mkui<Mk::window>::RegistrationWindow().emit(ToggleInspector{});
 	}
 
 	// 打开文件对话框（菜单 Open / Ctrl+O / 文件页共用）

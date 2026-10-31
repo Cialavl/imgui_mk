@@ -64,8 +64,13 @@ std::unique_ptr<Mk::window> win;      // 子窗口（父窗口经 mountChild 亦
 			buildIns(ui, s, *win);   // 装配界面树（帧序号等由窗口自己提供）
 			win->setAutoScaleFont(true);
 			win->setCentralWidget(ui.root);   // 静态直挂：窗口每帧自动布局
-			s.inspectorHandle = win->getHandle();
 			s.inspectorWin = win.get();
+			// 订阅引擎事件：主题 / 显隐都由本组件处理
+			auto& engine = Mk::mkui<Mk::window>::RegistrationWindow();
+			engine.on<ThemeChanged>([this](const ThemeChanged& e) { win->setTheme(e.theme); });
+			engine.on<ToggleInspector>([this](const ToggleInspector&) {
+				if (win->visible()) win->hide(); else win->show();
+			});
 			parent.mountChild(*win);
 }
 };

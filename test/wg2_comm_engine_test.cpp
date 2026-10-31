@@ -119,3 +119,43 @@ TEST(Wg2Comm, ThemeDefaultsAndMonitorScaling) {
 
 	setDefaultTheme(saved);   // 还原，避免影响其它用例
 }
+
+// ============ 引擎事件通道 ============
+
+namespace {
+
+struct PingEvent {
+	int value = 0;
+};
+
+struct UnusedEvent {};
+
+} // namespace
+
+TEST(Wg2Comm, EngineEventBusDispatchesTypedEvents) {
+	auto& engine = Mk::mkui<LoopWindow>::RegistrationWindow();
+
+	int got = -1;
+	int calls = 0;
+	engine.on<PingEvent>([&](const PingEvent& e) {
+		got = e.value;
+		++calls;
+	});
+
+	engine.emit(PingEvent{42});
+	EXPECT_EQ(calls, 1);
+	EXPECT_EQ(got, 42);
+
+	// 无订阅者的类型：静默 no-op（不抛、不崩）
+	engine.emit(UnusedEvent{});
+
+	// 多个订阅者都会被调用；后注册的也生效
+	int a = 0, b = 0;
+	engine.on<PingEvent>([&](const PingEvent&) { ++a; });
+	engine.on<PingEvent>([&](const PingEvent&) { ++b; });
+	engine.emit(PingEvent{7});
+	EXPECT_EQ(a, 1);
+	EXPECT_EQ(b, 1);
+	EXPECT_EQ(got, 7);
+	EXPECT_EQ(calls, 2);
+}

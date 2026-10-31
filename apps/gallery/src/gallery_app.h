@@ -64,17 +64,26 @@ Mk::wg2::Button<Mk::wg2::Id("aboutOk")>
 ShellRoot shell;
 
 State* sRef = nullptr;
-Mk::MainWindow<Mk::window, State>* winRef = nullptr;
+Mk::MainWindow<Mk::window>* winRef = nullptr;
 InspectorWindow inspector;
 
-GalleryWindow(Mk::MainWindow<Mk::window, State>& win, State& s)
-: sRef(&s), winRef(&win), inspector(win.getWindow(), s) {
-initMenus(s);
-initPanels(s);
-initPopups(s);
-initStatus(s);
-initShell();
-}
+	GalleryWindow(Mk::MainWindow<Mk::window>& win)
+		: sRef(&s), winRef(&win), inspector(win.getWindow(), s) {
+		s.win = &win.getWindow();
+		// 主题事件：本窗口组件自己应用（数据/行为都在组件里）
+		Mk::mkui<Mk::window>::RegistrationWindow().on<ThemeChanged>([this](const ThemeChanged& e) {
+			winRef->setTheme(e.theme);
+		});
+		initMenus(s);
+		initPanels(s);
+		initPopups(s);
+		initStatus(s);
+		initShell();
+	}
+
+	// 组件的共享数据：归本组件所有，页面/子窗口按引用取用
+	State s;
+	State& state() { return s; }
 
 template<typename P>
 void addPage(P& page, const char* group = nullptr) {

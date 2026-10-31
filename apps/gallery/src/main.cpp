@@ -62,13 +62,16 @@ int main() {
 	const auto [galW, galH] = Mk::workAreaSize(0.75f, 0.8f,
 		static_cast<int>(1440.0f * uiDpi), static_cast<int>(880.0f * uiDpi));
 
-	// 主窗口创建即注册共享状态（引擎层数据联动：窗口/页面经引擎取用同一实例）
-	Mk::MainWindow<Mk::window, gallery::State> gallery("mkui Widget Gallery", galW, galH);
-	gallery::State& s = gallery.state<gallery::State>();
+	// 主窗口（组件化：数据归 GalleryWindow 所有，页面按引用取用）
+	Mk::MainWindow<> gallery("mkui Widget Gallery", galW, galH);
 
 	// 追加等宽代码字体（×0.85 随字号联动）：框架保证默认中文链 + 重烘焙后句柄写回 gMono
 	gallery.addAuxFont(0.85f, &gallery::gMono);
 	gallery.setAutoScaleFont(true);
+
+	// 应用组件：拥有共享状态 + 主壳 + 检查器子窗口
+	gallery::GalleryWindow window(gallery);
+	gallery::State& s = window.state();
 
 	// 棋盘纹理（Image/ImageButton 页共用）
 	static unsigned char pixels[64 * 64 * 4];
@@ -76,8 +79,6 @@ int main() {
 	s.tex = Mk::wg2::loadTextureRGBA(pixels, 64, 64);
 
 	// —— 29 个演示页：main 组装一次，UI 回调按选中下标切换可见性 ——
-	gallery::GalleryWindow window(gallery, s);
-
 	gallery::PageBase      pageBase(s);
 	gallery::PageLifecycle pageLifecycle(s);
 	gallery::PageLayout    pageLayout(s);
