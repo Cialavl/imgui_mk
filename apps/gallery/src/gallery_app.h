@@ -6,6 +6,7 @@
 #include "gallery_pages.h"
 #include "gallery_wg2_bridge.h"
 #include <Mainwindow.h>
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <vector>

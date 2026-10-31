@@ -12,6 +12,7 @@
 #include <windows.h>   // 崩溃自诊断写盘（调试用）
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -77,6 +78,8 @@ int main() {
 	makeChecker(pixels);
 	window.tex = Mk::wg2::loadTextureRGBA(pixels, 64, 64);
 	g_win = &gallery.getWindow();   // 崩溃诊断用
+	if (const char* startPage = std::getenv("GALLERY_START_PAGE"))
+		window.sel = std::atoi(startPage);   // 巡检/复现：直接打开指定页
 
 	// —— 29 个演示页：数据由各页自己持有，main 只做组装 ——
 	gallery::PageBase      pageBase;
