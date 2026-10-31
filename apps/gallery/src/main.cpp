@@ -131,8 +131,6 @@ int main() {
 
 	// —— Inspector 子窗口由主窗 GalleryWindow 构造时全权装配（窗口/界面/回调）——
 
-	// 中央直挂静态树（窗口每帧自动 wg2::layout；Qt setCentralWidget 语义）
-	gallery.setCentralWidget(window.shell);
 
 	// 键盘翻页（PgUp/PgDn，与侧栏选择共用一个下标）：方便逐页巡查 UI
 	const int pageCount = window.pageCount();
@@ -171,7 +169,8 @@ int main() {
 
 	SetUnhandledExceptionFilter(CrashHandler);
 
-	gallery.setUI([&] {
+	// 中央挂载（回调式）：每帧先跑演示逻辑，再布局整棵树
+	gallery.setCentralWidget([&](const Mk::wg2::Rect& r) {
 		g_crashFrame = s.frames;
 		g_crashSel = s.sel;
 		// 动画驱动（演示内容）
@@ -182,6 +181,8 @@ int main() {
 
 		// 每帧动态绑定刷新（show 标志/主题跟随等；字符串型已改 valueFn 拉取式）
 		window.refreshAll(s);
+
+		Mk::wg2::layout(window.shell, r);
 	});
 
 	Mk::mkui<Mk::window>::run();

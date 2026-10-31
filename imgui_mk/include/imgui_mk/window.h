@@ -23,7 +23,7 @@ namespace Mk {
 			GLFWwindow* m_Handle = nullptr;
 			ImGuiContext* m_ImGuiContext = nullptr;
 			// 每帧 UI 回调（组件注入窗口内容，如主窗口组件）
-			std::function<void()> m_UserUI;
+
 			// 中央内容挂载（Qt setCentralWidget 语义）：窗口每帧自动对其做根布局
 						std::function<void(const wg2::Rect&)> m_CentralFn;   // wg2 回调挂载
 		void* m_CentralRoot = nullptr;                   // 直挂控件标记（幂等判重：帧内重复挂载安全）
@@ -296,9 +296,6 @@ namespace Mk {
 				}
 				for(const auto& watch : m_FileWatchers) watch();
 
-				if(m_UserUI) {
-					m_UserUI();
-				}
 
 
 				// 布局由窗口自动驱动（控件树与窗口交互；应用侧零布局调用）
@@ -418,13 +415,6 @@ ImGui::End();
 
 		// 源对象仍然可用：所有操作委托给共享状态
 
-		// 注入每帧 UI 回调（回调由调用方保证在窗口存活期间有效）
-		template<class F>
-void setUserUI(F&& ui) {
-			if(m_Impl) {
-				m_Impl->m_UserUI = std::forward<F>(ui);
-			}
-		}
 
 		// wg2 中央内容挂载（回调式）：每帧把内容区 bounds 回调给应用层执行 layout()。
 template<class F>
@@ -466,30 +456,6 @@ m_Impl->m_CentralPadY = padY;
 			std::max(0.0f, avail.y - m_Impl->m_CentralPadY * 2.0f)};
 	}
 
-	// 每帧逻辑入口：setUI 只负责"每帧干什么"，挂视图请用 setCentralWidget（两者职责不重叠）。
-	//   (window&) 回调  = 每帧窗口回调（先于中央布局执行；可改状态/幂等挂控件）
-	//   (ImGuiIO&) 回调 = 每帧 UI，框架在帧内注入当前 io（不必再写 ImGui::GetIO()）
-	//   () 回调         = 普通每帧 UI
-	// 视图挂载：
-	//   setCentralWidget(root)                  静态树直挂（窗口每帧自动布局）
-	//   setCentralWidget([](const Rect& r){...}) 回调式布局（自己决定画什么）
-	template<class F>
-	void setUI(F&& ui) {
-		if constexpr (std::is_invocable_v<F&, window&>) {
-			setUserUI([this, fn = std::forward<F>(ui)]() mutable { fn(*this); });
-		} else if constexpr (std::is_invocable_v<F&, ImGuiIO&>) {
-			// 回调签名写成 [](ImGuiIO& io){ ... }：每帧由框架传入当前 io
-			setUserUI([fn = std::forward<F>(ui)]() mutable { fn(ImGui::GetIO()); });
-		} else if constexpr (std::is_invocable_v<F&>) {
-			setUserUI(std::forward<F>(ui));
-		} else {
-			static_assert(std::is_invocable_v<F&, window&> || std::is_invocable_v<F&, ImGuiIO&> || std::is_invocable_v<F&>,
-				"setUI 只接受每帧回调 (), (window&), (ImGuiIO&)；挂视图请用 setCentralWidget(root) 或 setCentralWidget([](const Rect&){})");
-		}
-	}
-
-	template<auto UI>
-	void setUI() { setUI(UI); }
 
 // 切换本窗口主题（每窗口独立 ImGui 上下文，可各持一套皮肤）。
 		// 换肤不换字号：字体位图不重建，几何按当前烘焙字号推导

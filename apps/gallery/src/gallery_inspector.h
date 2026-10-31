@@ -62,9 +62,12 @@ const float uiDpi = Mk::wg2::dpiScale();
 		const auto [w, h] = Mk::workAreaSize(0.3f, 0.7f,
 			static_cast<int>(420.0f * uiDpi), static_cast<int>(640.0f * uiDpi));
 win = std::make_unique<Mk::window>("Inspector", w, h);
-win->setAutoScaleFont(true);
-win->setCentralWidget(ui.root);   // 静态树直挂：窗口每帧自动 wg2::layout
-win->setUserUI([&s] { ++s.insFrames; });
+		win->setAutoScaleFont(true);
+		// 回调式中央挂载：每帧先推进本窗口帧计数，再布局界面树
+		win->setCentralWidget([this, &s](const Mk::wg2::Rect& r) {
+			++s.insFrames;
+			Mk::wg2::layout(ui.root, r);
+		});
 s.inspectorHandle = win->getHandle();
 parent.mountChild(*win);
 }

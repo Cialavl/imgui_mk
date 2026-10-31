@@ -18,18 +18,9 @@ namespace Mk {
 	class MainWindow {
 	public:
 		MainWindow(const char* title, int width = 1600, int height = 900)
-			: MainWindow(title, width, height, nullptr) {
-		}
-
-		// 创建窗口并注入每帧 UI 回调
-		MainWindow(const char* title, int width, int height, std::function<void()> ui)
 			: m_Window(title, width, height) {
-			if(ui) {
-				m_Window.setUserUI(std::move(ui));
-			}
 			registerStateIfAny();   // S 指定时：创建及注册一步完成
 		}
-
 		// 共享状态取用（转发引擎注册表；类型键多槽，未注册抛异常）
 		template<typename T>
 		T& state() { return Mk::mkui<WindowT>::RegistrationWindow().template state<T>(); }
@@ -61,18 +52,10 @@ void setCentralWidget(F&& fn,
 		void setCloseHides(bool on) { m_Window.setCloseHides(on); }
 
 		// —— window.h API 的模板组合转发 ——
+		// 视图挂载与每帧回调统一走 setCentralWidget：
+		//   setCentralWidget(root)                   静态树直挂（窗口每帧自动布局）
+		//   setCentralWidget([](const Rect& r){...}) 回调式（回调里先跑逻辑再 layout）
 
-		// 注入每帧 UI 回调（在 run() 之前调用；转发到内部窗口的 setUserUI）
-		// 每帧逻辑入口（视图挂载走 setCentralWidget，两者不重叠）：
-		// () = 普通每帧 UI；(window&) = 带窗口的每帧回调；(ImGuiIO&) = 框架注入 io 的每帧回调。
-template<class F>
-void setUI(F&& ui) { m_Window.setUI(std::forward<F>(ui)); }
-template<auto UI>
-void setUI() { m_Window.setUI<UI>(); }
-
-// window.h 同名别名
-		template<class F>
-void setUserUI(F&& ui) { m_Window.setUserUI(std::forward<F>(ui)); }
 
 		// 子窗口挂载到本窗口：父关随关、子 X 隐藏（子窗口生命周期随父）
 		void mountChild(Mk::window& child) { m_Window.mountChild(child); }
