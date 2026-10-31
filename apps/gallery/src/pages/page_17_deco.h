@@ -55,11 +55,7 @@ root.at<Mk::wg2::Id("styled"), Mk::wg2::Id("styledBtn")>().label = "Styled 主�
 root.at<Mk::wg2::Id("disabled")>().label = "禁用按钮（state.enabled=false）";
 root.at<Mk::wg2::Id("disabled")>().state.enabled = false;
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 	root.at<Mk::wg2::Id("when")>().showFn = [&] { return !mute; };
 }
 

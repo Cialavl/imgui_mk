@@ -42,11 +42,7 @@ root.at<Mk::wg2::Id("collapsing"), Mk::wg2::Id("pickRow"), Mk::wg2::Id("pick3")>
 root.at<Mk::wg2::Id("collapsing"), Mk::wg2::Id("pickRow"), Mk::wg2::Id("pick4")>().name = "Pick RGBA";
 root.at<Mk::wg2::Id("collapsing"), Mk::wg2::Id("pickRow"), Mk::wg2::Id("pick4")>().color = &pick4;
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };

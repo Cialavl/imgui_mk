@@ -60,11 +60,7 @@ root.at<Mk::wg2::Id("bit2")>().name = "位B"; root.at<Mk::wg2::Id("bit2")>().fla
 root.at<Mk::wg2::Id("bit3")>().name = "位C"; root.at<Mk::wg2::Id("bit3")>().flags = &bitFlags; root.at<Mk::wg2::Id("bit3")>().mask = 4;
 root.at<Mk::wg2::Id("bits")>().name = "位标志";
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 	root.at<Mk::wg2::Id("bits")>().valueFn = [&] { return "0b" + std::bitset<3>(bitFlags).to_string(); };
 }
 

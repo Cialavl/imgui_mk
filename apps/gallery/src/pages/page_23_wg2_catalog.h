@@ -85,13 +85,7 @@ struct PageWg2Catalog {
 		root.at<Mk::wg2::Id("tabwin"), Mk::wg2::Id("tabs"), Mk::wg2::Id("tab_b")>().title = "页 B";
 		root.at<Mk::wg2::Id("tabwin"), Mk::wg2::Id("tabs"), Mk::wg2::Id("tab_b"), Mk::wg2::Id("tab_b_text")>().text = "编译期 Tab B";
 
-		page.addWidget([&](const Mk::wg2::Rect& r) {
-			root.at<Mk::wg2::Id("display_row"), Mk::wg2::Id("count")>().value =
-				std::to_string(clicks);
-			Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+		bindPage(page, root);
 	}
 
 };

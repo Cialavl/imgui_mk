@@ -48,8 +48,7 @@ struct PageLayoutRuntime {
 		root.at<Mk::wg2::Id("zone")>().border = true;
 		root.at<Mk::wg2::Id("note")>().text = "项是 Label<Id(\"item\")> 的实例（同一类型、不同 idname），由 AnyWidget 统一持有。";
 
-		page.addWidget([&](const Mk::wg2::Rect& r) { Mk::wg2::layout(root, r); },
-			[&](const Mk::wg2::Size& avail) { return root.hint(avail); });
+		bindPage(page, root);
 	}
 };
 

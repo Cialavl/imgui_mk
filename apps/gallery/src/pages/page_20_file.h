@@ -53,11 +53,7 @@ root.at<Mk::wg2::Id("missing"), Mk::wg2::Id("missingText")>().value = "文件不
 	engine.on<OpenFile>([this](const OpenFile&) { openDialog(); });
 	win->watchFileDialog(dlg, [this](std::string path) { loadResult(std::move(path)); });
 
-	page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+	bindPage(page, root);
 }
 
 

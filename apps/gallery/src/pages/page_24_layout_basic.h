@@ -45,8 +45,7 @@ struct PageLayoutBasic {
 		root.at<Mk::wg2::Id("stack"), Mk::wg2::Id("s3")>().text = "VBox 第三行";
 		root.at<Mk::wg2::Id("note")>().text = "把窗口拖宽：HBox 跟着变宽，VBox 只吃高度。";
 
-		page.addWidget([&](const Mk::wg2::Rect& r) { Mk::wg2::layout(root, r); },
-			[&](const Mk::wg2::Size& avail) { return root.hint(avail); });
+		bindPage(page, root);
 	}
 };
 

@@ -43,8 +43,7 @@ struct PageLayoutSize {
 		root.at<Mk::wg2::Id("row2"), Mk::wg2::Id("max")>().state.size.maxW = 120.0f;
 		root.at<Mk::wg2::Id("note")>().text = "在主题页切换字号 18/24，em 宽度会跟着变，像素值不变。";
 
-		page.addWidget([&](const Mk::wg2::Rect& r) { Mk::wg2::layout(root, r); },
-			[&](const Mk::wg2::Size& avail) { return root.hint(avail); });
+		bindPage(page, root);
 	}
 };
 

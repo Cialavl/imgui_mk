@@ -41,11 +41,7 @@ root.at<Mk::wg2::Id("fn")>().cell = [](int r, int c) {
 return "r" + std::to_string(r) + "c" + std::to_string(c);
 };
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };

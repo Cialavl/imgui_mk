@@ -61,8 +61,7 @@ struct PageLayoutDynamic {
 		root.at<Mk::wg2::Id("body"), Mk::wg2::Id("tabZone")>().border = true;
 		root.at<Mk::wg2::Id("note")>().text = "两个容器都是 wg2 的动态层（AnyWidget 类型擦除），静态树其余部分完全不受影响。";
 
-		page.addWidget([&](const Mk::wg2::Rect& r) { Mk::wg2::layout(root, r); },
-			[&](const Mk::wg2::Size& avail) { return root.hint(avail); });
+		bindPage(page, root);
 	}
 };
 

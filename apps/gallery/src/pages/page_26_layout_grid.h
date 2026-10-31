@@ -69,8 +69,7 @@ struct PageLayoutGrid {
 		root.at<Mk::wg2::Id("ov"), Mk::wg2::Id("ovOff")>().child.label = "浮层按钮";
 		root.at<Mk::wg2::Id("note")>().text = "复杂布局 = 这些容器随意嵌套，路径 at<Id, Id, ...>() 依旧可直达。";
 
-		page.addWidget([&](const Mk::wg2::Rect& r) { Mk::wg2::layout(root, r); },
-			[&](const Mk::wg2::Size& avail) { return root.hint(avail); });
+		bindPage(page, root);
 	}
 };
 

@@ -42,11 +42,7 @@ root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("mute")>().checked =
 root.at<Mk::wg2::Id("row"), Mk::wg2::Id("rightCol"), Mk::wg2::Id("right")>().text = "H 行右格";
 root.at<Mk::wg2::Id("note")>().text = "布局数据约束：子控件在父容器内，路径访问全程一致。";
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };

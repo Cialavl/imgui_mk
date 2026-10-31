@@ -68,11 +68,7 @@ root.at<Mk::wg2::Id("grid"), Mk::wg2::Id("g10")>().text = "格 1-0";
 root.at<Mk::wg2::Id("grid"), Mk::wg2::Id("g11")>().text = "格 1-1";
 root.at<Mk::wg2::Id("grid"), Mk::wg2::Id("g12")>().text = "格 1-2";
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };

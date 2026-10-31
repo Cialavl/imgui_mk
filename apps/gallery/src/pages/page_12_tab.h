@@ -31,11 +31,7 @@ root.at<Mk::wg2::Id("tabs"), Mk::wg2::Id("tab1"), Mk::wg2::Id("text1")>().text =
 root.at<Mk::wg2::Id("tabs"), Mk::wg2::Id("tab2")>().title = "页二";
 root.at<Mk::wg2::Id("tabs"), Mk::wg2::Id("tab2"), Mk::wg2::Id("text2")>().text = "第二页内容";
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };

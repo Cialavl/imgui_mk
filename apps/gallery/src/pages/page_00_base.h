@@ -36,11 +36,7 @@ root.at<Mk::wg2::Id("btn")>().onClick = [&] { ++clicks; };
 root.at<Mk::wg2::Id("clicks")>().name = "点击次数";
 root.at<Mk::wg2::Id("clicks")>().valueFn = [&] { return std::to_string(clicks); };
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };

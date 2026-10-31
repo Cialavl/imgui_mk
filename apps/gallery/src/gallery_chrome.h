@@ -13,6 +13,7 @@
 
 namespace gallery {
 
+
 using namespace Mk::wg2;   // 页面代码沿用 wg2 名字
 
 // 等宽代码字体（main 创建窗口后、首帧前装载并回填）
@@ -224,5 +225,16 @@ ImGui::EndChild();
 ImGui::PopStyleVar();
 }
 };
+
+// 页面装配的唯一入口：把 wg2 根节点接到 Page 的"渲染 + 量高"两个槽位。
+// 页面只负责建树 + 绑数据，布局细节不收在页面里。
+// 页面装配的唯一入口：把 wg2 根节点接到 Page 的"渲染 + 量高"两个槽位。
+// 页面只负责建树 + 绑数据，布局细节不收在页面里。
+template<class Root>
+void bindPage(Page& page, Root& root) {
+	page.addWidget(
+		[&root](const Mk::wg2::Rect& r) { Mk::wg2::layout(root, r); },
+		[&root](const Mk::wg2::Size& avail) { return root.hint(avail); });
+}
 
 } // namespace gallery

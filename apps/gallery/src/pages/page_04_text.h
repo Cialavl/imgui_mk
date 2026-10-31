@@ -37,11 +37,7 @@ root.at<Mk::wg2::Id("pair")>().value = "值";
 root.at<Mk::wg2::Id("ellipsis")>().text = "EllipsisLabel：路径/长文本自动截断加省略号（侧栏/路径等窄空间专用）";
 root.at<Mk::wg2::Id("section")>().name = "分隔标题";
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };

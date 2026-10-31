@@ -36,11 +36,7 @@ root.at<Mk::wg2::Id("slideF")>().name = "滑块f"; root.at<Mk::wg2::Id("slideF")
 root.at<Mk::wg2::Id("slideI")>().name = "滑块i"; root.at<Mk::wg2::Id("slideI")>().value = &slideI;
 root.at<Mk::wg2::Id("slideA")>().name = "角度";  root.at<Mk::wg2::Id("slideA")>().valueRad = &angle;
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };

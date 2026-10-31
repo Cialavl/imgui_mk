@@ -27,11 +27,7 @@ snips::kFnRender);
 root.at<Mk::wg2::Id("fnView")>().fn = FnDrawerImpl{};   // 自带演示值，不再依赖共享状态
 root.at<Mk::wg2::Id("note")>().text = "上方进度条用裸 ImGui 函数绘制，由 FnWidget 节点挂入 wg2 布局。";
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };

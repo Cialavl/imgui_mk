@@ -40,11 +40,7 @@ root.at<Mk::wg2::Id("plot")>().name = "波形历史";
 	};
 root.at<Mk::wg2::Id("section")>().name = "分隔标题";
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };

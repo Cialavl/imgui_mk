@@ -55,13 +55,7 @@ struct PageWg2 {
 			root.at<Mk::wg2::Id("listwin"), Mk::wg2::Id("list")>().add(std::move(any));
 		};
 
-		page.addWidget([&](const Mk::wg2::Rect& r) {
-			root.at<Mk::wg2::Id("row"), Mk::wg2::Id("count")>().value =
-				std::to_string(clicks);
-			Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+		bindPage(page, root);
 	}
 
 };

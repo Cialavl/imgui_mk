@@ -41,11 +41,7 @@ root.at<Mk::wg2::Id("clicks")>().valueFn = [&] { return std::to_string(imgBtnCli
 root.at<Mk::wg2::Id("imageRow"), Mk::wg2::Id("imageA")>().tex = tex;
 root.at<Mk::wg2::Id("imageRow"), Mk::wg2::Id("imageB")>().tex = tex;
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };

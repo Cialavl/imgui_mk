@@ -51,11 +51,7 @@ root.at<Mk::wg2::Id("sub")>().idname = "subwin";
 root.at<Mk::wg2::Id("sub")>().height = 70.0f;
 root.at<Mk::wg2::Id("sub"), Mk::wg2::Id("subLabel")>().text = "SubWindow：嵌套滚动子窗口";
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };

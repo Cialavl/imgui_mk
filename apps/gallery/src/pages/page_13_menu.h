@@ -34,11 +34,7 @@ root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("frames")>().name = "帧";
 root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("frames")>().valueFn = [this] { return std::to_string(win->frameIndex()); };
 root.at<Mk::wg2::Id("note")>().text = "Panel 是浮动窗口；菜单栏是常驻点（主窗口顶部）。";
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };

@@ -51,11 +51,7 @@ const float cur = engineFontSize();
 engineRescale(cur >= 23.5f ? 18.0f : 24.0f);
 };
 
-	page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+	bindPage(page, root);
 }
 
 

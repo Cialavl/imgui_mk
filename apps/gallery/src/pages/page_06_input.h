@@ -28,11 +28,7 @@ return root.at<Mk::wg2::Id("big")>().c_str();
 };
 root.at<Mk::wg2::Id("small")>().name = "短文本输入（64 字符）";
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };

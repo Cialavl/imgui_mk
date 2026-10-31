@@ -44,11 +44,7 @@ root.at<Mk::wg2::Id("modal")>().open = &modalOpen;
 root.at<Mk::wg2::Id("modal")>().idname = "wg2modal";
 root.at<Mk::wg2::Id("modal"), Mk::wg2::Id("modalText")>().text = "wg2 模态弹窗";
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };

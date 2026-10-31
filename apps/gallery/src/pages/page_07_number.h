@@ -35,11 +35,7 @@ root.at<Mk::wg2::Id("d")>().name = "双精度";  root.at<Mk::wg2::Id("d")>().val
 root.at<Mk::wg2::Id("iv2")>().name = "ivec2"; root.at<Mk::wg2::Id("iv2")>().value = &iv;
 root.at<Mk::wg2::Id("fv2")>().name = "vec2";  root.at<Mk::wg2::Id("fv2")>().value = &fv;
 
-page.addWidget([&](const Mk::wg2::Rect& r) {
- Mk::wg2::layout(root, r);
-}, [&](const Mk::wg2::Size& avail) {
-return root.hint(avail);
-});
+bindPage(page, root);
 }
 
 };
