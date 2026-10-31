@@ -291,6 +291,11 @@ struct PopupModal {
 			*open = false;
 		}
 		if (!ImGui::BeginPopupModal(pid, nullptr, flags)) { if (open) *open = false; return; }   // 关闭后同步外部开关，否则下一帧会重新打开
+			// ESC 是模态弹窗的通用关闭键：框架统一处理
+			if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+				ImGui::CloseCurrentPopup();
+				if (open) *open = false;
+			}
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
 				if (child.state.visible) drawFlow(child);   // 模态弹窗内流式排布（含内边距）

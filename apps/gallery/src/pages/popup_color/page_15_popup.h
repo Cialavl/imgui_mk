@@ -16,7 +16,8 @@ Mk::wg2::Popup<Mk::wg2::Id("pop"),
 Mk::wg2::Label<Mk::wg2::Id("popText")>
 >,
 Mk::wg2::PopupModal<Mk::wg2::Id("modal"),
-Mk::wg2::Label<Mk::wg2::Id("modalText")>
+Mk::wg2::Label<Mk::wg2::Id("modalText")>,
+Mk::wg2::Button<Mk::wg2::Id("modalClose")>
 >
 >;
 
@@ -43,6 +44,11 @@ root.at<Mk::wg2::Id("pop"), Mk::wg2::Id("popText")>().text = "wg2 普通弹窗";
 root.at<Mk::wg2::Id("modal")>().open = &modalOpen;
 root.at<Mk::wg2::Id("modal")>().idname = "wg2modal";
 root.at<Mk::wg2::Id("modal"), Mk::wg2::Id("modalText")>().text = "wg2 模态弹窗";
+	root.at<Mk::wg2::Id("modal"), Mk::wg2::Id("modalClose")>().label = "关闭";
+	root.at<Mk::wg2::Id("modal"), Mk::wg2::Id("modalClose")>().onClick = [this] {
+		modalOpen = false;
+		ImGui::CloseCurrentPopup();
+	};
 
 bindPage(page, root);
 }
