@@ -168,8 +168,8 @@ struct PageBook {
 	Policy policy() const { return Policy{}; }
 
 	void draw(const Rect& r) {
-		nav.current = &current;
-		host.current = &current;
+		if (!nav.current) nav.current = &current;     // 外部绑定优先
+		if (!host.current) host.current = &current;
 		const float gap = ImGui::GetStyle().ItemSpacing.x;
 		const float navW = navWidthEm * ImGui::GetFontSize();
 		const float hostW = r.w - navW - gap > 1.0f ? r.w - navW - gap : 1.0f;
