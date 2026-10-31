@@ -26,12 +26,10 @@ namespace Mk {
 		T& state() { return Mk::mkui<WindowT>::RegistrationWindow().template state<T>(); }
 		template<typename T>
 		const T& state() const { return Mk::mkui<WindowT>::RegistrationWindow().template state<T>(); }		// wg2 中央内容挂载：每帧把内容区 bounds 回调给应用层执行 layout()。
-		template<class F>
-void setCentralWidget(F&& fn,
-				float padX = 0.0f, float padY = 0.0f) {
-				m_Window.setCentralWidget(std::forward<F>(fn), padX, padY);
-	}
-		// —— 主窗口特定功能 ——
+		// 视图挂载（Qt setCentralWidget 语义）：窗口每帧自动布局；每帧逻辑用 wg2::Update 控件承载。
+		void setCentralWidget(Mk::wg2::StaticWidget auto& root, float padX = 0.0f, float padY = 0.0f) {
+			m_Window.setCentralWidget(root, padX, padY);
+		}
 
 		// 显示窗口（转发到内部窗口的 show）
 		void show() {

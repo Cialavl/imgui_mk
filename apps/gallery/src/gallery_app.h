@@ -16,6 +16,7 @@ struct GalleryWindow {
 // wg2 应用壳
 using ShellRoot = Mk::wg2::Overlay<
 Mk::wg2::Id("root"),
+Mk::wg2::Update<Mk::wg2::Id("tick")>,   // 每帧驱动：先推进演示状态，再由各页拉取
 Mk::wg2::VBox<Mk::wg2::Id("mainCol"),
 Mk::wg2::MenuBar<Mk::wg2::Id("menuBar"),
 Mk::wg2::Menu<Mk::wg2::Id("menuFile"),

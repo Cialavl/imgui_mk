@@ -169,8 +169,11 @@ int main() {
 
 	SetUnhandledExceptionFilter(CrashHandler);
 
-	// 中央挂载（回调式）：每帧先跑演示逻辑，再布局整棵树
-	gallery.setCentralWidget([&](const Mk::wg2::Rect& r) {
+	// 视图直挂（Qt setCentralWidget 语义）：窗口每帧自动布局整棵树
+	gallery.setCentralWidget(window.shell);
+
+	// 每帧驱动放在树里的 Update 控件：先跑演示逻辑，再由各页拉取
+	window.shell.at<Mk::wg2::Id("tick")>().fn = [&] {
 		g_crashFrame = s.frames;
 		g_crashSel = s.sel;
 		// 动画驱动（演示内容）
@@ -181,9 +184,7 @@ int main() {
 
 		// 每帧动态绑定刷新（show 标志/主题跟随等；字符串型已改 valueFn 拉取式）
 		window.refreshAll(s);
-
-		Mk::wg2::layout(window.shell, r);
-	});
+	};
 
 	Mk::mkui<Mk::window>::run();
 	return 0;

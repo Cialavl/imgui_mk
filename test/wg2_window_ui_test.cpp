@@ -3,9 +3,8 @@
 #include <Mainwindow.h>
 #include <imgui_mk/window.h>
 
-// 窗口层 · 视图与逻辑都走 setCentralWidget 的两种形态：
-//   setCentralWidget(root)                    静态树直挂（窗口每帧自动布局）
-//   setCentralWidget([](const Rect& r){...})  回调式（回调里先跑逻辑再 layout）
+// 窗口层 · 视图挂载只有一种形态：setCentralWidget(root)，窗口每帧自动布局。
+// 每帧逻辑不通过窗口回调暴露，而是用 wg2::Update<Id> 控件放进树里。
 // 本文件只做编译期实例化，不创建真实 GLFW 窗口（传 nullptr 提前返回）。
 
 using namespace Mk::wg2;
@@ -20,26 +19,20 @@ struct Probe {
 	void draw(const Rect&) {}
 };
 
-void staticTreeCheck(Mk::window* w, Probe* root) {
+void windowCheck(Mk::window* w, Probe* root) {
 	if (!w || !root) return;
 	w->setCentralWidget(*root);
 }
 
-void callbackCheck(Mk::window* w) {
-	if (!w) return;
-	w->setCentralWidget([](const Rect&) {});
-}
-
-void mainWindowCheck(Mk::MainWindow<Mk::window>* m) {
-	if (!m) return;
-	m->setCentralWidget([](const Rect&) {});
+void mainWindowCheck(Mk::MainWindow<Mk::window>* m, Probe* root) {
+	if (!m || !root) return;
+	m->setCentralWidget(*root);
 }
 
 } // namespace
 
-TEST(Wg2Window, CentralWidgetAcceptsTreeOrLayoutCallback) {
-	staticTreeCheck(nullptr, nullptr);
-	callbackCheck(nullptr);
-	mainWindowCheck(nullptr);
+TEST(Wg2Window, CentralWidgetTakesStaticTreeOnly) {
+	windowCheck(nullptr, nullptr);
+	mainWindowCheck(nullptr, nullptr);
 	SUCCEED();
 }

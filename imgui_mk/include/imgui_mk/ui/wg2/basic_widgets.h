@@ -134,4 +134,18 @@ struct FnWidget {
 	}
 };
 
+// 每帧驱动控件：不占布局空间，draw 时执行 fn。
+// 放在树的最前面即可"每帧先更新状态、再由后面的控件拉取"——取代窗口级的每帧回调。
+template<FixedString Id>
+struct Update {
+	static constexpr auto id = Id;
+
+	WidgetState<> state;
+	std::function<void()> fn;
+
+	Size hint(const Size&) const { return Size{0.0f, 0.0f}; }
+	Policy policy() const { return Policy{Policy::Fixed, Policy::Fixed}; }
+	void draw(const Rect&) { if (fn) fn(); }
+};
+
 } // namespace Mk::wg2

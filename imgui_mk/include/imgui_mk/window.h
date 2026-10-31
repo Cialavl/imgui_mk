@@ -416,22 +416,9 @@ ImGui::End();
 		// 源对象仍然可用：所有操作委托给共享状态
 
 
-		// wg2 中央内容挂载（回调式）：每帧把内容区 bounds 回调给应用层执行 layout()。
-template<class F>
-requires (!wg2::StaticWidget<std::remove_cvref_t<F>>)
-void setCentralWidget(F&& fn,
-float padX = 0.0f, float padY = 0.0f) {
-if(m_Impl) {
-m_Impl->m_CentralRoot = nullptr;   // 回调式挂载：清直挂标记
-m_Impl->m_CentralFn = std::forward<F>(fn);
-m_Impl->m_CentralPadX = padX;
-m_Impl->m_CentralPadY = padY;
-}
-}
-
-	// wg2 静态树直挂：窗口每帧自动 wg2::layout(root, 内容区)——应用零回调。
-	// 同 root 重复挂载幂等（帧内 ui() 回调中调用安全，防 std::function 自替换 UB）；
-	// root 须与 run() 同寿（对象地址 = 稳定 ImGui ID）。
+	// 视图挂载（Qt setCentralWidget 语义）：窗口每帧自动 wg2::layout(root, 内容区)，应用零回调。
+	// 每帧逻辑不暴露为窗口回调：用 wg2::Update<Id> 控件放进树里（不占空间，draw 时执行）。
+	// 同 root 重复挂载幂等（帧内回调中调用安全）；root 须与 run() 同寿（对象地址 = 稳定 ImGui ID）。
 	template<class W>
 	requires wg2::StaticWidget<std::remove_cvref_t<W>>
 	void setCentralWidget(W& root, float padX = 0.0f, float padY = 0.0f) {

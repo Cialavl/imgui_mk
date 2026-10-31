@@ -13,6 +13,7 @@ struct InsUi {
 // 根用 SubWindow：内容超出窗口时由子窗口滚动，不再被窗口下缘硬切
 using Root = Mk::wg2::SubWindow<
 Mk::wg2::Id("root"),
+Mk::wg2::Update<Mk::wg2::Id("tick")>,   // 本窗口帧计数驱动
 Mk::wg2::SeparatorText<Mk::wg2::Id("head")>,
 Mk::wg2::SliderF<Mk::wg2::Id("volume")>,
 Mk::wg2::CheckBox<Mk::wg2::Id("mute")>,
@@ -44,6 +45,7 @@ u.root.at<Mk::wg2::Id("galFrames")>().name = "Gallery frame";
 u.root.at<Mk::wg2::Id("galFrames")>().valueFn = [&s] { return std::to_string(s.frames); };
 u.root.at<Mk::wg2::Id("insFrames")>().name = "Inspector frame";
 u.root.at<Mk::wg2::Id("insFrames")>().valueFn = [&s] { return std::to_string(s.insFrames); };
+u.root.at<Mk::wg2::Id("tick")>().fn = [&s] { ++s.insFrames; };
 u.root.at<Mk::wg2::Id("note")>().text = "Two top-level windows each own an ImGui context and frame loop; "
 "binding the same external variables keeps them live-linked. "
 "Clicking X only hides the Inspector; it follows the Gallery out when the Gallery closes.";
@@ -63,11 +65,7 @@ const float uiDpi = Mk::wg2::dpiScale();
 			static_cast<int>(420.0f * uiDpi), static_cast<int>(640.0f * uiDpi));
 win = std::make_unique<Mk::window>("Inspector", w, h);
 		win->setAutoScaleFont(true);
-		// 回调式中央挂载：每帧先推进本窗口帧计数，再布局界面树
-		win->setCentralWidget([this, &s](const Mk::wg2::Rect& r) {
-			++s.insFrames;
-			Mk::wg2::layout(ui.root, r);
-		});
+		win->setCentralWidget(ui.root);   // 静态直挂：窗口每帧自动布局
 s.inspectorHandle = win->getHandle();
 parent.mountChild(*win);
 }

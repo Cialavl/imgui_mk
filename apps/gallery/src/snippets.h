@@ -142,9 +142,7 @@ Mk::wg2::scaledForMonitor(t);
 
 inline constexpr std::string_view kMultiWindow = R"(Mk::MainWindow<> gallery("Gallery", 1440, 880);
 Mk::window inspector("Inspector", 420, 640);
-inspector.setCentralWidget([&](const Mk::wg2::Rect& r) {
-    Mk::wg2::layout(insRoot, r);
-});
+inspector.setCentralWidget(insRoot);   // 视图直挂，窗口每帧自动布局
 Mk::mkui<Mk::window>::run();)";
 
 inline constexpr std::string_view kFile = R"(Mk::wg2::FileDialog dlg;   // IFileOpenDialog worker 线程
