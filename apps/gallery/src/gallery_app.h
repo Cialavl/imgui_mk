@@ -27,54 +27,33 @@ inline ImTextureID makeCheckerTexture() {
 	return Mk::wg2::loadTextureRGBA(px, 64, 64);
 }
 
+namespace ui = Mk::wg2;   // 本文件用短名
+
+// —— 菜单 ——
+using FileMenu   = ui::Menu<ui::Id("menuFile"),   ui::MenuItem<ui::Id("miOpen")>, ui::MenuItem<ui::Id("miExit")>>;
+using ThemeMenu  = ui::Menu<ui::Id("menuTheme"),  ui::MenuItem<ui::Id("miDark")>, ui::MenuItem<ui::Id("miLight")>>;
+using WindowMenu = ui::Menu<ui::Id("menuWindow"), ui::MenuItem<ui::Id("miInspector")>>;
+using HelpMenu   = ui::Menu<ui::Id("menuHelp"),   ui::MenuItem<ui::Id("miAbout")>>;
+using AppMenuBar = ui::MenuBar<ui::Id("menuBar"), FileMenu, ThemeMenu, WindowMenu, HelpMenu>;
+
+// —— 主体三行 ——
+using SidePanel  = ui::SubWindow<ui::Id("sidePanel"), ui::SliderF<ui::Id("panelSlider")>, ui::LabelText<ui::Id("panelFrame")>>;
+using ContentRow = ui::HBox<ui::Id("contentRow"), ui::PageBook<ui::Id("book")>, SidePanel>;
+using StatusRow  = ui::HBox<ui::Id("statusRow"), ui::LabelText<ui::Id("stFps")>, ui::LabelText<ui::Id("stFrame")>, ui::LabelText<ui::Id("stPage")>>;
+using AppBody    = ui::VBox<ui::Id("mainCol"), AppMenuBar, ContentRow, StatusRow>;
+
+// —— 浮层 ——
+using PopupTree = ui::Popup<ui::Id("popupTree"), ui::Label<ui::Id("popupText")>, ui::Button<ui::Id("popupClose")>>;
+using ModalTree = ui::PopupModal<ui::Id("modalTree"), ui::Label<ui::Id("modalText")>, ui::Button<ui::Id("modalClose")>>;
+using AboutTree = ui::PopupModal<ui::Id("aboutTree"), ui::Label<ui::Id("aboutText")>, ui::Button<ui::Id("aboutOk")>>;
+
+// 应用壳的静态结构：主体 + 三个浮层
+using ShellRoot = ui::Overlay<ui::Id("root"), AppBody, PopupTree, ModalTree, AboutTree>;
+
+
 struct GalleryWindow {
 
 // wg2 应用壳
-using ShellRoot = Mk::wg2::Overlay<
-Mk::wg2::Id("root"),
-Mk::wg2::VBox<Mk::wg2::Id("mainCol"),
-Mk::wg2::MenuBar<Mk::wg2::Id("menuBar"),
-Mk::wg2::Menu<Mk::wg2::Id("menuFile"),
-Mk::wg2::MenuItem<Mk::wg2::Id("miOpen")>,
-Mk::wg2::MenuItem<Mk::wg2::Id("miExit")>
->,
-Mk::wg2::Menu<Mk::wg2::Id("menuTheme"),
-Mk::wg2::MenuItem<Mk::wg2::Id("miDark")>,
-Mk::wg2::MenuItem<Mk::wg2::Id("miLight")>
->,
-Mk::wg2::Menu<Mk::wg2::Id("menuWindow"),
-Mk::wg2::MenuItem<Mk::wg2::Id("miInspector")>
->,
-Mk::wg2::Menu<Mk::wg2::Id("menuHelp"),
-Mk::wg2::MenuItem<Mk::wg2::Id("miAbout")>
->
->,
-Mk::wg2::HBox<Mk::wg2::Id("contentRow"),
-		Mk::wg2::PageBook<Mk::wg2::Id("book")>,   // 导航 + 页宿主（框架合成节点）
-Mk::wg2::SubWindow<Mk::wg2::Id("sidePanel"),
-Mk::wg2::SliderF<Mk::wg2::Id("panelSlider")>,
-Mk::wg2::LabelText<Mk::wg2::Id("panelFrame")>
->
->,
-Mk::wg2::HBox<Mk::wg2::Id("statusRow"),
-Mk::wg2::LabelText<Mk::wg2::Id("stFps")>,
-Mk::wg2::LabelText<Mk::wg2::Id("stFrame")>,
-Mk::wg2::LabelText<Mk::wg2::Id("stPage")>
->
->,
-Mk::wg2::Popup<Mk::wg2::Id("popupTree"),
-Mk::wg2::Label<Mk::wg2::Id("popupText")>,
-Mk::wg2::Button<Mk::wg2::Id("popupClose")>
->,
-Mk::wg2::PopupModal<Mk::wg2::Id("modalTree"),
-Mk::wg2::Label<Mk::wg2::Id("modalText")>,
-Mk::wg2::Button<Mk::wg2::Id("modalClose")>
->,
-Mk::wg2::PopupModal<Mk::wg2::Id("aboutTree"),
-Mk::wg2::Label<Mk::wg2::Id("aboutText")>,
-Mk::wg2::Button<Mk::wg2::Id("aboutOk")>
->
->;
 
 ShellRoot shell;
 
