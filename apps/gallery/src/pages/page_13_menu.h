@@ -16,11 +16,12 @@ Mk::wg2::Label<Mk::wg2::Id("note")>
 
 Page page;
 Root root;
+	Mk::window* win = nullptr;   // 形参存成员，避免 [&] 捕获形参后悬垂
 
 	// 本页自己的数据（不共享、不依赖外部状态容器）
 	float volume = 0.6f;
 
-PageMenu(Mk::window* win) {
+PageMenu(Mk::window* w) : win(w) {
 page.setup("菜单与面板",
 "wg2 Panel = SubWindow 别名；面板内容经模板参数编译期传入。",
 snips::kPanel);
@@ -30,7 +31,7 @@ root.at<Mk::wg2::Id("panel")>().height = 110.0f;
 root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("slider")>().name = "面板内滑块";
 root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("slider")>().value = &volume;
 root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("frames")>().name = "帧";
-root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("frames")>().valueFn = [&] { return std::to_string(win->frameIndex()); };
+root.at<Mk::wg2::Id("panel"), Mk::wg2::Id("frames")>().valueFn = [this] { return std::to_string(win->frameIndex()); };
 root.at<Mk::wg2::Id("note")>().text = "Panel 是浮动窗口；菜单栏是常驻点（主窗口顶部）。";
 
 page.addWidget([&](const Mk::wg2::Rect& r) {
