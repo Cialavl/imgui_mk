@@ -155,8 +155,13 @@ struct PageBook {
 
 	int pageCount() const { return host.pageCount(); }
 	const char* currentTitle() const {
-		return current >= 0 && current < static_cast<int>(nav.entries.size())
-			? nav.entries[static_cast<std::size_t>(current)].label.c_str() : "";
+		// current 是页码（组标题不计）；返回对应条目文本，越界返回空串
+		int page = 0;
+		for (const auto& e : nav.entries) {
+			if (e.header) continue;
+			if (page++ == current) return e.label.c_str();
+		}
+		return "";
 	}
 
 	Size hint(const Size& avail) const { return Size{avail.w, avail.h}; }
