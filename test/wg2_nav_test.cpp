@@ -39,3 +39,25 @@ TEST(Wg2Nav, PageHostTracksRegisteredPages) {
 	host.addPage([](const Rect&) {});
 	EXPECT_EQ(host.pageCount(), 2);
 }
+
+TEST(Wg2Nav, PageBookRegistersPages) {
+	PageBook<Id("book")> book;
+	book.addGroup("分组 A");
+	book.addPage("页 1", [](const Rect&) {});
+	book.addPage("页 2", [](const Rect&) {});
+	EXPECT_EQ(book.pageCount(), 2);
+	EXPECT_EQ(book.nav.entries.size(), std::size_t{3});   // 1 组标题 + 2 页
+	EXPECT_EQ(book.current, 0);
+}
+
+TEST(Wg2Nav, PageBookCurrentTitleFollowsSelection) {
+	PageBook<Id("book2")> book;
+	book.addGroup("分组 A");
+	book.addPage("第一页", [](const Rect&) {});
+	book.addPage("第二页", [](const Rect&) {});
+	EXPECT_STREQ(book.currentTitle(), "第一页");
+	book.current = 1;
+	EXPECT_STREQ(book.currentTitle(), "第二页");
+	book.current = 99;                 // 越界返回空串，不越界读
+	EXPECT_STREQ(book.currentTitle(), "");
+}

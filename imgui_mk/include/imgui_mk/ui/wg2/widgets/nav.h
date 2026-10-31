@@ -3,6 +3,7 @@
 //   NavList  : 侧栏页列表（组标题 + 可选中条目），选中下标写回 current
 //   PageHost : 按选中下标渲染一页（类型擦除的渲染回调）
 #include "../core.h"
+#include "../static_layout.h"
 
 #include <imgui.h>
 
@@ -129,6 +130,46 @@ struct PageHost {
 			}
 		}
 		ImGui::EndChild();
+	}
+};
+
+// ---------- 页簿：导航 + 宿主合成一个节点 ----------
+
+template<FixedString Id>
+struct PageBook {
+	static constexpr auto id = Id;
+
+	WidgetState<> state;
+
+	NavList<Id> nav;
+	PageHost<Id> host;
+	int current = 0;              // 当前页序号（组标题不计）
+	float navWidthEm = 9.3f;      // 侧栏宽度（按字号换算）
+
+	template<class F>
+	void addPage(std::string title, F&& render) {
+		nav.addEntry(title, false);
+		host.addPage(std::forward<F>(render));
+	}
+	void addGroup(std::string title) { nav.addEntry(std::move(title), true); }
+
+	int pageCount() const { return host.pageCount(); }
+	const char* currentTitle() const {
+		return current >= 0 && current < static_cast<int>(nav.entries.size())
+			? nav.entries[static_cast<std::size_t>(current)].label.c_str() : "";
+	}
+
+	Size hint(const Size& avail) const { return Size{avail.w, avail.h}; }
+	Policy policy() const { return Policy{}; }
+
+	void draw(const Rect& r) {
+		nav.current = &current;
+		host.current = &current;
+		const float gap = ImGui::GetStyle().ItemSpacing.x;
+		const float navW = navWidthEm * ImGui::GetFontSize();
+		const float hostW = r.w - navW - gap > 1.0f ? r.w - navW - gap : 1.0f;
+		Mk::wg2::layout(nav, Rect{r.x, r.y, navW, r.h});
+		Mk::wg2::layout(host, Rect{r.x + navW + gap, r.y, hostW, r.h});
 	}
 };
 
