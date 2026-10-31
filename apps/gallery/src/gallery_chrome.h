@@ -3,6 +3,8 @@
 //   SectionHead + PageDemo(demo) + CodeBlock 编译期组成页面根。
 //   每个页面把自己的 wg2 root 渲染/测量回调 addWidget 进 demo 槽位。
 #include "snippets.h"
+#include "gallery_env.h"
+#include "gallery_events.h"
 #include <functional>
 #include <imgui_mk/ui/wg2/style.h>
 #include <imgui_mk/ui/wg2/wg2.h>
@@ -16,23 +18,9 @@ namespace gallery {
 
 using namespace Mk::wg2;   // 页面代码沿用 wg2 名字
 
-// 等宽代码字体（main 创建窗口后、首帧前装载并回填）
-inline ImFont* gMono = nullptr;
 
 // ============ 引擎访问助手（页面零窗口依赖）============
-inline float engineFontSize() {
-	return Mk::mkui<Mk::window>::RegistrationWindow().fontSize();
-}
-inline void engineRescale(float fontSize) {
-	Mk::mkui<Mk::window>::RegistrationWindow().rescaleAll(fontSize);
-}
 
-// ============ 组件间事件（引擎通道，类型化）============
-struct ThemeChanged {
-	Mk::wg2::Theme theme;
-};
-struct ToggleInspector {};
-struct OpenFile {};
 
 // ============ 节标题 ============
 
