@@ -41,6 +41,9 @@ namespace Mk {
 			m_Window.hide();
 		}
 
+		// 已渲染帧数（1 起）：动画/计数显示直接拉取
+		unsigned long long frameIndex() const { return m_Window.frameIndex(); }
+
 		// 当前帧中央布局矩形（内容区 − pad 增量；须在帧内调用）
 		Mk::wg2::Rect contentRect() const { return m_Window.contentRect(); }
 

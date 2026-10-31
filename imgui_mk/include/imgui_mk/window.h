@@ -54,6 +54,7 @@ namespace Mk {
 			bool m_AutoScaleFont = false;             // 自适应总开关（跨屏 DPI + 尺寸比例）
 			wg2::Theme m_PendingTheme;                  // 待应用主题（引擎广播 requestTheme 置位）
 			bool m_ThemePending = false;
+			unsigned long long m_FrameIndex = 0;   // 已渲染帧数（1 起）
 			std::function<bool(float)> m_FontLoader;  // 字号 → 装入字体图集；空 = 默认 CJK 链
 
 			~Impl() {
@@ -265,6 +266,7 @@ namespace Mk {
 				glClearColor(0.11f, 0.11f, 0.11f, 1.0f);
 				glClear(GL_COLOR_BUFFER_BIT);
 
+				++m_FrameIndex;
 				ImGui_ImplOpenGL3_NewFrame();
 				ImGui_ImplGlfw_NewFrame();
 				ImGui::NewFrame();
@@ -456,6 +458,9 @@ ImGui::End();
 
 		// 当前烘焙字号（自适应比例/重缩放后的实际值）；除以设计字号即当前 UI 缩放
 		float fontSize() const { return m_Impl && m_Impl->m_Handle ? m_Impl->m_LastBakedSize : 0.0f; }
+
+		// 已渲染帧数（1 起）：动画/计数类显示直接拉取，无需外部计数器
+		unsigned long long frameIndex() const { return m_Impl ? m_Impl->m_FrameIndex : 0; }
 
 		// —— 运行时字号自适应 API ——
 

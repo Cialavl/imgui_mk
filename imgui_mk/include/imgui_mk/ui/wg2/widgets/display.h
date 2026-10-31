@@ -19,6 +19,8 @@ struct ProgressBar {
 
 	WidgetState<> state;
 	float* fraction = nullptr;
+	// 拉取式比例：设置后每帧调用（动画/派生值无需外部变量）
+	std::function<float()> fractionFn;
 	std::string overlay;
 
 	Size hint(const Size& avail) const {
@@ -28,8 +30,9 @@ struct ProgressBar {
 	Policy policy() const { return Policy{}; }
 
 	void draw(const Rect& r) {
-		if (!fraction) return;
-		ImGui::ProgressBar(*fraction, ImVec2(r.w, r.h),
+		const float f = fractionFn ? fractionFn() : (fraction ? *fraction : 0.0f);
+		if (!fractionFn && !fraction) return;
+		ImGui::ProgressBar(f, ImVec2(r.w, r.h),
 			overlay.empty() ? nullptr : overlay.c_str());
 	}
 };
@@ -189,7 +192,11 @@ struct PlotLines {
 	WidgetState<> state;
 	std::string name;
 	const std::vector<float>* values = nullptr;
+	// 拉取式数据：设置后每帧取一次（自行生成曲线，避免外部维护缓冲）
+	std::function<const std::vector<float>&()> valuesFn;
 	ImVec2 size{0.0f, 60.0f};
+
+	const std::vector<float>* data() const { return valuesFn ? &valuesFn() : values; }
 
 	Size hint(const Size& avail) const {
 		return Size{size.x > 0.0f ? size.x : avail.w, size.y};
@@ -198,6 +205,7 @@ struct PlotLines {
 	Policy policy() const { return Policy{}; }
 
 	void draw(const Rect& r) {
+		const std::vector<float>* values = data();
 		if (!values || values->empty()) return;
 		const float maxf = std::numeric_limits<float>::max();
 		ImGui::PlotLines(name.c_str(), values->data(), static_cast<int>(values->size()),

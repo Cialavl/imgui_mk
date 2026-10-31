@@ -16,16 +16,20 @@ struct When {
 	WidgetState<> state;
 	Child child;
 	bool show = false;
+	// 拉取式可见性：设置后每帧调用一次，优先于 show（外部状态无需每帧同步）
+	std::function<bool()> showFn;
+
+	bool visibleNow() const { return showFn ? showFn() : show; }
 
 	Size hint(const Size& avail) const {
-		if (!show) return Size{0.0f, 0.0f};
+		if (!visibleNow()) return Size{0.0f, 0.0f};
 		return child.hint(avail);
 	}
 
 	Policy policy() const { return child.policy(); }
 
 	void draw(const Rect& r) {
-		if (show) drawWidget(child, r);
+		if (visibleNow()) drawWidget(child, r);
 	}
 
 	constexpr Child& childRef() & { return child; }

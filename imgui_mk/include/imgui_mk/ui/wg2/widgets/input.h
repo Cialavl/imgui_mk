@@ -17,6 +17,8 @@ struct CheckBox {
 	WidgetState<> state;
 	std::string name;
 	bool* checked = nullptr;
+	// 勾选状态变化时回调（事件式，不必每帧轮询）
+	std::function<void(bool)> onChange;
 
 	Size hint(const Size&) const {
 		const float w = ImGui::CalcTextSize(name.c_str()).x
@@ -27,7 +29,8 @@ struct CheckBox {
 	Policy policy() const { return Policy{}; }
 
 	void draw(const Rect&) {
-		if (checked) ImGui::Checkbox(name.c_str(), checked);
+		if (!checked) return;
+		if (ImGui::Checkbox(name.c_str(), checked) && onChange) onChange(*checked);
 	}
 };
 
