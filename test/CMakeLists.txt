@@ -39,6 +39,7 @@ if(BUILD_TESTING)
         wg2_comm_engine_test.cpp
         # 窗口层
         wg2_window_ui_test.cpp
+	wg2_nav_test.cpp
         # 其它模块
         mk_string_test.cpp)
 

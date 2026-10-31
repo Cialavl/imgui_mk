@@ -4,6 +4,8 @@
 //   PageHost : 按选中下标渲染一页（类型擦除的渲染回调）
 #include "../core.h"
 
+#include <imgui.h>
+
 #include <functional>
 #include <string>
 #include <vector>
