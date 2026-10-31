@@ -52,6 +52,11 @@ void setCentralWidget(F&& fn,
 			m_Window.hide();
 		}
 
+		// 窗口是否可见 / 请求关闭 / X 按钮只隐藏（检查器模式）
+		bool visible() const { return m_Window.visible(); }
+		void requestClose() { m_Window.requestClose(); }
+		void setCloseHides(bool on) { m_Window.setCloseHides(on); }
+
 		// —— window.h API 的模板组合转发 ——
 
 		// 注入每帧 UI 回调（在 run() 之前调用；转发到内部窗口的 setUserUI）

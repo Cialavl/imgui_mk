@@ -576,6 +576,33 @@ m_Impl->m_CentralPadY = padY;
 			}
 		}
 
+		// 窗口当前是否可见（隐藏后 show() 可恢复）
+		bool visible() const {
+			if(auto* h = getHandle()) return glfwGetWindowAttrib(h, GLFW_VISIBLE) != 0;
+			return false;
+		}
+
+		// 请求关闭（不立即销毁）：下一轮引擎循环才真正关闭并清理，帧内调用安全
+		void requestClose() {
+			if(auto* h = getHandle()) {
+				glfwSetWindowShouldClose(h, true);
+			}
+		}
+
+		// X 按钮语义：true = 只隐藏（检查器/否决模式），false = 默认请求关闭
+		void setCloseHides(bool on) {
+			if(auto* h = getHandle()) {
+				if(on) {
+					glfwSetWindowCloseCallback(h, [](GLFWwindow* w) {
+						glfwSetWindowShouldClose(w, GLFW_FALSE);   // 否决：不进引擎销毁流程
+						glfwHideWindow(w);                          // 只是隐藏
+					});
+				} else {
+					glfwSetWindowCloseCallback(h, nullptr);        // 恢复默认：X = 请求关闭
+				}
+			}
+		}
+
 		// 子窗口挂载到父窗口：父窗口关闭 → 子窗口跟随关闭；子窗口点 X = 隐藏（生命周期随父）。
 		// 父窗口持有子窗口的共享引用——应用侧的窗口对象可以是局部变量
 		void mountChild(window& child) {
