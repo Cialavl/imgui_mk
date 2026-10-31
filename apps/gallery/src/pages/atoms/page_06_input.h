@@ -5,11 +5,11 @@
 namespace gallery {
 
 struct PageInput {
-using Root = Mk::wg2::VBox<
-Mk::wg2::Id("root"),
-Mk::wg2::InputText<Mk::wg2::Id("big"), 128>,
-Mk::wg2::LabelText<Mk::wg2::Id("echo")>,
-Mk::wg2::InputText<Mk::wg2::Id("small"), 64>
+using Root = VBox<
+Id("root"),
+InputText<Id("big"), 128>,
+LabelText<Id("echo")>,
+InputText<Id("small"), 64>
 >;
 
 Page page;
@@ -20,13 +20,13 @@ page.setup("文本输入",
 "wg2 InputText<N>（N = 缓冲容量）编辑内部文本；name 作标签；setName 写入内容。",
 snips::kInputText);
 
-root.at<Mk::wg2::Id("big")>().name = "文本（128 字符）";
-root.at<Mk::wg2::Id("big")>().setName("hello");
-root.at<Mk::wg2::Id("echo")>().name = "内容回显";
-root.at<Mk::wg2::Id("echo")>().valueFn = [this] {
-return root.at<Mk::wg2::Id("big")>().c_str();
+root.at<Id("big")>().name = "文本（128 字符）";
+root.at<Id("big")>().setName("hello");
+root.at<Id("echo")>().name = "内容回显";
+root.at<Id("echo")>().valueFn = [this] {
+return root.at<Id("big")>().c_str();
 };
-root.at<Mk::wg2::Id("small")>().name = "短文本输入（64 字符）";
+root.at<Id("small")>().name = "短文本输入（64 字符）";
 
 bindPage(page, root);
 }

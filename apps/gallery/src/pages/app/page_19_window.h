@@ -5,12 +5,12 @@
 namespace gallery {
 
 struct PageWindow {
-	using Root = Mk::wg2::VBox<
-		Mk::wg2::Id("root"),
-		Mk::wg2::LabelText<Mk::wg2::Id("gal")>,
-		Mk::wg2::LabelText<Mk::wg2::Id("ins")>,
-		Mk::wg2::Button<Mk::wg2::Id("toggle")>,
-		Mk::wg2::TextWrapped<Mk::wg2::Id("note")>
+	using Root = VBox<
+		Id("root"),
+		LabelText<Id("gal")>,
+		LabelText<Id("ins")>,
+		Button<Id("toggle")>,
+		TextWrapped<Id("note")>
 	>;
 
 	Page page;
@@ -25,15 +25,15 @@ struct PageWindow {
 			"两个顶层窗口各自一个 ImGui 上下文与帧循环；绑定 wg2 控件到同一批外部变量 = 实时链接。",
 			snips::kMultiWindow);
 
-		root.at<Mk::wg2::Id("gal")>().name = "Gallery 帧";
-		root.at<Mk::wg2::Id("gal")>().valueFn = [this] { return std::to_string(win->frameIndex()); };
-		root.at<Mk::wg2::Id("ins")>().name = "Inspector 帧";
-		root.at<Mk::wg2::Id("ins")>().valueFn = [this] { return inspectorWin ? std::to_string(inspectorWin->frameIndex()) : std::string("-"); };
-		root.at<Mk::wg2::Id("toggle")>().label = "显示/隐藏 Inspector";
-		root.at<Mk::wg2::Id("toggle")>().onClick = [] {
+		root.at<Id("gal")>().name = "Gallery 帧";
+		root.at<Id("gal")>().valueFn = [this] { return std::to_string(win->frameIndex()); };
+		root.at<Id("ins")>().name = "Inspector 帧";
+		root.at<Id("ins")>().valueFn = [this] { return inspectorWin ? std::to_string(inspectorWin->frameIndex()) : std::string("-"); };
+		root.at<Id("toggle")>().label = "显示/隐藏 Inspector";
+		root.at<Id("toggle")>().onClick = [] {
 			Mk::mkui<Mk::window>::RegistrationWindow().emit(ToggleInspector{});
 		};
-		root.at<Mk::wg2::Id("note")>().text = "Inspector 只隐藏；Gallery 关闭后跟随退出。";
+		root.at<Id("note")>().text = "Inspector 只隐藏；Gallery 关闭后跟随退出。";
 
 		bindPage(page, root);
 	}

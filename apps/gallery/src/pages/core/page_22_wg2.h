@@ -1,6 +1,6 @@
 #pragma once
 // p22 wg2：新控件层演示页。PageHostWg2 保存渲染回调；wg2 layout 回调 在旧 demo
-// SubWindow 的 bounds 内执行 Mk::wg2::layout()。
+// SubWindow 的 bounds 内执行 layout()。
 #include "../../gallery_chrome.h"
 
 #include <memory>
@@ -10,15 +10,15 @@ namespace gallery {
 
 
 struct PageWg2 {
-	using Wg2Root = Mk::wg2::VBox<
-		Mk::wg2::Id("root"),
-		Mk::wg2::Label<Mk::wg2::Id("title")>,
-		Mk::wg2::HBox<Mk::wg2::Id("row"),
-			Mk::wg2::Button<Mk::wg2::Id("add")>,
-			Mk::wg2::LabelText<Mk::wg2::Id("count")>
+	using Wg2Root = VBox<
+		Id("root"),
+		Label<Id("title")>,
+		HBox<Id("row"),
+			Button<Id("add")>,
+			LabelText<Id("count")>
 		>,
-		Mk::wg2::SubWindow<Mk::wg2::Id("listwin"),
-			Mk::wg2::RuntimeList<Mk::wg2::Id("list")>
+		SubWindow<Id("listwin"),
+			RuntimeList<Id("list")>
 		>
 	>;
 
@@ -32,27 +32,27 @@ struct PageWg2 {
 		page.setup("wg2：静态树 + 动态列表 opt-in",
 			"普通控件是直接 struct：VBox<Id(\"...\"), ...> 编译期组合，"
 			"字符串路径访问；只有 RuntimeList 内部才有 AnyWidget 类型擦除。",
-			R"(using Root = Mk::wg2::VBox<
-    Mk::wg2::Id("root"),
-    Mk::wg2::Label<Mk::wg2::Id("title")>,
-    Mk::wg2::SubWindow<Mk::wg2::Id("listwin"),
-        Mk::wg2::RuntimeList<Mk::wg2::Id("list")>>
+			R"(using Root = VBox<
+    Id("root"),
+    Label<Id("title")>,
+    SubWindow<Id("listwin"),
+        RuntimeList<Id("list")>>
 >;)");
 
-		root.at<Mk::wg2::Id("title")>().text = "这是 Mk::wg2 静态树（PageDemo 演示槽内渲染）";
-		root.at<Mk::wg2::Id("row"), Mk::wg2::Id("add")>().label = "添加 wg2 动态项";
-		root.at<Mk::wg2::Id("row"), Mk::wg2::Id("count")>().name = "clicks";
+		root.at<Id("title")>().text = "这是 Mk::wg2 静态树（PageDemo 演示槽内渲染）";
+		root.at<Id("row"), Id("add")>().label = "添加 wg2 动态项";
+		root.at<Id("row"), Id("count")>().name = "clicks";
 
-		root.at<Mk::wg2::Id("listwin")>().height = 180.0f;
-		root.at<Mk::wg2::Id("listwin")>().idname = "wg2:list";
+		root.at<Id("listwin")>().height = 180.0f;
+		root.at<Id("listwin")>().idname = "wg2:list";
 
-		root.at<Mk::wg2::Id("row"), Mk::wg2::Id("add")>().onClick = [&] {
+		root.at<Id("row"), Id("add")>().onClick = [&] {
 			++clicks;
-			auto label = std::make_unique<Mk::wg2::Label<Mk::wg2::Id("item")>>(
+			auto label = std::make_unique<Label<Id("item")>>(
 				"wg2 动态项 #" + std::to_string(clicks));
-			Mk::wg2::AnyWidget any = Mk::wg2::AnyWidget::own(std::move(label));
+			AnyWidget any = AnyWidget::own(std::move(label));
 			any.idname = "wg2item" + std::to_string(clicks);
-			root.at<Mk::wg2::Id("listwin"), Mk::wg2::Id("list")>().add(std::move(any));
+			root.at<Id("listwin"), Id("list")>().add(std::move(any));
 		};
 
 		bindPage(page, root);

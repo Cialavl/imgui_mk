@@ -5,14 +5,14 @@
 namespace gallery {
 
 struct PageColor {
-using Root = Mk::wg2::VBox<
-Mk::wg2::Id("root"),
-Mk::wg2::ColorEdit3<Mk::wg2::Id("rgb")>,
-Mk::wg2::ColorEdit4<Mk::wg2::Id("rgba")>,
-Mk::wg2::Collapsing<Mk::wg2::Id("collapsing"),
-Mk::wg2::HBox<Mk::wg2::Id("pickRow"),
-Mk::wg2::ColorPicker3<Mk::wg2::Id("pick3")>,
-Mk::wg2::ColorPicker4<Mk::wg2::Id("pick4")>
+using Root = VBox<
+Id("root"),
+ColorEdit3<Id("rgb")>,
+ColorEdit4<Id("rgba")>,
+Collapsing<Id("collapsing"),
+HBox<Id("pickRow"),
+ColorPicker3<Id("pick3")>,
+ColorPicker4<Id("pick4")>
 >
 >
 >;
@@ -31,16 +31,16 @@ page.setup("颜色编辑",
 "wg2 ColorEdit3/4 与 ColorPicker3/4：std::array<float,3|4>* 绑定；拾取器可包进折叠容器。",
 snips::kColor);
 
-root.at<Mk::wg2::Id("rgb")>().name = "RGB";
-root.at<Mk::wg2::Id("rgb")>().color = &col3;
-root.at<Mk::wg2::Id("rgba")>().name = "RGBA";
-root.at<Mk::wg2::Id("rgba")>().color = &col4;
-root.at<Mk::wg2::Id("collapsing")>().title = "拾取器（默认展开）";
-root.at<Mk::wg2::Id("collapsing")>().defaultOpen = true;
-root.at<Mk::wg2::Id("collapsing"), Mk::wg2::Id("pickRow"), Mk::wg2::Id("pick3")>().name = "Pick RGB";
-root.at<Mk::wg2::Id("collapsing"), Mk::wg2::Id("pickRow"), Mk::wg2::Id("pick3")>().color = &pick3;
-root.at<Mk::wg2::Id("collapsing"), Mk::wg2::Id("pickRow"), Mk::wg2::Id("pick4")>().name = "Pick RGBA";
-root.at<Mk::wg2::Id("collapsing"), Mk::wg2::Id("pickRow"), Mk::wg2::Id("pick4")>().color = &pick4;
+root.at<Id("rgb")>().name = "RGB";
+root.at<Id("rgb")>().color = &col3;
+root.at<Id("rgba")>().name = "RGBA";
+root.at<Id("rgba")>().color = &col4;
+root.at<Id("collapsing")>().title = "拾取器（默认展开）";
+root.at<Id("collapsing")>().defaultOpen = true;
+root.at<Id("collapsing"), Id("pickRow"), Id("pick3")>().name = "Pick RGB";
+root.at<Id("collapsing"), Id("pickRow"), Id("pick3")>().color = &pick3;
+root.at<Id("collapsing"), Id("pickRow"), Id("pick4")>().name = "Pick RGBA";
+root.at<Id("collapsing"), Id("pickRow"), Id("pick4")>().color = &pick4;
 
 bindPage(page, root);
 }

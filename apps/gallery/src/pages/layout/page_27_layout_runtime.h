@@ -5,15 +5,15 @@
 namespace gallery {
 
 struct PageLayoutRuntime {
-	using Root = Mk::wg2::VBox<
-		Mk::wg2::Id("root"),
-		Mk::wg2::Label<Mk::wg2::Id("intro")>,
-		Mk::wg2::HBox<Mk::wg2::Id("bar"),
-			Mk::wg2::Button<Mk::wg2::Id("add")>,
-			Mk::wg2::Button<Mk::wg2::Id("del")>,
-			Mk::wg2::LabelText<Mk::wg2::Id("count")>>,
-		Mk::wg2::SubWindow<Mk::wg2::Id("zone"), Mk::wg2::RuntimeList<Mk::wg2::Id("list")>>,
-		Mk::wg2::Label<Mk::wg2::Id("note")>>;
+	using Root = VBox<
+		Id("root"),
+		Label<Id("intro")>,
+		HBox<Id("bar"),
+			Button<Id("add")>,
+			Button<Id("del")>,
+			LabelText<Id("count")>>,
+		SubWindow<Id("zone"), RuntimeList<Id("list")>>,
+		Label<Id("note")>>;
 
 	Page page;
 	Root root;
@@ -25,28 +25,28 @@ struct PageLayoutRuntime {
 			"渲染回调内增删也安全（墓碑 + pending）。",
 			snips::kLayoutRuntime);
 
-		root.at<Mk::wg2::Id("intro")>().text = "点击添加：新项进入下方滚动区；删除总是移除末项";
-		root.at<Mk::wg2::Id("bar"), Mk::wg2::Id("add")>().label = "添加一项";
-		root.at<Mk::wg2::Id("bar"), Mk::wg2::Id("add")>().onClick = [this] {
-			auto item = std::make_unique<Mk::wg2::Label<Mk::wg2::Id("item")>>(
+		root.at<Id("intro")>().text = "点击添加：新项进入下方滚动区；删除总是移除末项";
+		root.at<Id("bar"), Id("add")>().label = "添加一项";
+		root.at<Id("bar"), Id("add")>().onClick = [this] {
+			auto item = std::make_unique<Label<Id("item")>>(
 				"列表项 #" + std::to_string(++added));
-			Mk::wg2::AnyWidget any = Mk::wg2::AnyWidget::own(std::move(item));
+			AnyWidget any = AnyWidget::own(std::move(item));
 			any.idname = "item" + std::to_string(added);
-			root.at<Mk::wg2::Id("zone")>().child<0>().add(std::move(any));
+			root.at<Id("zone")>().child<0>().add(std::move(any));
 		};
-		root.at<Mk::wg2::Id("bar"), Mk::wg2::Id("del")>().label = "删除末项";
-		root.at<Mk::wg2::Id("bar"), Mk::wg2::Id("del")>().onClick = [this] {
-			root.at<Mk::wg2::Id("zone")>().child<0>().removeLast();
+		root.at<Id("bar"), Id("del")>().label = "删除末项";
+		root.at<Id("bar"), Id("del")>().onClick = [this] {
+			root.at<Id("zone")>().child<0>().removeLast();
 		};
-		root.at<Mk::wg2::Id("bar"), Mk::wg2::Id("count")>().name = "当前项数";
-		root.at<Mk::wg2::Id("bar"), Mk::wg2::Id("count")>().valueFn = [this] {
-			return std::to_string(root.at<Mk::wg2::Id("zone")>().child<0>().size());
+		root.at<Id("bar"), Id("count")>().name = "当前项数";
+		root.at<Id("bar"), Id("count")>().valueFn = [this] {
+			return std::to_string(root.at<Id("zone")>().child<0>().size());
 		};
 
-		root.at<Mk::wg2::Id("zone")>().idname = "layoutRuntimeList";
-		root.at<Mk::wg2::Id("zone")>().height = 180.0f;
-		root.at<Mk::wg2::Id("zone")>().border = true;
-		root.at<Mk::wg2::Id("note")>().text = "项是 Label<Id(\"item\")> 的实例（同一类型、不同 idname），由 AnyWidget 统一持有。";
+		root.at<Id("zone")>().idname = "layoutRuntimeList";
+		root.at<Id("zone")>().height = 180.0f;
+		root.at<Id("zone")>().border = true;
+		root.at<Id("note")>().text = "项是 Label<Id(\"item\")> 的实例（同一类型、不同 idname），由 AnyWidget 统一持有。";
 
 		bindPage(page, root);
 	}

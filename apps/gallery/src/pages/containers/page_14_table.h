@@ -7,10 +7,10 @@
 namespace gallery {
 
 struct PageTable {
-using Root = Mk::wg2::VBox<
-Mk::wg2::Id("root"),
-Mk::wg2::TextTable<Mk::wg2::Id("data")>,
-Mk::wg2::FnTable<Mk::wg2::Id("fn")>
+using Root = VBox<
+Id("root"),
+TextTable<Id("data")>,
+FnTable<Id("fn")>
 >;
 
 Page page;
@@ -29,15 +29,15 @@ page.setup("表格",
 "wg2 TextTable（数据驱动：外部 vector 只读绑定）；FnTable（单元回调 cell(r,c)）。",
 snips::kTable);
 
-root.at<Mk::wg2::Id("data")>().idname = "tbl";
-root.at<Mk::wg2::Id("data")>().headers = kHeaders;
-root.at<Mk::wg2::Id("data")>().headerCount = 3;
-root.at<Mk::wg2::Id("data")>().rows = &rows;
-root.at<Mk::wg2::Id("fn")>().idname = "fn";
-root.at<Mk::wg2::Id("fn")>().headers = kHeaders;
-root.at<Mk::wg2::Id("fn")>().headerCount = 3;
-root.at<Mk::wg2::Id("fn")>().rowCount = 4;
-root.at<Mk::wg2::Id("fn")>().cell = [](int r, int c) {
+root.at<Id("data")>().idname = "tbl";
+root.at<Id("data")>().headers = kHeaders;
+root.at<Id("data")>().headerCount = 3;
+root.at<Id("data")>().rows = &rows;
+root.at<Id("fn")>().idname = "fn";
+root.at<Id("fn")>().headers = kHeaders;
+root.at<Id("fn")>().headerCount = 3;
+root.at<Id("fn")>().rowCount = 4;
+root.at<Id("fn")>().cell = [](int r, int c) {
 return "r" + std::to_string(r) + "c" + std::to_string(c);
 };
 

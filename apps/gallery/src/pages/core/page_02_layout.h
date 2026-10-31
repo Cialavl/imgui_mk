@@ -5,20 +5,20 @@
 namespace gallery {
 
 struct PageLayout {
-using Root = Mk::wg2::VBox<
-Mk::wg2::Id("root"),
-Mk::wg2::Label<Mk::wg2::Id("intro")>,
-Mk::wg2::HBox<Mk::wg2::Id("row"),
-Mk::wg2::VBox<Mk::wg2::Id("col"),
-Mk::wg2::SliderF<Mk::wg2::Id("volume")>,
-Mk::wg2::CheckBox<Mk::wg2::Id("mute")>
+using Root = VBox<
+Id("root"),
+Label<Id("intro")>,
+HBox<Id("row"),
+VBox<Id("col"),
+SliderF<Id("volume")>,
+CheckBox<Id("mute")>
 >,
 // 右侧标签同样套一层 VBox：与左列共享 WindowPadding 内边距，同一行才对得齐
-Mk::wg2::VBox<Mk::wg2::Id("rightCol"),
-Mk::wg2::Label<Mk::wg2::Id("right")>
+VBox<Id("rightCol"),
+Label<Id("right")>
 >
 >,
-Mk::wg2::Label<Mk::wg2::Id("note")>
+Label<Id("note")>
 >;
 
 Page page;
@@ -34,13 +34,13 @@ page.setup("布局：编译期 HBox/VBox 嵌套",
 "本页 = HBox 嵌 VBox，子节点经模板参数传入，布局嵌布局自然递归。",
 snips::kLayout);
 
-root.at<Mk::wg2::Id("intro")>().text = "布局步骤：hint（计算尺寸）→ draw（求解并递归子节点）";
-root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("volume")>().name = "音量";
-root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("volume")>().value = &volume;
-root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("mute")>().name = "静音";
-root.at<Mk::wg2::Id("row"), Mk::wg2::Id("col"), Mk::wg2::Id("mute")>().checked = &mute;
-root.at<Mk::wg2::Id("row"), Mk::wg2::Id("rightCol"), Mk::wg2::Id("right")>().text = "H 行右格";
-root.at<Mk::wg2::Id("note")>().text = "布局数据约束：子控件在父容器内，路径访问全程一致。";
+root.at<Id("intro")>().text = "布局步骤：hint（计算尺寸）→ draw（求解并递归子节点）";
+root.at<Id("row"), Id("col"), Id("volume")>().name = "音量";
+root.at<Id("row"), Id("col"), Id("volume")>().value = &volume;
+root.at<Id("row"), Id("col"), Id("mute")>().name = "静音";
+root.at<Id("row"), Id("col"), Id("mute")>().checked = &mute;
+root.at<Id("row"), Id("rightCol"), Id("right")>().text = "H 行右格";
+root.at<Id("note")>().text = "布局数据约束：子控件在父容器内，路径访问全程一致。";
 
 bindPage(page, root);
 }

@@ -5,15 +5,15 @@
 namespace gallery {
 
 struct PageButton {
-using Root = Mk::wg2::VBox<
-Mk::wg2::Id("root"),
-Mk::wg2::Button<Mk::wg2::Id("plain")>,
-Mk::wg2::Button<Mk::wg2::Id("count")>,
-Mk::wg2::ImageButton<Mk::wg2::Id("imgbtn")>,
-Mk::wg2::LabelText<Mk::wg2::Id("clicks")>,
-Mk::wg2::HBox<Mk::wg2::Id("imageRow"),
-Mk::wg2::Image<Mk::wg2::Id("imageA")>,
-Mk::wg2::Image<Mk::wg2::Id("imageB")>
+using Root = VBox<
+Id("root"),
+Button<Id("plain")>,
+Button<Id("count")>,
+ImageButton<Id("imgbtn")>,
+LabelText<Id("clicks")>,
+HBox<Id("imageRow"),
+Image<Id("imageA")>,
+Image<Id("imageB")>
 >
 >;
 
@@ -29,17 +29,17 @@ page.setup("按钮与图片",
 "wg2 Button（onClick）/ ImageButton / Image（loadTextureRGBA 生成纹理）。",
 snips::kButton);
 
-root.at<Mk::wg2::Id("plain")>().label = "普通按钮";
-root.at<Mk::wg2::Id("plain")>().onClick = [&] { ++clicks; };
-root.at<Mk::wg2::Id("count")>().label = "计数按钮";
-root.at<Mk::wg2::Id("count")>().onClick = [&] { clicks += 10; };
-root.at<Mk::wg2::Id("imgbtn")>().tex = tex;
-root.at<Mk::wg2::Id("imgbtn")>().size = ImVec2(96, 96);
-root.at<Mk::wg2::Id("imgbtn")>().onClick = [&] { ++imgBtnClicks; };
-root.at<Mk::wg2::Id("clicks")>().name = "图片按钮点击";
-root.at<Mk::wg2::Id("clicks")>().valueFn = [&] { return std::to_string(imgBtnClicks); };
-root.at<Mk::wg2::Id("imageRow"), Mk::wg2::Id("imageA")>().tex = tex;
-root.at<Mk::wg2::Id("imageRow"), Mk::wg2::Id("imageB")>().tex = tex;
+root.at<Id("plain")>().label = "普通按钮";
+root.at<Id("plain")>().onClick = [&] { ++clicks; };
+root.at<Id("count")>().label = "计数按钮";
+root.at<Id("count")>().onClick = [&] { clicks += 10; };
+root.at<Id("imgbtn")>().tex = tex;
+root.at<Id("imgbtn")>().size = ImVec2(96, 96);
+root.at<Id("imgbtn")>().onClick = [&] { ++imgBtnClicks; };
+root.at<Id("clicks")>().name = "图片按钮点击";
+root.at<Id("clicks")>().valueFn = [&] { return std::to_string(imgBtnClicks); };
+root.at<Id("imageRow"), Id("imageA")>().tex = tex;
+root.at<Id("imageRow"), Id("imageB")>().tex = tex;
 
 bindPage(page, root);
 }
