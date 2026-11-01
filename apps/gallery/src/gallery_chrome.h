@@ -36,7 +36,8 @@ struct SectionHead {
 	using Root = Mk::wg2::VBox<Mk::wg2::Id("headCol"),
 		Mk::wg2::Label<Mk::wg2::Id("headTitle")>,
 		Mk::wg2::Colored<Mk::wg2::Id("headDescColor"),
-			Mk::wg2::TextWrapped<Mk::wg2::Id("headDesc")>>>;
+			Mk::wg2::TextWrapped<Mk::wg2::Id("headDesc")>>,
+		Mk::wg2::Rule<Mk::wg2::Id("headRule")>>;
 	Root root;
 
 	Mk::wg2::Size hint(const Mk::wg2::Size& avail) const { return root.hint(avail); }

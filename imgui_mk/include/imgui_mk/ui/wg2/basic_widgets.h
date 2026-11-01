@@ -182,4 +182,18 @@ struct SmallButton {
 	}
 };
 
+// 水平分隔线（对应 ImGui::Separator）：高度 = 行距
+template<FixedString Id>
+struct Rule {
+	static constexpr auto id = Id;
+	WidgetState<> state;
+
+	Size hint(const Size& avail) const {
+		if (!state.visible) return Size{0.0f, 0.0f};
+		return Size{avail.w, ImGui::GetStyle().ItemSpacing.y};
+	}
+	Policy policy() const { return Policy{}; }
+	void draw(const Rect&) { ImGui::Separator(); }
+};
+
 } // namespace Mk::wg2
