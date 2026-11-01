@@ -27,12 +27,12 @@ struct PageWindow {
 	Mk::window* win = nullptr;
 	Mk::window* inspectorWin = nullptr;
 
-	PageWindow(Mk::window* w, Mk::window* ins) : win(w), inspectorWin(ins) {
+	PageWindow(Mk::window* w = nullptr, Mk::window* ins = nullptr) : win(w), inspectorWin(ins) {
 		
 
 		auto& w_gal = root.at<ui::Id("gal")>();
 		w_gal.name = "Gallery 帧";
-		w_gal.valueFn = [this] { return std::to_string(win->frameIndex()); };
+		w_gal.valueFn = [this] { return std::to_string((win ? win->frameIndex() : 0ull)); };
 		auto& w_ins = root.at<ui::Id("ins")>();
 		w_ins.name = "Inspector 帧";
 		w_ins.valueFn = [this] { return inspectorWin ? std::to_string(inspectorWin->frameIndex()) : std::string("-"); };

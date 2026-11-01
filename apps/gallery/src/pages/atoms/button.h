@@ -31,7 +31,7 @@ ui::Image<ui::Id("imageB")>
 	int clicks = 0;
 	int imgBtnClicks = 0;
 
-PageButton(ImTextureID tex) {
+PageButton(ImTextureID tex = 0) {
 
 
 auto& w_plain = root.at<ui::Id("plain")>();

@@ -34,7 +34,7 @@ ui::LabelText<ui::Id("binaryText")>,
 	bool fileBinary = false;
 	bool fileMissing = false;
 
-PageFile(Mk::window* win) {
+PageFile(Mk::window* win = nullptr) {
 
 
 auto& w_open = root.at<ui::Id("open")>();
@@ -56,7 +56,7 @@ w_missingText.value = "文件不可读";
 	// 对话框与结果都归本页；主菜单通过 OpenFile 事件通知本页
 	auto& engine = Mk::mkui<Mk::window>::RegistrationWindow();
 	engine.on<OpenFile>([this](const OpenFile&) { openDialog(); });
-	win->watchFileDialog(dlg, [this](std::string path) { loadResult(std::move(path)); });
+	if (win) win->watchFileDialog(dlg, [this](std::string path) { loadResult(std::move(path)); });
 
 }
 
