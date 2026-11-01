@@ -1,24 +1,27 @@
 #pragma once
-// p5 按钮图片：Button/ImageButton/Image（wg2）
+// p5 按钮图片：ui::Button/ui::ImageButton/ui::Image（wg2）
 #include "../../gallery_chrome.h"
 
 namespace gallery {
 
+namespace ui = Mk::wg2;   // 本文件用短名
+
+
 struct PageButton {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "按钮与图片";
-	static constexpr const char* desc  = "wg2 Button（onClick）/ ImageButton / Image（loadTextureRGBA 生成纹理）。";
+	static constexpr const char* desc  = "wg2 ui::Button（onClick）/ ui::ImageButton / ui::Image（loadTextureRGBA 生成纹理）。";
 	static constexpr std::string_view code = snips::kButton;
 
-using Root = VBox<
-Id("root"),
-Button<Id("plain")>,
-Button<Id("count")>,
-ImageButton<Id("imgbtn")>,
-LabelText<Id("clicks")>,
-HBox<Id("imageRow"),
-Image<Id("imageA")>,
-Image<Id("imageB")>
+using Root = ui::VBox<
+ui::Id("root"),
+ui::Button<ui::Id("plain")>,
+ui::Button<ui::Id("count")>,
+ui::ImageButton<ui::Id("imgbtn")>,
+ui::LabelText<ui::Id("clicks")>,
+ui::HBox<ui::Id("imageRow"),
+ui::Image<ui::Id("imageA")>,
+ui::Image<ui::Id("imageB")>
 >
 >;
 
@@ -31,21 +34,21 @@ Image<Id("imageB")>
 PageButton(ImTextureID tex) {
 
 
-auto& w_plain = root.at<Id("plain")>();
+auto& w_plain = root.at<ui::Id("plain")>();
 w_plain.label = "普通按钮";
 w_plain.onClick = [&] { ++clicks; };
-auto& w_count = root.at<Id("count")>();
+auto& w_count = root.at<ui::Id("count")>();
 w_count.label = "计数按钮";
 w_count.onClick = [&] { clicks += 10; };
-auto& w_imgbtn = root.at<Id("imgbtn")>();
+auto& w_imgbtn = root.at<ui::Id("imgbtn")>();
 w_imgbtn.tex = tex;
 w_imgbtn.size = ImVec2(96, 96);
 w_imgbtn.onClick = [&] { ++imgBtnClicks; };
-auto& w_clicks = root.at<Id("clicks")>();
+auto& w_clicks = root.at<ui::Id("clicks")>();
 w_clicks.name = "图片按钮点击";
 w_clicks.valueFn = [&] { return std::to_string(imgBtnClicks); };
-root.at<Id("imageRow"), Id("imageA")>().tex = tex;
-root.at<Id("imageRow"), Id("imageB")>().tex = tex;
+root.at<ui::Id("imageRow"), ui::Id("imageA")>().tex = tex;
+root.at<ui::Id("imageRow"), ui::Id("imageB")>().tex = tex;
 
 }
 

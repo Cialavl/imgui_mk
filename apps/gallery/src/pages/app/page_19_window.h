@@ -4,18 +4,21 @@
 
 namespace gallery {
 
+namespace ui = Mk::wg2;   // 本文件用短名
+
+
 struct PageWindow {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "多窗口链接";
 	static constexpr const char* desc  = "两个顶层窗口各自一个 ImGui 上下文与帧循环；绑定 wg2 控件到同一批外部变量 = 实时链接。";
 	static constexpr std::string_view code = snips::kMultiWindow;
 
-	using Root = VBox<
-		Id("root"),
-		LabelText<Id("gal")>,
-		LabelText<Id("ins")>,
-		Button<Id("toggle")>,
-		TextWrapped<Id("note")>
+	using Root = ui::VBox<
+		ui::Id("root"),
+		ui::LabelText<ui::Id("gal")>,
+		ui::LabelText<ui::Id("ins")>,
+		ui::Button<ui::Id("toggle")>,
+		ui::TextWrapped<ui::Id("note")>
 	>;
 
 	Root root;
@@ -27,18 +30,18 @@ struct PageWindow {
 	PageWindow(Mk::window* w, Mk::window* ins) : win(w), inspectorWin(ins) {
 		
 
-		auto& w_gal = root.at<Id("gal")>();
+		auto& w_gal = root.at<ui::Id("gal")>();
 		w_gal.name = "Gallery 帧";
 		w_gal.valueFn = [this] { return std::to_string(win->frameIndex()); };
-		auto& w_ins = root.at<Id("ins")>();
+		auto& w_ins = root.at<ui::Id("ins")>();
 		w_ins.name = "Inspector 帧";
 		w_ins.valueFn = [this] { return inspectorWin ? std::to_string(inspectorWin->frameIndex()) : std::string("-"); };
-		auto& w_toggle = root.at<Id("toggle")>();
+		auto& w_toggle = root.at<ui::Id("toggle")>();
 		w_toggle.label = "显示/隐藏 Inspector";
 		w_toggle.onClick = [] {
 			Mk::mkui<Mk::window>::RegistrationWindow().emit(ToggleInspector{});
 		};
-		root.at<Id("note")>().text = "Inspector 只隐藏；Gallery 关闭后跟随退出。";
+		root.at<ui::Id("note")>().text = "Inspector 只隐藏；Gallery 关闭后跟随退出。";
 
 	}
 };

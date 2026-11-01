@@ -6,6 +6,9 @@
 
 namespace gallery {
 
+namespace ui = Mk::wg2;   // 本文件用短名
+
+
 struct PageFile {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "文件对话框";
@@ -13,13 +16,13 @@ struct PageFile {
 "帧循环每帧 poll() 取结果。对话框期间不冻结。";
 	static constexpr std::string_view code = snips::kFile;
 
-using Root = VBox<
-Id("root"),
-Button<Id("open")>,
-LabelText<Id("size")>,
-EllipsisLabel<Id("path")>,
-LabelText<Id("binaryText")>,
-		LabelText<Id("missingText")>
+using Root = ui::VBox<
+ui::Id("root"),
+ui::Button<ui::Id("open")>,
+ui::LabelText<ui::Id("size")>,
+ui::EllipsisLabel<ui::Id("path")>,
+ui::LabelText<ui::Id("binaryText")>,
+		ui::LabelText<ui::Id("missingText")>
 >;
 
 	Root root;
@@ -34,21 +37,21 @@ LabelText<Id("binaryText")>,
 PageFile(Mk::window* win) {
 
 
-auto& w_open = root.at<Id("open")>();
+auto& w_open = root.at<ui::Id("open")>();
 w_open.label = "选文件…";
 w_open.onClick = [this] { openDialog(); };
-auto& w_size = root.at<Id("size")>();
+auto& w_size = root.at<ui::Id("size")>();
 w_size.name = "文件大小";
 w_size.valueFn = [&] { return std::to_string(fileSize) + " bytes"; };
-auto& w_path = root.at<Id("path")>();
+auto& w_path = root.at<ui::Id("path")>();
 w_path.text = "(none)";
 w_path.valueFn = [&] { return filePath.empty() ? std::string("(none)") : filePath; };
-root.at<Id("binaryText")>().name = "二进制";
-auto& w_missingText = root.at<Id("missingText")>();
+root.at<ui::Id("binaryText")>().name = "二进制";
+auto& w_missingText = root.at<ui::Id("missingText")>();
 w_missingText.name = "错误";
 w_missingText.value = "文件不可读";
-	root.at<Id("binaryText")>().state.visibleFn = [&] { return !filePath.empty() && fileBinary; };
-	root.at<Id("missingText")>().state.visibleFn = [&] { return fileMissing; };
+	root.at<ui::Id("binaryText")>().state.visibleFn = [&] { return !filePath.empty() && fileBinary; };
+	root.at<ui::Id("missingText")>().state.visibleFn = [&] { return fileMissing; };
 
 	// 对话框与结果都归本页；主菜单通过 OpenFile 事件通知本页
 	auto& engine = Mk::mkui<Mk::window>::RegistrationWindow();

@@ -1,41 +1,44 @@
 #pragma once
-// p3 分格模式：SplitH/SplitV/Wrap/Grid（wg2 编译期布局）
+// p3 分格模式：ui::SplitH/ui::SplitV/ui::Wrap/ui::Grid（wg2 编译期布局）
 #include "../../gallery_chrome.h"
 
 namespace gallery {
 
+namespace ui = Mk::wg2;   // 本文件用短名
+
+
 struct PageSplit {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "分格模式";
-	static constexpr const char* desc  = "wg2 SplitH/SplitV 是 HBox/VBox 别名；stretch 与 fixed size 都存在 WidgetState。"
-"Wrap 换行、Grid 固定列网格。";
+	static constexpr const char* desc  = "wg2 ui::SplitH/ui::SplitV 是 ui::HBox/ui::VBox 别名；stretch 与 fixed size 都存在 WidgetState。"
+"ui::Wrap 换行、ui::Grid 固定列网格。";
 	static constexpr std::string_view code = snips::kSplit;
 
-using Root = VBox<
-Id("root"),
-Label<Id("intro")>,
-SplitH<Id("splitH"),
-Label<Id("sfA")>,
-Label<Id("sfB")>,
-Label<Id("sfC")>
+using Root = ui::VBox<
+ui::Id("root"),
+ui::Label<ui::Id("intro")>,
+ui::SplitH<ui::Id("splitH"),
+ui::Label<ui::Id("sfA")>,
+ui::Label<ui::Id("sfB")>,
+ui::Label<ui::Id("sfC")>
 >,
-SplitV<Id("splitV"),
-Label<Id("svA")>,
-Label<Id("svB")>
+ui::SplitV<ui::Id("splitV"),
+ui::Label<ui::Id("svA")>,
+ui::Label<ui::Id("svB")>
 >,
-Wrap<Id("wrap"),
-Label<Id("wA")>,
-Label<Id("wB")>,
-Label<Id("wC")>,
-Label<Id("wD")>
+ui::Wrap<ui::Id("wrap"),
+ui::Label<ui::Id("wA")>,
+ui::Label<ui::Id("wB")>,
+ui::Label<ui::Id("wC")>,
+ui::Label<ui::Id("wD")>
 >,
-Grid<Id("grid"),
-Label<Id("g00")>,
-Label<Id("g01")>,
-Label<Id("g02")>,
-Label<Id("g10")>,
-Label<Id("g11")>,
-Label<Id("g12")>
+ui::Grid<ui::Id("grid"),
+ui::Label<ui::Id("g00")>,
+ui::Label<ui::Id("g01")>,
+ui::Label<ui::Id("g02")>,
+ui::Label<ui::Id("g10")>,
+ui::Label<ui::Id("g11")>,
+ui::Label<ui::Id("g12")>
 >
 >;
 
@@ -44,36 +47,36 @@ Label<Id("g12")>
 PageSplit() {
 
 
-root.at<Id("intro")>().text = "分格演示：SplitH 权重分割 / SplitV 垂直分割 / Wrap 换行 / Grid 网格";
-auto& w_sfA = root.at<Id("splitH"), Id("sfA")>();
+root.at<ui::Id("intro")>().text = "分格演示：ui::SplitH 权重分割 / ui::SplitV 垂直分割 / ui::Wrap 换行 / ui::Grid 网格";
+auto& w_sfA = root.at<ui::Id("splitH"), ui::Id("sfA")>();
 w_sfA.text = "fixed 160";
 w_sfA.state.size.fixedW = 160.0f;
-auto& w_sfB = root.at<Id("splitH"), Id("sfB")>();
+auto& w_sfB = root.at<ui::Id("splitH"), ui::Id("sfB")>();
 w_sfB.text = "stretch 1";
 w_sfB.state.stretch = 1.0f;
-auto& w_sfC = root.at<Id("splitH"), Id("sfC")>();
+auto& w_sfC = root.at<ui::Id("splitH"), ui::Id("sfC")>();
 w_sfC.text = "stretch 2";
 w_sfC.state.stretch = 2.0f;
 
-auto& w_svA = root.at<Id("splitV"), Id("svA")>();
+auto& w_svA = root.at<ui::Id("splitV"), ui::Id("svA")>();
 w_svA.text = "fixed 44";
 w_svA.state.size.fixedH = 44.0f;
-auto& w_svB = root.at<Id("splitV"), Id("svB")>();
+auto& w_svB = root.at<ui::Id("splitV"), ui::Id("svB")>();
 w_svB.text = "VSplit stretch";
 w_svB.state.stretch = 1.0f;
 
-root.at<Id("wrap"), Id("wA")>().text = "换行一";
-root.at<Id("wrap"), Id("wB")>().text = "换行二（较长项）";
-root.at<Id("wrap"), Id("wC")>().text = "换行三";
-root.at<Id("wrap"), Id("wD")>().text = "换行四";
+root.at<ui::Id("wrap"), ui::Id("wA")>().text = "换行一";
+root.at<ui::Id("wrap"), ui::Id("wB")>().text = "换行二（较长项）";
+root.at<ui::Id("wrap"), ui::Id("wC")>().text = "换行三";
+root.at<ui::Id("wrap"), ui::Id("wD")>().text = "换行四";
 
-root.at<Id("grid")>().cols = 3;
-root.at<Id("grid"), Id("g00")>().text = "格 0-0";
-root.at<Id("grid"), Id("g01")>().text = "格 0-1";
-root.at<Id("grid"), Id("g02")>().text = "格 0-2";
-root.at<Id("grid"), Id("g10")>().text = "格 1-0";
-root.at<Id("grid"), Id("g11")>().text = "格 1-1";
-root.at<Id("grid"), Id("g12")>().text = "格 1-2";
+root.at<ui::Id("grid")>().cols = 3;
+root.at<ui::Id("grid"), ui::Id("g00")>().text = "格 0-0";
+root.at<ui::Id("grid"), ui::Id("g01")>().text = "格 0-1";
+root.at<ui::Id("grid"), ui::Id("g02")>().text = "格 0-2";
+root.at<ui::Id("grid"), ui::Id("g10")>().text = "格 1-0";
+root.at<ui::Id("grid"), ui::Id("g11")>().text = "格 1-1";
+root.at<ui::Id("grid"), ui::Id("g12")>().text = "格 1-2";
 
 }
 

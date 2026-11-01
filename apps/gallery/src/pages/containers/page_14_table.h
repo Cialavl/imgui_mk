@@ -1,21 +1,24 @@
 #pragma once
-// p14 表格：TextTable/FnTable（wg2）
+// p14 表格：ui::TextTable/ui::FnTable（wg2）
 #include "../../gallery_chrome.h"
 
 #include <string>
 
 namespace gallery {
 
+namespace ui = Mk::wg2;   // 本文件用短名
+
+
 struct PageTable {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "表格";
-	static constexpr const char* desc  = "wg2 TextTable（数据驱动：外部 vector 只读绑定）；FnTable（单元回调 cell(r,c)）。";
+	static constexpr const char* desc  = "wg2 ui::TextTable（数据驱动：外部 vector 只读绑定）；ui::FnTable（单元回调 cell(r,c)）。";
 	static constexpr std::string_view code = snips::kTable;
 
-using Root = VBox<
-Id("root"),
-TextTable<Id("data")>,
-FnTable<Id("fn")>
+using Root = ui::VBox<
+ui::Id("root"),
+ui::TextTable<ui::Id("data")>,
+ui::FnTable<ui::Id("fn")>
 >;
 
 	Root root;
@@ -31,12 +34,12 @@ FnTable<Id("fn")>
 PageTable() {
 
 
-auto& w_data = root.at<Id("data")>();
+auto& w_data = root.at<ui::Id("data")>();
 w_data.idname = "tbl";
 w_data.headers = kHeaders;
 w_data.headerCount = 3;
 w_data.rows = &rows;
-auto& w_fn = root.at<Id("fn")>();
+auto& w_fn = root.at<ui::Id("fn")>();
 w_fn.idname = "fn";
 w_fn.headers = kHeaders;
 w_fn.headerCount = 3;

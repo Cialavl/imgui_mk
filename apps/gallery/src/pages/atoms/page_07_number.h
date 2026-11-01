@@ -1,22 +1,25 @@
 #pragma once
-// p7 数值输入：InputInt/Float/Double + vec2（wg2）
+// p7 数值输入：ui::InputInt/Float/Double + vec2（wg2）
 #include "../../gallery_chrome.h"
 
 namespace gallery {
 
+namespace ui = Mk::wg2;   // 本文件用短名
+
+
 struct PageNumber {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "数值输入";
-	static constexpr const char* desc  = "wg2 InputInt/Float/Double 与 vec2 变体（std::array<T,2>* 绑定）。数值直接写回外部变量。";
+	static constexpr const char* desc  = "wg2 ui::InputInt/Float/Double 与 vec2 变体（std::array<T,2>* 绑定）。数值直接写回外部变量。";
 	static constexpr std::string_view code = snips::kInputNum;
 
-using Root = VBox<
-Id("root"),
-InputInt<Id("i")>,
-InputFloat<Id("f")>,
-InputDouble<Id("d")>,
-InputInt2<Id("iv2")>,
-InputFloat2<Id("fv2")>
+using Root = ui::VBox<
+ui::Id("root"),
+ui::InputInt<ui::Id("i")>,
+ui::InputFloat<ui::Id("f")>,
+ui::InputDouble<ui::Id("d")>,
+ui::InputInt2<ui::Id("iv2")>,
+ui::InputFloat2<ui::Id("fv2")>
 >;
 
 	Root root;
@@ -31,11 +34,11 @@ InputFloat2<Id("fv2")>
 PageNumber() {
 
 
-root.at<Id("i")>().name = "整数";    root.at<Id("i")>().value = &iVal;
-root.at<Id("f")>().name = "浮点";    root.at<Id("f")>().value = &fVal;
-root.at<Id("d")>().name = "双精度";  root.at<Id("d")>().value = &dVal;
-root.at<Id("iv2")>().name = "ivec2"; root.at<Id("iv2")>().value = &iv;
-root.at<Id("fv2")>().name = "vec2";  root.at<Id("fv2")>().value = &fv;
+root.at<ui::Id("i")>().name = "整数";    root.at<ui::Id("i")>().value = &iVal;
+root.at<ui::Id("f")>().name = "浮点";    root.at<ui::Id("f")>().value = &fVal;
+root.at<ui::Id("d")>().name = "双精度";  root.at<ui::Id("d")>().value = &dVal;
+root.at<ui::Id("iv2")>().name = "ivec2"; root.at<ui::Id("iv2")>().value = &iv;
+root.at<ui::Id("fv2")>().name = "vec2";  root.at<ui::Id("fv2")>().value = &fv;
 
 }
 
