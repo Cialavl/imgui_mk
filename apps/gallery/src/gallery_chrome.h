@@ -139,25 +139,20 @@ return Mk::wg2::Size{avail.w, avail.h};
 Mk::wg2::Policy policy() const { return Mk::wg2::Policy{}; }
 
 void draw(const Mk::wg2::Rect& r) {
-if (!render) return;
-
-// 页面层已提供整体滚动：这里按内容区宽度渲染，不再强制自带滚动条
-// 同上：页面滚动层已提供内边距，演示区不再叠加
-ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-if (!ImGui::BeginChild("page_demo_scroll", ImVec2(r.w, r.h), false, 0)) {
-ImGui::EndChild();
-ImGui::PopStyleVar();
-return;
-}
-const ImVec2 cp = ImGui::GetCursorPos();
-const float innerW = std::max(0.0f, ImGui::GetContentRegionAvail().x);
-// 按自然高度排版：demo 格被 stretch 撑高时，多出的高度留白，
-// 否则 VBox 会把子项拉成不均匀的大间距（页面看起来"散架"）
-float contentH = r.h;
-if (measure) contentH = measure(Mk::wg2::Size{innerW, 0.0f}).h;
-render(Mk::wg2::Rect{cp.x, cp.y, innerW, contentH});
-ImGui::EndChild();
-ImGui::PopStyleVar();
+	if (!render) return;
+	// 演示区滚动交给框架 ChildRegion：无边框、零内边距（页面层已提供滚动与留白）
+	Mk::wg2::ChildRegion<Mk::wg2::Id("demoRegion")> region;
+	region.idname = "page_demo_scroll";
+	region.padding = ImVec2(0.0f, 0.0f);
+	region.border = false;
+	region.body = [&](const ImVec2& cp) {
+		const float innerW = std::max(0.0f, ImGui::GetContentRegionAvail().x);
+		// 按自然高度排版：demo 格被撑高时多出的高度留白，避免 VBox 把子项拉散
+		float contentH = r.h;
+		if (measure) contentH = measure(Mk::wg2::Size{innerW, 0.0f}).h;
+		render(Mk::wg2::Rect{cp.x, cp.y, innerW, contentH});
+	};
+	region.draw(r);
 }
 };
 
