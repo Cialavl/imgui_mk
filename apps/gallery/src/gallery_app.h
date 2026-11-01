@@ -39,7 +39,7 @@ using AppMenuBar = ui::MenuBar<ui::Id("menuBar"), FileMenu, ThemeMenu, WindowMen
 
 // —— 主体三行 ——
 using SidePanel  = ui::SubWindow<ui::Id("sidePanel"), ui::SliderF<ui::Id("panelSlider")>, ui::LabelText<ui::Id("panelFrame")>>;
-using ContentRow = ui::HBox<ui::Id("contentRow"), ui::PageBook<ui::Id("book")>, SidePanel>;
+using ContentRow = ui::HBox<ui::Id("contentRow"), ContentArea, SidePanel>;   // 中间内容区（页集合自成组件）
 using StatusRow  = ui::HBox<ui::Id("statusRow"), ui::LabelText<ui::Id("stFps")>, ui::LabelText<ui::Id("stFrame")>, ui::LabelText<ui::Id("stPage")>>;
 using AppBody    = ui::VBox<ui::Id("mainCol"), AppMenuBar, ContentRow, StatusRow>;
 
@@ -74,36 +74,7 @@ InspectorWindow inspector;
 		initStatus();
 		initShell();
 
-		// 注册表：{页, 分组}；分组为空 = 沿用上一组
-		addPage(pageLayoutBasic, kGroupLayout);
-		addPage(pageLayoutSize);
-		addPage(pageLayoutGrid);
-		addPage(pageLayoutRuntime);
-		addPage(pageLayoutDynamic);
-		addPage(pageBase, kGroupWg);
-		addPage(pageLifecycle);
-		addPage(pageWg2);
-		addPage(pageWg2Catalog);
-		addPage(pageLayout);
-		addPage(pageSplit);
-		addPage(pageText, kGroupAtoms);
-		addPage(pageButton);
-		addPage(pageInput);
-		addPage(pageNumber);
-		addPage(pageDrag);
-		addPage(pageSelect);
-		addPage(pageFeedback);
-		addPage(pageContainer, kGroupContainers);
-		addPage(pageTab);
-		addPage(pageMenu);
-		addPage(pageTable);
-		addPage(pagePopup, kGroupPopColor);
-		addPage(pageColor);
-		addPage(pageDeco, kGroupDeco);
-		addPage(pageTheme, kGroupApp);
-		addPage(pageWindow);
-		addPage(pageFile);
-		addPage(pageFnRender);
+		content.init(tex, win, inspector.win.get());   // 内容区注册 29 页并注入依赖
 	}
 
 	// —— 应用壳自己的数据（选中页 / 主题 / 侧栏演示值 / 弹窗开关 / 纹理句柄）——
@@ -113,6 +84,9 @@ InspectorWindow inspector;
 	Mk::wg2::Theme theme = Mk::wg2::Theme::dark();
 	bool darkActive = true;
 	ImTextureID tex = makeCheckerTexture();   // 声明即创建
+
+	// 中间内容区：拥有页簿与 29 个页面
+	ContentArea content;
 
 	// —— 29 个演示页：由应用壳持有并注册（main 不再关心）——
 	gallery::Page<gallery::PageLayoutBasic>   pageLayoutBasic;
@@ -157,7 +131,7 @@ InspectorWindow inspector;
 	template<class Content>
 	void addPage(Page<Content>& page, const char* group = nullptr) {
 		page.setup();   // 装配外壳：读 Content::title / desc / code，并把演示槽挂到 content.root
-		auto& book = shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>();
+		auto& book = content.book;
 		if (group && *group) book.addGroup(group);
 		book.addPage(page.title, [&page](const Mk::wg2::Rect& r) { page.renderTo(r); });
 	}
@@ -165,7 +139,7 @@ InspectorWindow inspector;
 // 页面总数（导航条目中非组标题的数量）：供键盘翻页等使用
 int pageCount() {
 int n = 0;
-for (const auto& e : shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().nav.entries) {
+for (const auto& e : content.book.nav.entries) {
 if (!e.header) ++n;
 }
 return n;
@@ -207,11 +181,11 @@ shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp")
 }
 
 void initPanels() {
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().nav.current = &sel;
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().host.current = &sel;
+content.book.nav.current = &sel;
+content.book.host.current = &sel;
 
 
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().host.state.stretch = 1.0f;
+content.book.host.state.stretch = 1.0f;
 
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel")>().idname = "sidepanel";
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel")>().border = true;
@@ -257,8 +231,8 @@ shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stPage")
 
 void initShell() {
 		// 侧栏/侧面板宽度用 em 表达：字号变化时布局自动跟随，无需每帧同步
-		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().nav.state.size.prefWEm = 9.3f;
-		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().nav.state.size.minWEm = 5.6f;
+		content.book.nav.state.size.prefWEm = 9.3f;
+		content.book.nav.state.size.minWEm = 5.6f;
 		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel")>().state.size.prefWEm = 9.6f;
 		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel")>().state.size.minWEm = 6.7f;
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow")>().marginX = 0.0f;
@@ -275,9 +249,9 @@ shell.marginY = 0.0f;
 
 
 const char* currentPageTitle() {
-const int target = shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().nav.current ? *shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().nav.current : 0;
+const int target = content.book.nav.current ? *content.book.nav.current : 0;
 int i = 0;
- for (const auto& e : shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().nav.entries) {
+ for (const auto& e : content.book.nav.entries) {
 if (!e.header) {
 if (i++ == target) return e.label.c_str();
 }
