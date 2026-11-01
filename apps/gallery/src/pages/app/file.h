@@ -28,6 +28,7 @@ ui::LabelText<ui::Id("binaryText")>,
 	Root root;
 
 	// 本页自己的数据（不共享、不依赖外部状态容器）
+	Mk::window* win = nullptr;   // 由内容区注入
 	FileDialog dlg;
 	std::string filePath;
 	std::uintmax_t fileSize = 0;
@@ -60,6 +61,12 @@ w_missingText.value = "文件不可读";
 
 }
 
+
+	// 依赖注入：默认构造后由内容区调用
+	void attach(Mk::window* w) {
+		win = w;
+		if (win) win->watchFileDialog(dlg, [this](std::string path) { loadResult(std::move(path)); });
+	}
 
 	void openDialog() {
 		dlg.open("Open File", {

@@ -4,6 +4,7 @@
 //   - 根节点通过 wg2 layout 回调 挂到旧引擎中央挂载点。
 #include "gallery_inspector.h"
 #include "gallery_pages.h"
+#include "content_area.h"
 #include "gallery_nav.h"
 #include <imgui_mk/ui/wg2/texture.h>
 #include <Mainwindow.h>
