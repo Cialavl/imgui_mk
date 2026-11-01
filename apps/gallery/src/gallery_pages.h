@@ -1,5 +1,12 @@
 #pragma once
-// gallery 页面聚合：按 UI 层级分子目录，文件名即主题（无序号）（core/atoms/containers/popup_color/deco/app/layout） + kGroupXxx 分组常量（页面对象在 main 组装注册）
+// gallery 页面聚合：按 UI 层级分子目录，文件名即主题（无序号）
+//
+// 新增一个页面 = 三步：
+//   1. 在 pages/<分组>/ 下新建 <主题>.h（内容类：元数据 + Root 树 + 构造绑数据）
+//   2. 在本文件加一行 #include
+//   3. 在 gallery_app.h 的成员区声明 Page<Content>、在 registerPages() 里 addPage
+//
+// 顺序由 addPage 的调用顺序决定，与文件名无关。
 #include "gallery_chrome.h"
 #include "pages/core/base.h"
 #include "pages/core/lifecycle.h"
