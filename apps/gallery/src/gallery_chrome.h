@@ -92,10 +92,10 @@ return ImVec2(0.55f * em, 0.75f * em);
 
 	void draw(const Mk::wg2::Rect& r) {
 		auto& btn = root.at<Mk::wg2::Id("copyRow"), Mk::wg2::Id("copyBtn")>();
-		btn.label = (ImGui::GetFrameCount() - copiedFrame < 60) ? "已复制" : "Copy";
+		btn.label = (Mk::wg2::metrics::frameCount() - copiedFrame < 60) ? "已复制" : "Copy";
 		btn.onClick = [this] {
 			Mk::wg2::setClipboard(std::string(code));
-			copiedFrame = ImGui::GetFrameCount();
+			copiedFrame = Mk::wg2::metrics::frameCount();
 		};
 
 		auto& region = root.at<Mk::wg2::Id("codeRegion")>();
@@ -150,7 +150,7 @@ void draw(const Mk::wg2::Rect& r) {
 	region.padding = ImVec2(0.0f, 0.0f);
 	region.border = false;
 	region.body = [&](const ImVec2& cp) {
-		const float innerW = std::max(0.0f, ImGui::GetContentRegionAvail().x);
+		const float innerW = std::max(0.0f, Mk::wg2::metrics::availRegion().x);
 		// 按自然高度排版：demo 格被撑高时多出的高度留白，避免 VBox 把子项拉散
 		float contentH = r.h;
 		if (measure) contentH = measure(Mk::wg2::Size{innerW, 0.0f}).h;
@@ -201,7 +201,7 @@ struct Page {
 		region.idname = "page_body";
 		region.padding = ImVec2(0.0f, 0.0f);
 		region.body = [&](const ImVec2& cp) {
-			const ImVec2 avail = ImGui::GetContentRegionAvail();
+			const ImVec2 avail = Mk::wg2::metrics::availRegion();
 			const Mk::wg2::Size want = chrome.hint(Mk::wg2::Size{avail.x, 0.0f});
 			const float h = want.h > 1.0f ? want.h : avail.y;
 			Mk::wg2::layout(chrome, Mk::wg2::Rect{cp.x, cp.y, avail.x, h});

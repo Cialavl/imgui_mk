@@ -160,6 +160,10 @@ inline ImVec2 windowPadding() { return ImGui::GetStyle().WindowPadding; }
 inline ImVec2 textSize(const char* t, float wrapWidth = -1.0f) {
 	return ImGui::CalcTextSize(t, nullptr, true, wrapWidth);
 }
+inline unsigned int frameCount() { return ImGui::GetFrameCount(); }
+inline ImVec2 cursorPos() { return ImGui::GetCursorPos(); }
+inline ImVec2 availRegion() { return ImGui::GetContentRegionAvail(); }
+
 } // namespace metrics
 
 // 字体作用域：构造 PushFont、析构 PopFont（命令式绘制区切字体的唯一入口）
