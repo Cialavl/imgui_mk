@@ -30,7 +30,8 @@ struct PageLayoutGrid {
 		OverlayDemo,
 		ui::Label<ui::Id("note")>>;
 
-	Page<Root> page;
+	Page page;
+	Root root;
 
 	PageLayoutGrid() {
 		page.setup("布局·复杂静态：Grid / Wrap / Overlay",
@@ -38,9 +39,9 @@ struct PageLayoutGrid {
 			"三者都可以再套 VBox/HBox 组成任意复杂结构。",
 			snips::kLayoutGrid);
 
-		page.root.at<ui::Id("intro")>().text = "Grid：3 列 × 2 行，列宽均分";
+		root.at<ui::Id("intro")>().text = "Grid：3 列 × 2 行，列宽均分";
 
-		auto& w_grid = page.root.at<ui::Id("grid")>();
+		auto& w_grid = root.at<ui::Id("grid")>();
 		w_grid.cols = 3;
 		w_grid.spacing = 8.0f;
 		for (int i = 0; i < 6; ++i) {
@@ -55,8 +56,8 @@ struct PageLayoutGrid {
 			}
 		}
 
-		page.root.at<ui::Id("wrapTitle")>().text = "Wrap：宽度不够自动换行（拖窄窗口看效果）";
-		auto& w_wrap = page.root.at<ui::Id("wrap")>();
+		root.at<ui::Id("wrapTitle")>().text = "Wrap：宽度不够自动换行（拖窄窗口看效果）";
+		auto& w_wrap = root.at<ui::Id("wrap")>();
 		w_wrap.spacing = 8.0f;
 		w_wrap.at<ui::Id("w0")>().label = "标签 A";
 		w_wrap.at<ui::Id("w1")>().label = "标签 B";
@@ -65,15 +66,16 @@ struct PageLayoutGrid {
 		w_wrap.at<ui::Id("w4")>().label = "标签 E";
 		w_wrap.at<ui::Id("w5")>().label = "标签 F";
 
-		page.root.at<ui::Id("ovTitle")>().text = "Overlay：文字在底层，按钮用 Offset 浮在上面";
-		page.root.at<ui::Id("ov"), ui::Id("ovBase")>().text = "底层文字（会被上面的按钮压住一部分）";
-		auto& w_ovOff = page.root.at<ui::Id("ov"), ui::Id("ovOff")>();
+		root.at<ui::Id("ovTitle")>().text = "Overlay：文字在底层，按钮用 Offset 浮在上面";
+		root.at<ui::Id("ov"), ui::Id("ovBase")>().text = "底层文字（会被上面的按钮压住一部分）";
+		auto& w_ovOff = root.at<ui::Id("ov"), ui::Id("ovOff")>();
 		w_ovOff.dxEm = 9.0f;
 		w_ovOff.dyEm = 0.2f;
 		w_ovOff.child.label = "浮层按钮";
 
-		page.root.at<ui::Id("note")>().text = "复杂布局 = 这些容器随意嵌套，路径 at<Id, Id, ...>() 依旧可直达。";
+		root.at<ui::Id("note")>().text = "复杂布局 = 这些容器随意嵌套，路径 at<Id, Id, ...>() 依旧可直达。";
 
+		bindPage(page, root);
 	}
 };
 

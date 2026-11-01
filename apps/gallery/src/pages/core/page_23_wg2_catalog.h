@@ -38,7 +38,8 @@ struct PageWg2Catalog {
 		>
 	>;
 
-	Page<Root> page;
+	Page page;
+	Root root;
 
 	// 本页自己的数据（不共享、不依赖外部状态容器）
 	int clicks = 0;
@@ -58,37 +59,38 @@ struct PageWg2Catalog {
     >
 >;)");
 
-		page.root.at<Id("input_head")>().name = "输入";
-		auto& w_check = page.root.at<Id("input_row"), Id("check")>();
+		root.at<Id("input_head")>().name = "输入";
+		auto& w_check = root.at<Id("input_row"), Id("check")>();
 		w_check.name = "静音";
 		w_check.checked = &checked;
-		auto& w_text = page.root.at<Id("input_row"), Id("text")>();
+		auto& w_text = root.at<Id("input_row"), Id("text")>();
 		w_text.name = "文本";
 		w_text.setName("hello wg2");
-		auto& w_volume = page.root.at<Id("input_row"), Id("volume")>();
+		auto& w_volume = root.at<Id("input_row"), Id("volume")>();
 		w_volume.name = "音量";
 		w_volume.value = &volume;
 
-		page.root.at<Id("display_head")>().name = "显示";
-		page.root.at<Id("display_row"), Id("bar")>().fraction = &volume;
-		page.root.at<Id("display_row"), Id("count")>().name = "clicks";
+		root.at<Id("display_head")>().name = "显示";
+		root.at<Id("display_row"), Id("bar")>().fraction = &volume;
+		root.at<Id("display_row"), Id("count")>().name = "clicks";
 
-		page.root.at<Id("colored")>().color = ImVec4(0.4f, 0.9f, 0.6f, 1.0f);
-		page.root.at<Id("colored"), Id("color_label")>().text = "Colored 装饰件";
+		root.at<Id("colored")>().color = ImVec4(0.4f, 0.9f, 0.6f, 1.0f);
+		root.at<Id("colored"), Id("color_label")>().text = "Colored 装饰件";
 
-		auto& w_tip_btn = page.root.at<Id("tip"), Id("tip_btn")>();
+		auto& w_tip_btn = root.at<Id("tip"), Id("tip_btn")>();
 		w_tip_btn.label = "悬停看提示";
 		w_tip_btn.onClick = [&] { ++clicks; };
-		page.root.at<Id("tip")>().text = "这是 Tooltip 装饰件";
+		root.at<Id("tip")>().text = "这是 Tooltip 装饰件";
 
-		auto& w_tabwin = page.root.at<Id("tabwin")>();
+		auto& w_tabwin = root.at<Id("tabwin")>();
 		w_tabwin.height = 170.0f;
 		w_tabwin.idname = "wg2catalog:tabs";
-		page.root.at<Id("tabwin"), Id("tabs"), Id("tab_a")>().title = "页 A";
-		page.root.at<Id("tabwin"), Id("tabs"), Id("tab_a"), Id("tab_a_text")>().text = "编译期 Tab A";
-		page.root.at<Id("tabwin"), Id("tabs"), Id("tab_b")>().title = "页 B";
-		page.root.at<Id("tabwin"), Id("tabs"), Id("tab_b"), Id("tab_b_text")>().text = "编译期 Tab B";
+		root.at<Id("tabwin"), Id("tabs"), Id("tab_a")>().title = "页 A";
+		root.at<Id("tabwin"), Id("tabs"), Id("tab_a"), Id("tab_a_text")>().text = "编译期 Tab A";
+		root.at<Id("tabwin"), Id("tabs"), Id("tab_b")>().title = "页 B";
+		root.at<Id("tabwin"), Id("tabs"), Id("tab_b"), Id("tab_b_text")>().text = "编译期 Tab B";
 
+		bindPage(page, root);
 	}
 
 };

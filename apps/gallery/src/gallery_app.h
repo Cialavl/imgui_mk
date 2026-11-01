@@ -74,7 +74,7 @@ InspectorWindow inspector;
 		initShell();
 
 		// 注册表：{页, 分组}；分组为空 = 沿用上一组
-		const std::pair<PageCore*, const char*> kRegistry[] = {
+		const std::pair<Page*, const char*> kRegistry[] = {
 			{&pageLayoutBasic.page, kGroupLayout}, {&pageLayoutSize.page, nullptr},
 			{&pageLayoutGrid.page, nullptr}, {&pageLayoutRuntime.page, nullptr},
 			{&pageLayoutDynamic.page, nullptr}, {&pageBase.page, kGroupWg},
@@ -142,7 +142,7 @@ InspectorWindow inspector;
 		Mk::mkui<Mk::window>::RegistrationWindow().emit(ThemeChanged{t});
 	}
 
-void addPage(PageCore& page, const char* group = nullptr) {
+void addPage(Page& page, const char* group = nullptr) {
 if (group && *group) shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().nav.addEntry(group, true);
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().nav.addEntry(page.title, false);
  auto render = [&page](const Mk::wg2::Rect& r) { page.renderTo(r); };
