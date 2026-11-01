@@ -82,21 +82,26 @@ return Mk::wg2::Size{avail.w, Mk::wg2::metrics::frameHeight() + ImGui::GetStyle(
 Mk::wg2::Policy policy() const { return Mk::wg2::Policy{}; }
 
 void draw(const Mk::wg2::Rect& r) {
-const ImGuiStyle& st = ImGui::GetStyle();
-const bool justCopied = ImGui::GetFrameCount() - copiedFrame < 60;
-const char* copyLabel = justCopied ? "已复制" : "Copy";
-const float w = ImGui::CalcTextSize(copyLabel).x + st.FramePadding.x * 2.0f;
-const float availX = ImGui::GetContentRegionAvail().x;
-ImGui::SetCursorPosX(ImGui::GetCursorPosX() + availX - w);
-if (ImGui::SmallButton(copyLabel)) {
-ImGui::SetClipboardText(std::string(code).c_str());
-copiedFrame = ImGui::GetFrameCount();
-}
+		const char* copyLabel = (ImGui::GetFrameCount() - copiedFrame < 60) ? "已复制" : "Copy";
+		// 复制行：组合式（Spacer 推挤 + SmallButton），不再手写光标右对齐
+		Mk::wg2::HBox<Mk::wg2::Id("copyRow"),
+			Mk::wg2::Spacer<Mk::wg2::Id("grow")>,
+			Mk::wg2::SmallButton<Mk::wg2::Id("copyBtn")>> bar;
+		bar.at<Mk::wg2::Id("copyBtn")>().label = copyLabel;
+		bar.at<Mk::wg2::Id("copyBtn")>().onClick = [this] {
+			ImGui::SetClipboardText(std::string(code).c_str());
+			copiedFrame = ImGui::GetFrameCount();
+		};
+		const ImVec2 barPos = ImGui::GetCursorPos();
+		Mk::wg2::layout(bar, Mk::wg2::Rect{barPos.x, barPos.y,
+			ImGui::GetContentRegionAvail().x, Mk::wg2::metrics::frameHeight()});
+		ImGui::SetCursorPosY(barPos.y + Mk::wg2::metrics::frameHeight() + ImGui::GetStyle().ItemSpacing.y);
+
 
 const ImVec2 pad = innerPad();   // 须在 PushFont 之前：按主字体字号算 em
 ImFont* cm = activeMono();
 if (cm) ImGui::PushFont(cm);
-const float copyRow = Mk::wg2::metrics::frameHeight() + st.ItemSpacing.y;
+const float copyRow = Mk::wg2::metrics::frameHeight() + ImGui::GetStyle().ItemSpacing.y;
 const float childH = r.h > copyRow ? r.h - copyRow : 0.0f;
 const float codeW = std::max(0.0f, ImGui::GetContentRegionAvail().x);
 		Mk::wg2::ChildRegion<Mk::wg2::Id("codeRegion")> region;
