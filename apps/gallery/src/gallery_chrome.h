@@ -65,16 +65,16 @@ ImFont* activeMono() const { return monoFn ? monoFn() : mono; }
 
 // 代码区内边距（em，随字号）：顶部留白比全局控件间距更松，代码不贴边框
 static ImVec2 innerPad() {
-const float em = ImGui::GetFontSize();
+const float em = Mk::wg2::metrics::fontSize();
 return ImVec2(0.55f * em, 0.75f * em);
 }
 
 Mk::wg2::Size hint(const Mk::wg2::Size& avail) const {
 std::size_t lines = 1;
 for (char c : code) if (c == '\n') ++lines;
-const float lineH = ImGui::GetTextLineHeightWithSpacing();
+const float lineH = Mk::wg2::metrics::lineHeight();
 const ImVec2 pad = innerPad();
-return Mk::wg2::Size{avail.w, ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.y + static_cast<float>(lines) * lineH + pad.y * 2.0f};
+return Mk::wg2::Size{avail.w, Mk::wg2::metrics::frameHeight() + ImGui::GetStyle().ItemSpacing.y + static_cast<float>(lines) * lineH + pad.y * 2.0f};
 }
 
 Mk::wg2::Policy policy() const { return Mk::wg2::Policy{}; }
@@ -94,7 +94,7 @@ copiedFrame = ImGui::GetFrameCount();
 const ImVec2 pad = innerPad();   // 须在 PushFont 之前：按主字体字号算 em
 ImFont* cm = activeMono();
 if (cm) ImGui::PushFont(cm);
-const float copyRow = ImGui::GetFrameHeight() + st.ItemSpacing.y;
+const float copyRow = Mk::wg2::metrics::frameHeight() + st.ItemSpacing.y;
 const float childH = r.h > copyRow ? r.h - copyRow : 0.0f;
 const float codeW = std::max(0.0f, ImGui::GetContentRegionAvail().x);
 		Mk::wg2::ChildRegion<Mk::wg2::Id("codeRegion")> region;

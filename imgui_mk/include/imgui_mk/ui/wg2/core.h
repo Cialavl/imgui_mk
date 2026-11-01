@@ -1,4 +1,5 @@
 #pragma once
+#include <imgui.h>
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
@@ -148,5 +149,17 @@ struct LayoutItem {
 // ============ 渲染深度：动态容器渲染期增删保护 ============
 
 inline thread_local int g_RenderDepth = 0;
+
+// 度量入口：把"量字/取尺寸"的 ImGui 调用收成一处，控件与应用都不直接碰 ImGui 度量
+namespace metrics {
+inline float fontSize() { return ImGui::GetFontSize(); }
+inline float lineHeight() { return ImGui::GetTextLineHeightWithSpacing(); }
+inline float frameHeight() { return ImGui::GetFrameHeight(); }
+inline ImVec2 itemSpacing() { return ImGui::GetStyle().ItemSpacing; }
+inline ImVec2 windowPadding() { return ImGui::GetStyle().WindowPadding; }
+inline ImVec2 textSize(const char* t, float wrapWidth = -1.0f) {
+	return ImGui::CalcTextSize(t, nullptr, true, wrapWidth);
+}
+} // namespace metrics
 
 } // namespace Mk::wg2
