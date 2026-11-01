@@ -3,7 +3,6 @@
 //   - 菜单、状态栏、侧面板、弹窗全部使用 Mk::wg2 静态树；
 //   - 根节点通过 wg2 layout 回调 挂到旧引擎中央挂载点。
 #include "gallery_inspector.h"
-#include "gallery_pages.h"
 #include "content_area.h"
 #include "gallery_nav.h"
 #include <imgui_mk/ui/wg2/texture.h>
