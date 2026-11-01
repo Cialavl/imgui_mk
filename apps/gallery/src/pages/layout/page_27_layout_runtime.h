@@ -4,56 +4,59 @@
 
 namespace gallery {
 
+namespace ui = Mk::wg2;   // 本文件用短名
+
+// —— 工具条 + 列表区 ——
+using ListToolbar = ui::HBox<ui::Id("bar"),
+	ui::Button<ui::Id("add")>,
+	ui::Button<ui::Id("del")>,
+	ui::LabelText<ui::Id("count")>>;
+
+using ListZone = ui::SubWindow<ui::Id("zone"), ui::RuntimeList<ui::Id("list")>>;
+
 struct PageLayoutRuntime {
-	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "布局·简单动态：RuntimeList 增删";
 	static constexpr const char* desc  = "静态树里嵌一个 RuntimeList：运行时 add/remove 项不破坏兄弟节点，"
-			"渲染回调内增删也安全（墓碑 + pending）。";
+		"渲染回调内增删也安全（墓碑 + pending）。";
 	static constexpr std::string_view code = snips::kLayoutRuntime;
 
-	using Root = VBox<
-		Id("root"),
-		Label<Id("intro")>,
-		HBox<Id("bar"),
-			Button<Id("add")>,
-			Button<Id("del")>,
-			LabelText<Id("count")>>,
-		SubWindow<Id("zone"), RuntimeList<Id("list")>>,
-		Label<Id("note")>>;
+	// 根只列结构：说明 / 工具条 / 列表区 / 注解
+	using Root = ui::VBox<ui::Id("root"),
+		ui::Label<ui::Id("intro")>,
+		ListToolbar,
+		ListZone,
+		ui::Label<ui::Id("note")>>;
 
 	Root root;
 	int added = 0;
 
 	PageLayoutRuntime() {
-		
+		root.at<ui::Id("intro")>().text = "点击添加：新项进入下方滚动区；删除总是移除末项";
 
-		root.at<Id("intro")>().text = "点击添加：新项进入下方滚动区；删除总是移除末项";
-		auto& w_add = root.at<Id("bar"), Id("add")>();
+		auto& w_add = root.at<ui::Id("bar"), ui::Id("add")>();
 		w_add.label = "添加一项";
 		w_add.onClick = [this] {
-			auto item = std::make_unique<Label<Id("item")>>(
+			auto item = std::make_unique<ui::Label<ui::Id("item")>>(
 				"列表项 #" + std::to_string(++added));
-			AnyWidget any = AnyWidget::own(std::move(item));
+			ui::AnyWidget any = ui::AnyWidget::own(std::move(item));
 			any.idname = "item" + std::to_string(added);
-			root.at<Id("zone")>().child<0>().add(std::move(any));
-		};
-		auto& w_del = root.at<Id("bar"), Id("del")>();
-		w_del.label = "删除末项";
-		w_del.onClick = [this] {
-			root.at<Id("zone")>().child<0>().removeLast();
-		};
-		auto& w_count = root.at<Id("bar"), Id("count")>();
-		w_count.name = "当前项数";
-		w_count.valueFn = [this] {
-			return std::to_string(root.at<Id("zone")>().child<0>().size());
+			root.at<ui::Id("zone")>().child<0>().add(std::move(any));
 		};
 
-		auto& w_zone = root.at<Id("zone")>();
+		auto& w_del = root.at<ui::Id("bar"), ui::Id("del")>();
+		w_del.label = "删除末项";
+		w_del.onClick = [this] { root.at<ui::Id("zone")>().child<0>().removeLast(); };
+
+		auto& w_count = root.at<ui::Id("bar"), ui::Id("count")>();
+		w_count.name = "当前项数";
+		w_count.valueFn = [this] { return std::to_string(root.at<ui::Id("zone")>().child<0>().size()); };
+
+		auto& w_zone = root.at<ui::Id("zone")>();
 		w_zone.idname = "layoutRuntimeList";
 		w_zone.height = 180.0f;
 		w_zone.border = true;
-		root.at<Id("note")>().text = "项是 Label<Id(\"item\")> 的实例（同一类型、不同 idname），由 AnyWidget 统一持有。";
 
+		root.at<ui::Id("note")>().text = "项是 Label<Id(\"item\")> 的实例（同一类型、不同 idname），由 AnyWidget 统一持有。";
 	}
 };
 
