@@ -94,7 +94,7 @@ return ImVec2(0.55f * em, 0.75f * em);
 		auto& btn = root.at<Mk::wg2::Id("copyRow"), Mk::wg2::Id("copyBtn")>();
 		btn.label = (ImGui::GetFrameCount() - copiedFrame < 60) ? "已复制" : "Copy";
 		btn.onClick = [this] {
-			ImGui::SetClipboardText(std::string(code).c_str());
+			Mk::wg2::setClipboard(std::string(code));
 			copiedFrame = ImGui::GetFrameCount();
 		};
 
@@ -120,10 +120,8 @@ return ImVec2(0.55f * em, 0.75f * em);
 			}
 		};
 
-		ImFont* cm = activeMono();
-		if (cm) ImGui::PushFont(cm);
+		Mk::wg2::FontScope font(activeMono());
 		Mk::wg2::layout(root, r);
-		if (cm) ImGui::PopFont();
 	}
 };
 

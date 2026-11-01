@@ -162,4 +162,16 @@ inline ImVec2 textSize(const char* t, float wrapWidth = -1.0f) {
 }
 } // namespace metrics
 
+// 字体作用域：构造 PushFont、析构 PopFont（命令式绘制区切字体的唯一入口）
+struct FontScope {
+	bool pushed = false;
+	explicit FontScope(ImFont* f) { if (f) { ImGui::PushFont(f); pushed = true; } }
+	~FontScope() { if (pushed) ImGui::PopFont(); }
+	FontScope(const FontScope&) = delete;
+	FontScope& operator=(const FontScope&) = delete;
+};
+
+// 剪贴板
+inline void setClipboard(const std::string& text) { ImGui::SetClipboardText(text.c_str()); }
+
 } // namespace Mk::wg2
