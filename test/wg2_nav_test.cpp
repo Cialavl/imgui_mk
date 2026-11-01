@@ -1,6 +1,7 @@
 // 框架层导航/页面宿主：不依赖 ImGui 上下文的那部分逻辑
 #include <gtest/gtest.h>
 
+#include <imgui_mk/ui/wg2/wg2.h>
 #include <imgui_mk/ui/wg2/widgets/nav.h>
 #include "wg2_test_harness.h"
 
@@ -100,3 +101,15 @@ TEST(Wg2Nav, PageBookDrawsCurrentPageOnly) {
 	EXPECT_EQ(second, 1);
 }
 
+
+TEST(Wg2Nav, ChildRegionDrawsBody) {
+	wg2test::Harness h;
+	ChildRegion<Id("region")> region;
+	region.border = true;
+	region.padding = ImVec2(0.0f, 0.0f);
+	int calls = 0;
+	region.body = [&](const ImVec2&) { ++calls; };
+
+	h.inFrame([&] { Mk::wg2::layout(region, Rect{0.0f, 0.0f, 120.0f, 60.0f}); });
+	EXPECT_EQ(calls, 1);
+}

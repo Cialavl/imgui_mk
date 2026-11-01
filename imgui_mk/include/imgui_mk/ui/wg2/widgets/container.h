@@ -260,4 +260,35 @@ struct Collapsing {
 template<FixedString Id, class... Children>
 using ScrollArea = SubWindow<Id, Children...>;
 
+// 命令式子区域：对应 ImGui 的 BeginChild/EndChild 用法
+//   region.body = [&](const ImVec2& inner){ ... 在这里画任意内容 ... };
+//   区域大小由布局给定，内边距/边框/滚动条由本控件统一处理
+template<FixedString Id>
+struct ChildRegion {
+	static constexpr auto id = Id;
+
+	WidgetState<> state;
+	ImVec2 padding{-1.0f, -1.0f};        // <0 用主题 WindowPadding
+	bool border = false;
+	ImGuiWindowFlags flags = 0;
+	std::string idname;
+	std::function<void(const ImVec2&)> body;   // 收到内容区左上角
+
+	Size hint(const Size& avail) const { return avail; }
+	Policy policy() const { return Policy{}; }
+
+	void draw(const Rect& r) {
+		const ImVec2 sz(r.w > 0.0f ? r.w : 1.0f, r.h > 0.0f ? r.h : 1.0f);
+		const char* cid = idname.empty() ? id.data : idname.c_str();
+		if (padding.x >= 0.0f) ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, padding);
+		const bool open = ImGui::BeginChild(cid, sz, border ? ImGuiChildFlags_Border : 0, flags);
+		if (open) {
+			const ImVec2 cp = ImGui::GetCursorPos();
+			if (body) body(cp);
+		}
+		ImGui::EndChild();   // 即使 BeginChild 返回 false 也必须配对
+		if (padding.x >= 0.0f) ImGui::PopStyleVar();
+	}
+};
+
 } // namespace Mk::wg2
