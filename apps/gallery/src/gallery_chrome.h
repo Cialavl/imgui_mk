@@ -161,73 +161,52 @@ ImGui::PopStyleVar();
 
 // ============ 页面架 ============
 
+// 页面 = 外壳（标题/说明/演示区/代码块）+ 内容树
+//   page.setup(标题, 描述, 代码)  填外壳，并把演示槽挂到自己的 root 上
+//   page.root.xxx               绑内容控件
+template<class DemoRoot>
 struct Page {
-using Root = Mk::wg2::VBox<
-Mk::wg2::Id("page"),
-SectionHead<Mk::wg2::Id("head")>,
-PageDemo<Mk::wg2::Id("demo")>,
-Mk::wg2::SeparatorText<Mk::wg2::Id("codeTitle")>,
-CodeBlock<Mk::wg2::Id("code")>
->;
+	using Chrome = Mk::wg2::VBox<
+		Mk::wg2::Id("page"),
+		SectionHead<Mk::wg2::Id("head")>,
+		PageDemo<Mk::wg2::Id("demo")>,
+		Mk::wg2::SeparatorText<Mk::wg2::Id("codeTitle")>,
+		CodeBlock<Mk::wg2::Id("code")>>;
 
-Root root;
-const char* title = "";
+	Chrome chrome;   // 外壳
+	DemoRoot root;   // 内容（页面自己的控件树）
+	const char* title = "";
 
-void setup(const char* pageTitle, const char* desc, std::string_view snippet) {
-title = pageTitle;
-root.at<Mk::wg2::Id("head")>().title = pageTitle;
-root.at<Mk::wg2::Id("head")>().desc = desc;
-root.at<Mk::wg2::Id("codeTitle")>().name = "Code";
-root.at<Mk::wg2::Id("code")>().code = snippet;
-root.at<Mk::wg2::Id("code")>().monoFn = [] { return gMono; };
-// demo 不参与伸展：页面内容按自然高度自上而下排列，剩余空间留白（代码块紧跟演示区）
-root.marginX = 0.0f;
-root.marginY = 0.0f;
-}
+	void setup(const char* pageTitle, const char* desc, std::string_view snippet) {
+		title = pageTitle;
+		chrome.at<Mk::wg2::Id("head")>().title = pageTitle;
+		chrome.at<Mk::wg2::Id("head")>().desc = desc;
+		chrome.at<Mk::wg2::Id("codeTitle")>().name = "Code";
+		chrome.at<Mk::wg2::Id("code")>().code = snippet;
+		chrome.at<Mk::wg2::Id("code")>().monoFn = [] { return gMono; };
+		chrome.marginX = 0.0f;
+		chrome.marginY = 0.0f;
+		// 挂载：演示槽渲染本页内容树（Page 拥有 root，页面无需再 bind）
+		chrome.at<Mk::wg2::Id("demo")>().render  = [this](const Mk::wg2::Rect& r) { Mk::wg2::layout(root, r); };
+		chrome.at<Mk::wg2::Id("demo")>().measure = [this](const Mk::wg2::Size& a) { return root.hint(a); };
+	}
 
-template<class F, class M = std::nullptr_t>
-void addWidget(F&& render,
-M&& measure = nullptr) {
-root.at<Mk::wg2::Id("demo")>().render = std::forward<F>(render);
-root.at<Mk::wg2::Id("demo")>().measure = std::forward<M>(measure);
-}
-
-void renderTo(const Mk::wg2::Rect& r) {
-if (r.w <= 1.0f || r.h <= 1.0f) return;
-// 整页滚动：先量出内容自然高度，超出宿主时由本层滚动条接管（子页面不再各自滚动）
-// 外层宿主（preview_wg2）已带内边距：这里置零，避免滚动层再叠一层 padding
-ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-if (!ImGui::BeginChild("page_body", ImVec2(r.w, r.h), false, 0)) {
-ImGui::EndChild();
-ImGui::PopStyleVar();
-return;
-}
-const ImVec2 cp = ImGui::GetCursorPos();
-const ImVec2 avail = ImGui::GetContentRegionAvail();
-// 始终按内容自然高度布局：页面自上而下紧凑排列，剩余空间留在底部；
-// 若按宿主高度布局，VBox 会把每个子项的 Preferred 高度都撑开，出现不均匀大间隙
-const Mk::wg2::Size want = root.hint(Mk::wg2::Size{avail.x, 0.0f});
-const float h = want.h > 1.0f ? want.h : avail.y;
-Mk::wg2::layout(root, Mk::wg2::Rect{cp.x, cp.y, avail.x, h});
-ImGui::EndChild();
-ImGui::PopStyleVar();
-}
+	void renderTo(const Mk::wg2::Rect& r) {
+		if (r.w <= 1.0f || r.h <= 1.0f) return;
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+		if (!ImGui::BeginChild("page_body", ImVec2(r.w, r.h), false, 0)) {
+			ImGui::EndChild();
+			ImGui::PopStyleVar();
+			return;
+		}
+		const ImVec2 cp = ImGui::GetCursorPos();
+		const ImVec2 avail = ImGui::GetContentRegionAvail();
+		const Mk::wg2::Size want = chrome.hint(Mk::wg2::Size{avail.x, 0.0f});
+		const float h = want.h > 1.0f ? want.h : avail.y;
+		Mk::wg2::layout(chrome, Mk::wg2::Rect{cp.x, cp.y, avail.x, h});
+		ImGui::EndChild();
+		ImGui::PopStyleVar();
+	}
 };
-
-// 页面装配的唯一入口：把 wg2 根节点接到 Page 的"渲染 + 量高"两个槽位。
-// 页面只负责建树 + 绑数据，布局细节不收在页面里。
-// 页面装配的唯一入口：把 wg2 根节点接到 Page 的"渲染 + 量高"两个槽位。
-// 页面只负责建树 + 绑数据，布局细节不收在页面里。
-template<class Root>
-void bindPage(Page& page, Root& root) {
-	// Root 必须是 wg2 控件：可布局、可量高
-	static_assert(requires(const Root& r, const Mk::wg2::Size& s) { r.hint(s); },
-		"bindPage: Root 需要 hint(const Size&) 成员（wg2 控件）");
-	static_assert(requires(Root& r, const Mk::wg2::Rect& rc) { Mk::wg2::layout(r, rc); },
-		"bindPage: Root 需要能被 Mk::wg2::layout 布局");
-	page.addWidget(
-		[&root](const Mk::wg2::Rect& r) { Mk::wg2::layout(root, r); },
-		[&root](const Mk::wg2::Size& avail) { return root.hint(avail); });
-}
 
 } // namespace gallery

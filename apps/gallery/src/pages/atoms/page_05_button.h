@@ -17,8 +17,7 @@ Image<Id("imageB")>
 >
 >;
 
-Page page;
-Root root;
+	Page<Root> page;
 
 	// 本页自己的数据（不共享、不依赖外部状态容器）
 	int clicks = 0;
@@ -29,23 +28,22 @@ page.setup("按钮与图片",
 "wg2 Button（onClick）/ ImageButton / Image（loadTextureRGBA 生成纹理）。",
 snips::kButton);
 
-auto& w_plain = root.at<Id("plain")>();
+auto& w_plain = page.root.at<Id("plain")>();
 w_plain.label = "普通按钮";
 w_plain.onClick = [&] { ++clicks; };
-auto& w_count = root.at<Id("count")>();
+auto& w_count = page.root.at<Id("count")>();
 w_count.label = "计数按钮";
 w_count.onClick = [&] { clicks += 10; };
-auto& w_imgbtn = root.at<Id("imgbtn")>();
+auto& w_imgbtn = page.root.at<Id("imgbtn")>();
 w_imgbtn.tex = tex;
 w_imgbtn.size = ImVec2(96, 96);
 w_imgbtn.onClick = [&] { ++imgBtnClicks; };
-auto& w_clicks = root.at<Id("clicks")>();
+auto& w_clicks = page.root.at<Id("clicks")>();
 w_clicks.name = "图片按钮点击";
 w_clicks.valueFn = [&] { return std::to_string(imgBtnClicks); };
-root.at<Id("imageRow"), Id("imageA")>().tex = tex;
-root.at<Id("imageRow"), Id("imageB")>().tex = tex;
+page.root.at<Id("imageRow"), Id("imageA")>().tex = tex;
+page.root.at<Id("imageRow"), Id("imageB")>().tex = tex;
 
-bindPage(page, root);
 }
 
 };

@@ -74,24 +74,35 @@ InspectorWindow inspector;
 		initShell();
 
 		// 注册表：{页, 分组}；分组为空 = 沿用上一组
-		const std::pair<Page*, const char*> kRegistry[] = {
-			{&pageLayoutBasic.page, kGroupLayout}, {&pageLayoutSize.page, nullptr},
-			{&pageLayoutGrid.page, nullptr}, {&pageLayoutRuntime.page, nullptr},
-			{&pageLayoutDynamic.page, nullptr}, {&pageBase.page, kGroupWg},
-			{&pageLifecycle.page, nullptr}, {&pageWg2.page, nullptr},
-			{&pageWg2Catalog.page, nullptr}, {&pageLayout.page, nullptr},
-			{&pageSplit.page, nullptr}, {&pageText.page, kGroupAtoms},
-			{&pageButton.page, nullptr}, {&pageInput.page, nullptr},
-			{&pageNumber.page, nullptr}, {&pageDrag.page, nullptr},
-			{&pageSelect.page, nullptr}, {&pageFeedback.page, nullptr},
-			{&pageContainer.page, kGroupContainers}, {&pageTab.page, nullptr},
-			{&pageMenu.page, nullptr}, {&pageTable.page, nullptr},
-			{&pagePopup.page, kGroupPopColor}, {&pageColor.page, nullptr},
-			{&pageDeco.page, kGroupDeco}, {&pageTheme.page, kGroupApp},
-			{&pageWindow.page, nullptr}, {&pageFile.page, nullptr},
-			{&pageFnRender.page, nullptr},
-		};
-		for (const auto& [page, group] : kRegistry) addPage(*page, group);
+		addPage(pageLayoutBasic.page, kGroupLayout);
+		addPage(pageLayoutSize.page);
+		addPage(pageLayoutGrid.page);
+		addPage(pageLayoutRuntime.page);
+		addPage(pageLayoutDynamic.page);
+		addPage(pageBase.page, kGroupWg);
+		addPage(pageLifecycle.page);
+		addPage(pageWg2.page);
+		addPage(pageWg2Catalog.page);
+		addPage(pageLayout.page);
+		addPage(pageSplit.page);
+		addPage(pageText.page, kGroupAtoms);
+		addPage(pageButton.page);
+		addPage(pageInput.page);
+		addPage(pageNumber.page);
+		addPage(pageDrag.page);
+		addPage(pageSelect.page);
+		addPage(pageFeedback.page);
+		addPage(pageContainer.page, kGroupContainers);
+		addPage(pageTab.page);
+		addPage(pageMenu.page);
+		addPage(pageTable.page);
+		addPage(pagePopup.page, kGroupPopColor);
+		addPage(pageColor.page);
+		addPage(pageDeco.page, kGroupDeco);
+		addPage(pageTheme.page, kGroupApp);
+		addPage(pageWindow.page);
+		addPage(pageFile.page);
+		addPage(pageFnRender.page);
 	}
 
 	// —— 应用壳自己的数据（选中页 / 主题 / 侧栏演示值 / 弹窗开关 / 纹理句柄）——
@@ -142,8 +153,8 @@ InspectorWindow inspector;
 		Mk::mkui<Mk::window>::RegistrationWindow().emit(ThemeChanged{t});
 	}
 
-void addPage(Page& page, const char* group = nullptr) {
-if (group && *group) shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().nav.addEntry(group, true);
+	template<class DemoRoot>
+	void addPage(Page<DemoRoot>& page, const char* group = nullptr) {
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().nav.addEntry(page.title, false);
  auto render = [&page](const Mk::wg2::Rect& r) { page.renderTo(r); };
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().host.addPage(render);

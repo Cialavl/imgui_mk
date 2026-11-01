@@ -17,21 +17,19 @@ Label<Id("text2")>
 >
 >;
 
-Page page;
-Root root;
+	Page<Root> page;
 
 PageTab() {
 page.setup("标签页",
 "wg2 TabBar/Tab 是编译期模板；页签标题为 Tab::title。",
 snips::kTabBar);
 
-root.at<Id("tabs")>().idname = "galtabs";
-root.at<Id("tabs"), Id("tab1")>().title = "页一";
-root.at<Id("tabs"), Id("tab1"), Id("text1")>().text = "TabBar 容器：页签渲染";
-root.at<Id("tabs"), Id("tab2")>().title = "页二";
-root.at<Id("tabs"), Id("tab2"), Id("text2")>().text = "第二页内容";
+page.root.at<Id("tabs")>().idname = "galtabs";
+page.root.at<Id("tabs"), Id("tab1")>().title = "页一";
+page.root.at<Id("tabs"), Id("tab1"), Id("text1")>().text = "TabBar 容器：页签渲染";
+page.root.at<Id("tabs"), Id("tab2")>().title = "页二";
+page.root.at<Id("tabs"), Id("tab2"), Id("text2")>().text = "第二页内容";
 
-bindPage(page, root);
 }
 
 };
