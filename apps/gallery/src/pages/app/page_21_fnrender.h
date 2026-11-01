@@ -16,18 +16,16 @@ FnWidget<Id("fnView"), FnDrawerImpl>,
 Label<Id("note")>
 >;
 
-Page page;
-Root root;
+Page<Root> page;
 
 PageFnRender() {
 page.setup("FnRender 裸绘制",
 "wg2 FnWidget 包装裸 ImGui 绘制函数（F 类型默认构造，状态用指针捕获）。",
 snips::kFnRender);
 
-root.at<Id("fnView")>().fn = FnDrawerImpl{};   // 自带演示值，不再依赖共享状态
-root.at<Id("note")>().text = "上方进度条用裸 ImGui 函数绘制，由 FnWidget 节点挂入 wg2 布局。";
+page.root.at<Id("fnView")>().fn = FnDrawerImpl{};   // 自带演示值，不再依赖共享状态
+page.root.at<Id("note")>().text = "上方进度条用裸 ImGui 函数绘制，由 FnWidget 节点挂入 wg2 布局。";
 
-bindPage(page, root);
 }
 
 };

@@ -16,8 +16,7 @@ LabelText<Id("binaryText")>,
 		LabelText<Id("missingText")>
 >;
 
-Page page;
-Root root;
+Page<Root> page;
 
 	// 本页自己的数据（不共享、不依赖外部状态容器）
 	FileDialog dlg;
@@ -32,28 +31,27 @@ page.setup("文件对话框",
 "帧循环每帧 poll() 取结果。对话框期间不冻结。",
 snips::kFile);
 
-auto& w_open = root.at<Id("open")>();
+auto& w_open = page.root.at<Id("open")>();
 w_open.label = "选文件…";
 w_open.onClick = [this] { openDialog(); };
-auto& w_size = root.at<Id("size")>();
+auto& w_size = page.root.at<Id("size")>();
 w_size.name = "文件大小";
 w_size.valueFn = [&] { return std::to_string(fileSize) + " bytes"; };
-auto& w_path = root.at<Id("path")>();
+auto& w_path = page.root.at<Id("path")>();
 w_path.text = "(none)";
 w_path.valueFn = [&] { return filePath.empty() ? std::string("(none)") : filePath; };
-root.at<Id("binaryText")>().name = "二进制";
-auto& w_missingText = root.at<Id("missingText")>();
+page.root.at<Id("binaryText")>().name = "二进制";
+auto& w_missingText = page.root.at<Id("missingText")>();
 w_missingText.name = "错误";
 w_missingText.value = "文件不可读";
-	root.at<Id("binaryText")>().state.visibleFn = [&] { return !filePath.empty() && fileBinary; };
-	root.at<Id("missingText")>().state.visibleFn = [&] { return fileMissing; };
+	page.root.at<Id("binaryText")>().state.visibleFn = [&] { return !filePath.empty() && fileBinary; };
+	page.root.at<Id("missingText")>().state.visibleFn = [&] { return fileMissing; };
 
 	// 对话框与结果都归本页；主菜单通过 OpenFile 事件通知本页
 	auto& engine = Mk::mkui<Mk::window>::RegistrationWindow();
 	engine.on<OpenFile>([this](const OpenFile&) { openDialog(); });
 	win->watchFileDialog(dlg, [this](std::string path) { loadResult(std::move(path)); });
 
-	bindPage(page, root);
 }
 
 
