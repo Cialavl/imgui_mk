@@ -38,8 +38,7 @@ using HelpMenu   = ui::Menu<ui::Id("menuHelp"),   ui::MenuItem<ui::Id("miAbout")
 using AppMenuBar = ui::MenuBar<ui::Id("menuBar"), FileMenu, ThemeMenu, WindowMenu, HelpMenu>;
 
 // —— 主体三行 ——
-using SidePanel  = ui::SubWindow<ui::Id("sidePanel"), ui::SliderF<ui::Id("panelSlider")>, ui::LabelText<ui::Id("panelFrame")>>;
-using ContentRow = ui::HBox<ui::Id("contentRow"), ContentArea, SidePanel>;   // 中间内容区（页集合自成组件）
+using ContentRow = ui::HBox<ui::Id("contentRow"), ContentArea>;   // 中间内容区（页集合自成组件）
 using StatusRow  = ui::HBox<ui::Id("statusRow"), ui::LabelText<ui::Id("stFps")>, ui::LabelText<ui::Id("stFrame")>, ui::LabelText<ui::Id("stPage")>>;
 using AppBody    = ui::VBox<ui::Id("mainCol"), AppMenuBar, ContentRow, StatusRow>;
 
@@ -78,9 +77,7 @@ InspectorWindow inspector;
 	}
 
 	// —— 应用壳自己的数据（选中页 / 主题 / 侧栏演示值 / 弹窗开关 / 纹理句柄）——
-	int sel = 0;
-	float panelVolume = 0.6f;
-	bool popupOpen = false, modalOpen = false, aboutOpen = false;
+	int sel = 0;	bool popupOpen = false, modalOpen = false, aboutOpen = false;
 	Mk::wg2::Theme theme = Mk::wg2::Theme::dark();
 	bool darkActive = true;
 	ImTextureID tex = makeCheckerTexture();   // 声明即创建
@@ -180,22 +177,11 @@ shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp")
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp"), Mk::wg2::Id("miAbout")>().onClick = [this] { aboutOpen = true; };
 }
 
-void initPanels() {
-content.book.nav.current = &sel;
-content.book.host.current = &sel;
-
-
-content.book.host.state.stretch = 1.0f;
-
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel")>().idname = "sidepanel";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel")>().border = true;
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel"), Mk::wg2::Id("panelSlider")>().name = "Panel slider";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel"), Mk::wg2::Id("panelSlider")>().value = &panelVolume;
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel"), Mk::wg2::Id("panelFrame")>().name = "Frame";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel"), Mk::wg2::Id("panelFrame")>().valueFn = [this] {
-return std::to_string(win->frameIndex());
-};
-}
+	void initPanels() {
+		content.book.nav.current = &sel;      // 导航与宿主共用一个选中下标
+		content.book.host.current = &sel;
+		content.book.host.state.stretch = 1.0f;
+	}
 
 void initPopups() {
 shell.at<Mk::wg2::Id("popupTree")>().idname = "gpop";
@@ -229,23 +215,21 @@ shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stPage")
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stPage")>().valueFn = [this] { return std::string(currentPageTitle()); };
 }
 
-void initShell() {
-		// 侧栏/侧面板宽度用 em 表达：字号变化时布局自动跟随，无需每帧同步
+	void initShell() {
+		// 侧栏宽度用 em：字号变化时布局自动跟随
 		content.book.nav.state.size.prefWEm = 9.3f;
 		content.book.nav.state.size.minWEm = 5.6f;
-		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel")>().state.size.prefWEm = 9.6f;
-		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("sidePanel")>().state.size.minWEm = 6.7f;
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow")>().marginX = 0.0f;
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow")>().marginY = 0.0f;
- shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow")>().state.stretch = 1.0f;
- shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow")>().marginX = 0.0f;
- shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow")>().marginY = 0.0f;
- shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow")>().spacing = 12.0f;
-shell.at<Mk::wg2::Id("mainCol")>().marginX = 0.0f;
-shell.at<Mk::wg2::Id("mainCol")>().marginY = 0.0f;
-shell.marginX = 0.0f;
-shell.marginY = 0.0f;
-}
+		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow")>().marginX = 0.0f;
+		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow")>().marginY = 0.0f;
+		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow")>().state.stretch = 1.0f;
+		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow")>().marginX = 0.0f;
+		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow")>().marginY = 0.0f;
+		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow")>().spacing = 12.0f;
+		shell.at<Mk::wg2::Id("mainCol")>().marginX = 0.0f;
+		shell.at<Mk::wg2::Id("mainCol")>().marginY = 0.0f;
+		shell.marginX = 0.0f;
+		shell.marginY = 0.0f;
+	}
 
 
 const char* currentPageTitle() {
