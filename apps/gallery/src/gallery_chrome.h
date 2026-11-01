@@ -84,7 +84,7 @@ return ImVec2(0.55f * em, 0.75f * em);
 		// 高度 = 复制行 + 代码区（行数 × 行高 + 内边距）
 		const std::size_t linesN = 1 + static_cast<std::size_t>(std::count(code.begin(), code.end(), '\n'));
 		return Mk::wg2::Size{avail.w,
-			Mk::wg2::metrics::frameHeight() + ImGui::GetStyle().ItemSpacing.y
+			Mk::wg2::metrics::frameHeight() + Mk::wg2::metrics::itemSpacing().y
 			+ static_cast<float>(linesN) * Mk::wg2::metrics::lineHeight() + innerPad().y * 2.0f};
 	}
 
@@ -104,7 +104,7 @@ return ImVec2(0.55f * em, 0.75f * em);
 		region.border = true;
 		region.flags = ImGuiWindowFlags_HorizontalScrollbar;
 		region.height = hint(Mk::wg2::Size{r.w, 0.0f}).h
-			- Mk::wg2::metrics::frameHeight() - ImGui::GetStyle().ItemSpacing.y;
+			- Mk::wg2::metrics::frameHeight() - Mk::wg2::metrics::itemSpacing().y;
 		region.body = [this](const ImVec2&) {
 			int lineNo = 1;
 			std::size_t pos = 0;
