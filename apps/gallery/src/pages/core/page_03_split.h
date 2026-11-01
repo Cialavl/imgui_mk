@@ -43,22 +43,22 @@ page.setup("分格模式",
 snips::kSplit);
 
 root.at<Id("intro")>().text = "分格演示：SplitH 权重分割 / SplitV 垂直分割 / Wrap 换行 / Grid 网格";
-auto& _w1 = root.at<Id("splitH"), Id("sfA")>();
-_w1.text = "fixed 160";
-_w1.state.size.fixedW = 160.0f;
-auto& _w2 = root.at<Id("splitH"), Id("sfB")>();
-_w2.text = "stretch 1";
-_w2.state.stretch = 1.0f;
-auto& _w3 = root.at<Id("splitH"), Id("sfC")>();
-_w3.text = "stretch 2";
-_w3.state.stretch = 2.0f;
+auto& w_sfA = root.at<Id("splitH"), Id("sfA")>();
+w_sfA.text = "fixed 160";
+w_sfA.state.size.fixedW = 160.0f;
+auto& w_sfB = root.at<Id("splitH"), Id("sfB")>();
+w_sfB.text = "stretch 1";
+w_sfB.state.stretch = 1.0f;
+auto& w_sfC = root.at<Id("splitH"), Id("sfC")>();
+w_sfC.text = "stretch 2";
+w_sfC.state.stretch = 2.0f;
 
-auto& _w4 = root.at<Id("splitV"), Id("svA")>();
-_w4.text = "fixed 44";
-_w4.state.size.fixedH = 44.0f;
-auto& _w5 = root.at<Id("splitV"), Id("svB")>();
-_w5.text = "VSplit stretch";
-_w5.state.stretch = 1.0f;
+auto& w_svA = root.at<Id("splitV"), Id("svA")>();
+w_svA.text = "fixed 44";
+w_svA.state.size.fixedH = 44.0f;
+auto& w_svB = root.at<Id("splitV"), Id("svB")>();
+w_svB.text = "VSplit stretch";
+w_svB.state.stretch = 1.0f;
 
 root.at<Id("wrap"), Id("wA")>().text = "换行一";
 root.at<Id("wrap"), Id("wB")>().text = "换行二（较长项）";

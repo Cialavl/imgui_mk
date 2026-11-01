@@ -20,12 +20,12 @@ page.setup("文本输入",
 "wg2 InputText<N>（N = 缓冲容量）编辑内部文本；name 作标签；setName 写入内容。",
 snips::kInputText);
 
-auto& _w1 = root.at<Id("big")>();
-_w1.name = "文本（128 字符）";
-_w1.setName("hello");
-auto& _w2 = root.at<Id("echo")>();
-_w2.name = "内容回显";
-_w2.valueFn = [this] {
+auto& w_big = root.at<Id("big")>();
+w_big.name = "文本（128 字符）";
+w_big.setName("hello");
+auto& w_echo = root.at<Id("echo")>();
+w_echo.name = "内容回显";
+w_echo.valueFn = [this] {
 return root.at<Id("big")>().c_str();
 };
 root.at<Id("small")>().name = "短文本输入（64 字符）";

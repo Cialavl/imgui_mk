@@ -43,9 +43,9 @@ struct PageWg2 {
 		root.at<Id("row"), Id("add")>().label = "添加 wg2 动态项";
 		root.at<Id("row"), Id("count")>().name = "clicks";
 
-		auto& _w1 = root.at<Id("listwin")>();
-		_w1.height = 180.0f;
-		_w1.idname = "wg2:list";
+		auto& w_listwin = root.at<Id("listwin")>();
+		w_listwin.height = 180.0f;
+		w_listwin.idname = "wg2:list";
 
 		root.at<Id("row"), Id("add")>().onClick = [&] {
 			++clicks;

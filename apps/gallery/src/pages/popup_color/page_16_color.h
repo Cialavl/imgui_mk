@@ -31,21 +31,21 @@ page.setup("颜色编辑",
 "wg2 ColorEdit3/4 与 ColorPicker3/4：std::array<float,3|4>* 绑定；拾取器可包进折叠容器。",
 snips::kColor);
 
-auto& _w1 = root.at<Id("rgb")>();
-_w1.name = "RGB";
-_w1.color = &col3;
-auto& _w2 = root.at<Id("rgba")>();
-_w2.name = "RGBA";
-_w2.color = &col4;
-auto& _w3 = root.at<Id("collapsing")>();
-_w3.title = "拾取器（默认展开）";
-_w3.defaultOpen = true;
-auto& _w4 = root.at<Id("collapsing"), Id("pickRow"), Id("pick3")>();
-_w4.name = "Pick RGB";
-_w4.color = &pick3;
-auto& _w5 = root.at<Id("collapsing"), Id("pickRow"), Id("pick4")>();
-_w5.name = "Pick RGBA";
-_w5.color = &pick4;
+auto& w_rgb = root.at<Id("rgb")>();
+w_rgb.name = "RGB";
+w_rgb.color = &col3;
+auto& w_rgba = root.at<Id("rgba")>();
+w_rgba.name = "RGBA";
+w_rgba.color = &col4;
+auto& w_collapsing = root.at<Id("collapsing")>();
+w_collapsing.title = "拾取器（默认展开）";
+w_collapsing.defaultOpen = true;
+auto& w_pick3 = root.at<Id("collapsing"), Id("pickRow"), Id("pick3")>();
+w_pick3.name = "Pick RGB";
+w_pick3.color = &pick3;
+auto& w_pick4 = root.at<Id("collapsing"), Id("pickRow"), Id("pick4")>();
+w_pick4.name = "Pick RGBA";
+w_pick4.color = &pick4;
 
 bindPage(page, root);
 }

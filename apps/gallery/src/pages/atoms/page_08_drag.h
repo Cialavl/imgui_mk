@@ -29,9 +29,9 @@ page.setup("拖拽与滑块",
 "wg2 DragF/DragI（speed/mn/mx）与 SliderF/SliderInt/SliderAngle（角度转弧度）。值直接写回外部变量。",
 snips::kDrag);
 
-auto& _w1 = root.at<Id("dragF")>();
-_w1.name = "拖拽f";  root.at<Id("dragF")>().value = &drag;
-_w1.speed = 0.01f;
+auto& w_dragF = root.at<Id("dragF")>();
+w_dragF.name = "拖拽f";  root.at<Id("dragF")>().value = &drag;
+w_dragF.speed = 0.01f;
 root.at<Id("dragI")>().name = "拖拽i";  root.at<Id("dragI")>().value = &dragInt;
 root.at<Id("slideF")>().name = "滑块f"; root.at<Id("slideF")>().value = &volume;
 root.at<Id("slideI")>().name = "滑块i"; root.at<Id("slideI")>().value = &slideI;

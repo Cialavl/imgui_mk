@@ -26,30 +26,30 @@ struct PageLayoutRuntime {
 			snips::kLayoutRuntime);
 
 		root.at<Id("intro")>().text = "点击添加：新项进入下方滚动区；删除总是移除末项";
-		auto& _w1 = root.at<Id("bar"), Id("add")>();
-		_w1.label = "添加一项";
-		_w1.onClick = [this] {
+		auto& w_add = root.at<Id("bar"), Id("add")>();
+		w_add.label = "添加一项";
+		w_add.onClick = [this] {
 			auto item = std::make_unique<Label<Id("item")>>(
 				"列表项 #" + std::to_string(++added));
 			AnyWidget any = AnyWidget::own(std::move(item));
 			any.idname = "item" + std::to_string(added);
 			root.at<Id("zone")>().child<0>().add(std::move(any));
 		};
-		auto& _w2 = root.at<Id("bar"), Id("del")>();
-		_w2.label = "删除末项";
-		_w2.onClick = [this] {
+		auto& w_del = root.at<Id("bar"), Id("del")>();
+		w_del.label = "删除末项";
+		w_del.onClick = [this] {
 			root.at<Id("zone")>().child<0>().removeLast();
 		};
-		auto& _w3 = root.at<Id("bar"), Id("count")>();
-		_w3.name = "当前项数";
-		_w3.valueFn = [this] {
+		auto& w_count = root.at<Id("bar"), Id("count")>();
+		w_count.name = "当前项数";
+		w_count.valueFn = [this] {
 			return std::to_string(root.at<Id("zone")>().child<0>().size());
 		};
 
-		auto& _w4 = root.at<Id("zone")>();
-		_w4.idname = "layoutRuntimeList";
-		_w4.height = 180.0f;
-		_w4.border = true;
+		auto& w_zone = root.at<Id("zone")>();
+		w_zone.idname = "layoutRuntimeList";
+		w_zone.height = 180.0f;
+		w_zone.border = true;
 		root.at<Id("note")>().text = "项是 Label<Id(\"item\")> 的实例（同一类型、不同 idname），由 AnyWidget 统一持有。";
 
 		bindPage(page, root);

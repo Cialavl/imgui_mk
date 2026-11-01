@@ -34,33 +34,33 @@ page.setup("基础：生命周期",
 "When 装饰件负责显示/隐藏。",
 snips::kLife);
 
-auto& _w1 = root.at<Id("buttons"), Id("add")>();
-_w1.label = "添加动态叶子";
-_w1.onClick = [&] {
+auto& w_add = root.at<Id("buttons"), Id("add")>();
+w_add.label = "添加动态叶子";
+w_add.onClick = [&] {
 auto label = std::make_unique<Label<Id("leaf")>>(
 "动态叶子（wg2 RuntimeList 项）");
 AnyWidget any = AnyWidget::own(std::move(label));
 any.idname = "lifeLeaf";
 root.at<Id("dynamic")>().add(std::move(any));
 };
-auto& _w2 = root.at<Id("buttons"), Id("remove")>();
-_w2.label = "移除动态叶子";
-_w2.onClick = [&] {
+auto& w_remove = root.at<Id("buttons"), Id("remove")>();
+w_remove.label = "移除动态叶子";
+w_remove.onClick = [&] {
 root.at<Id("dynamic")>().removeLast();
 };
-auto& _w3 = root.at<Id("hide")>();
-_w3.name = "隐藏叶子（When show=false）";
-_w3.checked = &mute;
-auto& _w4 = root.at<Id("state")>();
-_w4.name = "叶子状态";
-_w4.valueFn = [this] {
+auto& w_hide = root.at<Id("hide")>();
+w_hide.name = "隐藏叶子（When show=false）";
+w_hide.checked = &mute;
+auto& w_state = root.at<Id("state")>();
+w_state.name = "叶子状态";
+w_state.valueFn = [this] {
 return root.at<Id("dynamic")>().size()
 ? std::string("有叶子")
 : std::string("无叶子");
 };
-auto& _w5 = root.at<Id("note")>();
-_w5.name = "说明";
-_w5.value = "勾选：When 包裹控件隐藏/恢复。";
+auto& w_note = root.at<Id("note")>();
+w_note.name = "说明";
+w_note.value = "勾选：When 包裹控件隐藏/恢复。";
 root.at<Id("when"), Id("when_text")>().text = "（When 包裹的文本，mute 时隐藏）";
 
 bindPage(page, root);

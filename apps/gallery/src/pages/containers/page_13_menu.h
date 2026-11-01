@@ -26,15 +26,15 @@ page.setup("菜单与面板",
 "wg2 Panel = SubWindow 别名；面板内容经模板参数编译期传入。",
 snips::kPanel);
 
-auto& _w1 = root.at<Id("panel")>();
-_w1.idname = "面板";
-_w1.height = 110.0f;
-auto& _w2 = root.at<Id("panel"), Id("slider")>();
-_w2.name = "面板内滑块";
-_w2.value = &volume;
-auto& _w3 = root.at<Id("panel"), Id("frames")>();
-_w3.name = "帧";
-_w3.valueFn = [this] { return std::to_string(win->frameIndex()); };
+auto& w_panel = root.at<Id("panel")>();
+w_panel.idname = "面板";
+w_panel.height = 110.0f;
+auto& w_slider = root.at<Id("panel"), Id("slider")>();
+w_slider.name = "面板内滑块";
+w_slider.value = &volume;
+auto& w_frames = root.at<Id("panel"), Id("frames")>();
+w_frames.name = "帧";
+w_frames.valueFn = [this] { return std::to_string(win->frameIndex()); };
 root.at<Id("note")>().text = "Panel 是浮动窗口；菜单栏是常驻点（主窗口顶部）。";
 
 bindPage(page, root);

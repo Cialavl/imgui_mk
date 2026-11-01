@@ -29,17 +29,17 @@ page.setup("表格",
 "wg2 TextTable（数据驱动：外部 vector 只读绑定）；FnTable（单元回调 cell(r,c)）。",
 snips::kTable);
 
-auto& _w1 = root.at<Id("data")>();
-_w1.idname = "tbl";
-_w1.headers = kHeaders;
-_w1.headerCount = 3;
-_w1.rows = &rows;
-auto& _w2 = root.at<Id("fn")>();
-_w2.idname = "fn";
-_w2.headers = kHeaders;
-_w2.headerCount = 3;
-_w2.rowCount = 4;
-_w2.cell = [](int r, int c) {
+auto& w_data = root.at<Id("data")>();
+w_data.idname = "tbl";
+w_data.headers = kHeaders;
+w_data.headerCount = 3;
+w_data.rows = &rows;
+auto& w_fn = root.at<Id("fn")>();
+w_fn.idname = "fn";
+w_fn.headers = kHeaders;
+w_fn.headerCount = 3;
+w_fn.rowCount = 4;
+w_fn.cell = [](int r, int c) {
 return "r" + std::to_string(r) + "c" + std::to_string(c);
 };
 
