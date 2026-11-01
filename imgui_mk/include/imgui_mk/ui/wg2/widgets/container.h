@@ -25,6 +25,7 @@ struct SubWindow {
 	float width = 0.0f;    // 0 = 填满可用宽度
 	float height = 0.0f;   // 0 = 按内容
 	bool border = true;
+	ImVec2 padding{-1.0f, -1.0f};   // 内容内边距：<0 用主题 WindowPadding
 	float spacing = -1.0f;
 	std::string idname;
 
@@ -57,6 +58,7 @@ struct SubWindow {
 	void draw(const Rect& r) {
 		const float hGuard = r.h > 1.0f ? r.h : ImGui::GetFrameHeight() * 2.0f;
 		const char* cid = idname.empty() ? id.data : idname.c_str();
+		if (padding.x >= 0.0f) ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, padding);
 		const bool open = ImGui::BeginChild(cid, ImVec2(r.w, hGuard),
 			border ? ImGuiChildFlags_Border : 0);
 		if (open) {
@@ -76,6 +78,7 @@ struct SubWindow {
 			}, children);
 		}
 		ImGui::EndChild();   // BeginChild 即使返回 false 也必须配对 EndChild
+		if (padding.x >= 0.0f) ImGui::PopStyleVar();
 	}
 
 	template<std::size_t I> constexpr decltype(auto) child() & { return std::get<I>(children); }
@@ -252,5 +255,9 @@ struct Collapsing {
 		else return child.template at<Rest...>();
 	}
 };
+
+// 可滚动区：无标题的 SubWindow（带边框、内容超出即滚动），语义别名
+template<FixedString Id, class... Children>
+using ScrollArea = SubWindow<Id, Children...>;
 
 } // namespace Mk::wg2
