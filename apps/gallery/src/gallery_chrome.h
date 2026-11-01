@@ -195,19 +195,17 @@ struct Page {
 
 	void renderTo(const Mk::wg2::Rect& r) {
 		if (r.w <= 1.0f || r.h <= 1.0f) return;
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		if (!ImGui::BeginChild("page_body", ImVec2(r.w, r.h), false, 0)) {
-			ImGui::EndChild();
-			ImGui::PopStyleVar();
-			return;
-		}
-		const ImVec2 cp = ImGui::GetCursorPos();
-		const ImVec2 avail = ImGui::GetContentRegionAvail();
-		const Mk::wg2::Size want = chrome.hint(Mk::wg2::Size{avail.x, 0.0f});
-		const float h = want.h > 1.0f ? want.h : avail.y;
-		Mk::wg2::layout(chrome, Mk::wg2::Rect{cp.x, cp.y, avail.x, h});
-		ImGui::EndChild();
-		ImGui::PopStyleVar();
+		// 整页滚动：同样是框架 ChildRegion，页面里不再手写 BeginChild/PushStyleVar
+		Mk::wg2::ChildRegion<Mk::wg2::Id("pageRegion")> region;
+		region.idname = "page_body";
+		region.padding = ImVec2(0.0f, 0.0f);
+		region.body = [&](const ImVec2& cp) {
+			const ImVec2 avail = ImGui::GetContentRegionAvail();
+			const Mk::wg2::Size want = chrome.hint(Mk::wg2::Size{avail.x, 0.0f});
+			const float h = want.h > 1.0f ? want.h : avail.y;
+			Mk::wg2::layout(chrome, Mk::wg2::Rect{cp.x, cp.y, avail.x, h});
+		};
+		region.draw(r);
 	}
 };
 
