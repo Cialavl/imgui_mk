@@ -4,18 +4,23 @@
 
 namespace gallery {
 
+namespace ui = Mk::wg2;   // 本文件用短名（与 gallery_app.h 的壳定义同风格）
+
+// —— 工具条 + 左右两块动态区 ——
+using ToolBar = ui::HBox<ui::Id("bar"),
+	ui::Button<ui::Id("addTile")>, ui::Button<ui::Id("addTab")>, ui::Button<ui::Id("clearTiles")>>;
+
+using TileGrid = ui::SubWindow<ui::Id("gridZone"), ui::RuntimeGrid<ui::Id("grid")>>;
+using TabPane  = ui::SubWindow<ui::Id("tabZone"),  ui::RuntimeTabs<ui::Id("tabs")>>;
+using BodyRow  = ui::HBox<ui::Id("body"), TileGrid, TabPane>;
+
 struct PageLayoutDynamic {
-	using Root = VBox<
-		Id("root"),
-		Label<Id("intro")>,
-		HBox<Id("bar"),
-			Button<Id("addTile")>,
-			Button<Id("addTab")>,
-			Button<Id("clearTiles")>>,
-		HBox<Id("body"),
-			SubWindow<Id("gridZone"), RuntimeGrid<Id("grid")>>,
-			SubWindow<Id("tabZone"), RuntimeTabs<Id("tabs")>>>,
-		Label<Id("note")>>;
+	// 根只列结构：说明 / 工具条 / 两块动态区 / 注解
+	using Root = ui::VBox<ui::Id("root"),
+		ui::Label<ui::Id("intro")>,
+		ToolBar,
+		BodyRow,
+		ui::Label<ui::Id("note")>>;
 
 	Page page;
 	Root root;
@@ -28,43 +33,47 @@ struct PageLayoutDynamic {
 			"整体由 HBox 分配，SubWindow 给各自滚动。",
 			snips::kLayoutDynamic);
 
-		root.at<Id("intro")>().text = "左边网格加卡片、右边页签加页；窗口变窄时网格自动压列宽";
-		auto& w_addTile = root.at<Id("bar"), Id("addTile")>();
+		root.at<ui::Id("intro")>().text = "左边网格加卡片、右边页签加页；窗口变窄时网格自动压列宽";
+
+		auto& w_body = root.at<ui::Id("body")>();
+		auto& w_grid = w_body.at<ui::Id("gridZone")>();
+		auto& w_tabs = w_body.at<ui::Id("tabZone")>();
+
+		auto& w_addTile = root.at<ui::Id("bar"), ui::Id("addTile")>();
 		w_addTile.label = "网格 +1";
-		w_addTile.onClick = [this] {
-			auto tile = std::make_unique<Label<Id("tile")>>(
+		w_addTile.onClick = [this, &w_grid] {
+			auto tile = std::make_unique<ui::Label<ui::Id("tile")>>(
 				"卡片 " + std::to_string(++tiles));
-			AnyWidget any = AnyWidget::own(std::move(tile));
+			ui::AnyWidget any = ui::AnyWidget::own(std::move(tile));
 			any.idname = "tile" + std::to_string(tiles);
-			root.at<Id("body"), Id("gridZone")>().child<0>().add(std::move(any));
+			w_grid.child<0>().add(std::move(any));
 		};
-		auto& w_addTab = root.at<Id("bar"), Id("addTab")>();
+
+		auto& w_addTab = root.at<ui::Id("bar"), ui::Id("addTab")>();
 		w_addTab.label = "页签 +1";
-		w_addTab.onClick = [this] {
-			auto body = std::make_unique<Label<Id("tabBody")>>(
+		w_addTab.onClick = [this, &w_tabs] {
+			auto body = std::make_unique<ui::Label<ui::Id("tabBody")>>(
 				"第 " + std::to_string(++tabs) + " 页的内容");
-			AnyWidget any = AnyWidget::own(std::move(body));
+			ui::AnyWidget any = ui::AnyWidget::own(std::move(body));
 			any.idname = "tab" + std::to_string(tabs);
-			root.at<Id("body"), Id("tabZone")>().child<0>().add("页 " + std::to_string(tabs), std::move(any));
+			w_tabs.child<0>().add("页 " + std::to_string(tabs), std::move(any));
 		};
-		auto& w_clearTiles = root.at<Id("bar"), Id("clearTiles")>();
+
+		auto& w_clearTiles = root.at<ui::Id("bar"), ui::Id("clearTiles")>();
 		w_clearTiles.label = "清空网格";
-		w_clearTiles.onClick = [this] {
-			root.at<Id("body"), Id("gridZone")>().child<0>().clear();
-		};
+		w_clearTiles.onClick = [&w_grid] { w_grid.child<0>().clear(); };
 
-		auto& w_gridZone = root.at<Id("body"), Id("gridZone")>();
-		w_gridZone.idname = "layoutDynGrid";
-		w_gridZone.height = 220.0f;
-		w_gridZone.border = true;
-		w_gridZone.child<0>().cols = 2;
-		w_gridZone.child<0>().spacing = 8.0f;
+		w_grid.idname = "layoutDynGrid";
+		w_grid.height = 220.0f;
+		w_grid.border = true;
+		w_grid.child<0>().cols = 2;
+		w_grid.child<0>().spacing = 8.0f;
 
-		auto& w_tabZone = root.at<Id("body"), Id("tabZone")>();
-		w_tabZone.idname = "layoutDynTabs";
-		w_tabZone.height = 220.0f;
-		w_tabZone.border = true;
-		root.at<Id("note")>().text = "两个容器都是 wg2 的动态层（AnyWidget 类型擦除），静态树其余部分完全不受影响。";
+		w_tabs.idname = "layoutDynTabs";
+		w_tabs.height = 220.0f;
+		w_tabs.border = true;
+
+		root.at<ui::Id("note")>().text = "两个容器都是 wg2 的动态层（AnyWidget 类型擦除），静态树其余部分完全不受影响。";
 
 		bindPage(page, root);
 	}
