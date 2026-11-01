@@ -26,27 +26,28 @@ using namespace Mk::wg2;   // 页面代码沿用 wg2 名字
 
 template<Mk::wg2::FixedString Id>
 struct SectionHead {
-static constexpr auto id = Id;
+	static constexpr auto id = Id;
 
-Mk::wg2::WidgetState<> state;
-const char* title = "";
-const char* desc = "";
+	Mk::wg2::WidgetState<> state;
+	const char* title = "";
+	const char* desc = "";
 
-Mk::wg2::Size hint(const Mk::wg2::Size& avail) const {
-const ImVec2 d = ImGui::CalcTextSize(desc, nullptr, true, avail.w);
-const ImVec2 t = ImGui::CalcTextSize(title);
-return Mk::wg2::Size{avail.w, t.y + d.y + ImGui::GetStyle().ItemSpacing.y * 2.0f + 4.0f};
-}
+	// 组合式：标题 + 灰色换行描述，高度由子控件汇总
+	using Root = Mk::wg2::VBox<Mk::wg2::Id("headCol"),
+		Mk::wg2::Label<Mk::wg2::Id("headTitle")>,
+		Mk::wg2::Colored<Mk::wg2::Id("headDescColor"),
+			Mk::wg2::TextWrapped<Mk::wg2::Id("headDesc")>>>;
+	Root root;
 
-Mk::wg2::Policy policy() const { return Mk::wg2::Policy{}; }
+	Mk::wg2::Size hint(const Mk::wg2::Size& avail) const { return root.hint(avail); }
+	Mk::wg2::Policy policy() const { return Mk::wg2::Policy{}; }
 
-void draw(const Mk::wg2::Rect& r) {
-ImGui::TextUnformatted(title);
-ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + r.w);
-ImGui::TextDisabled("%s", desc);
-ImGui::PopTextWrapPos();
-ImGui::Separator();
-}
+	void draw(const Mk::wg2::Rect& r) {
+		root.at<Mk::wg2::Id("headTitle")>().text = title;
+		root.at<Mk::wg2::Id("headDescColor"), Mk::wg2::Id("headDesc")>().text = desc;
+		root.at<Mk::wg2::Id("headDescColor")>().color = ImVec4(0.65f, 0.65f, 0.65f, 1.0f);
+		Mk::wg2::layout(root, Mk::wg2::Rect{r.x, r.y, r.w, r.h});
+	}
 };
 
 // ============ 代码块（简化：等宽 + 行号 + Copy） ============
