@@ -11,6 +11,7 @@
 #include <imgui_mk/mkui.h>
 #include <imgui_mk/window.h>
 
+#include <algorithm>
 #include <string_view>
 
 namespace gallery {
@@ -71,45 +72,40 @@ const float em = Mk::wg2::metrics::fontSize();
 return ImVec2(0.55f * em, 0.75f * em);
 }
 
-Mk::wg2::Size hint(const Mk::wg2::Size& avail) const {
-std::size_t lines = 1;
-for (char c : code) if (c == '\n') ++lines;
-const float lineH = Mk::wg2::metrics::lineHeight();
-const ImVec2 pad = innerPad();
-return Mk::wg2::Size{avail.w, Mk::wg2::metrics::frameHeight() + ImGui::GetStyle().ItemSpacing.y + static_cast<float>(lines) * lineH + pad.y * 2.0f};
-}
-
-Mk::wg2::Policy policy() const { return Mk::wg2::Policy{}; }
-
-void draw(const Mk::wg2::Rect& r) {
-		const char* copyLabel = (ImGui::GetFrameCount() - copiedFrame < 60) ? "已复制" : "Copy";
-		// 复制行：组合式（Spacer 推挤 + SmallButton），不再手写光标右对齐
+	// 组合式：复制行 + 代码区
+	using Root = Mk::wg2::VBox<Mk::wg2::Id("codeCol"),
 		Mk::wg2::HBox<Mk::wg2::Id("copyRow"),
 			Mk::wg2::Spacer<Mk::wg2::Id("grow")>,
-			Mk::wg2::SmallButton<Mk::wg2::Id("copyBtn")>> bar;
-		bar.at<Mk::wg2::Id("copyBtn")>().label = copyLabel;
-		bar.at<Mk::wg2::Id("copyBtn")>().onClick = [this] {
+			Mk::wg2::SmallButton<Mk::wg2::Id("copyBtn")>>,
+		Mk::wg2::ChildRegion<Mk::wg2::Id("codeRegion")>>;
+	Root root;
+
+	Mk::wg2::Size hint(const Mk::wg2::Size& avail) const {
+		// 高度 = 复制行 + 代码区（行数 × 行高 + 内边距）
+		const std::size_t linesN = 1 + static_cast<std::size_t>(std::count(code.begin(), code.end(), '\n'));
+		return Mk::wg2::Size{avail.w,
+			Mk::wg2::metrics::frameHeight() + ImGui::GetStyle().ItemSpacing.y
+			+ static_cast<float>(linesN) * Mk::wg2::metrics::lineHeight() + innerPad().y * 2.0f};
+	}
+
+	Mk::wg2::Policy policy() const { return Mk::wg2::Policy{}; }
+
+	void draw(const Mk::wg2::Rect& r) {
+		auto& btn = root.at<Mk::wg2::Id("copyRow"), Mk::wg2::Id("copyBtn")>();
+		btn.label = (ImGui::GetFrameCount() - copiedFrame < 60) ? "已复制" : "Copy";
+		btn.onClick = [this] {
 			ImGui::SetClipboardText(std::string(code).c_str());
 			copiedFrame = ImGui::GetFrameCount();
 		};
-		const ImVec2 barPos = ImGui::GetCursorPos();
-		Mk::wg2::layout(bar, Mk::wg2::Rect{barPos.x, barPos.y,
-			ImGui::GetContentRegionAvail().x, Mk::wg2::metrics::frameHeight()});
-		ImGui::SetCursorPosY(barPos.y + Mk::wg2::metrics::frameHeight() + ImGui::GetStyle().ItemSpacing.y);
 
-
-const ImVec2 pad = innerPad();   // 须在 PushFont 之前：按主字体字号算 em
-ImFont* cm = activeMono();
-if (cm) ImGui::PushFont(cm);
-const float copyRow = Mk::wg2::metrics::frameHeight() + ImGui::GetStyle().ItemSpacing.y;
-const float childH = r.h > copyRow ? r.h - copyRow : 0.0f;
-const float codeW = std::max(0.0f, ImGui::GetContentRegionAvail().x);
-		Mk::wg2::ChildRegion<Mk::wg2::Id("codeRegion")> region;
+		auto& region = root.at<Mk::wg2::Id("codeRegion")>();
 		region.idname = "code_wg2";
-		region.padding = pad;
+		region.padding = innerPad();
 		region.border = true;
 		region.flags = ImGuiWindowFlags_HorizontalScrollbar;
-		region.body = [&](const ImVec2&) {
+		region.height = hint(Mk::wg2::Size{r.w, 0.0f}).h
+			- Mk::wg2::metrics::frameHeight() - ImGui::GetStyle().ItemSpacing.y;
+		region.body = [this](const ImVec2&) {
 			int lineNo = 1;
 			std::size_t pos = 0;
 			while (pos <= code.size()) {
@@ -123,9 +119,12 @@ const float codeW = std::max(0.0f, ImGui::GetContentRegionAvail().x);
 				pos = end + 1;
 			}
 		};
-		region.draw(Mk::wg2::Rect{ImGui::GetCursorPosX(), ImGui::GetCursorPosY(), codeW, childH});
-if (cm) ImGui::PopFont();
-}
+
+		ImFont* cm = activeMono();
+		if (cm) ImGui::PushFont(cm);
+		Mk::wg2::layout(root, r);
+		if (cm) ImGui::PopFont();
+	}
 };
 
 // ============ 页面演示槽（可滚动） ============

@@ -269,12 +269,13 @@ struct ChildRegion {
 
 	WidgetState<> state;
 	ImVec2 padding{-1.0f, -1.0f};        // <0 用主题 WindowPadding
+	float height = 0.0f;                 // >0 固定高（hint 用），0 = 填满可用高
 	bool border = false;
 	ImGuiWindowFlags flags = 0;
 	std::string idname;
 	std::function<void(const ImVec2&)> body;   // 收到内容区左上角
 
-	Size hint(const Size& avail) const { return avail; }
+	Size hint(const Size& avail) const { return Size{avail.w, height > 0.0f ? height : avail.h}; }
 	Policy policy() const { return Policy{}; }
 
 	void draw(const Rect& r) {
