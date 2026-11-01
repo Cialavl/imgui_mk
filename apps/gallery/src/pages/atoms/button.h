@@ -10,7 +10,7 @@ namespace ui = Mk::wg2;   // 本文件用短名
 struct PageButton {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "按钮与图片";
-	static constexpr const char* desc  = "wg2 ui::Button（onClick）/ ui::ImageButton / ui::Image（loadTextureRGBA 生成纹理）。";
+	static constexpr const char* desc  = "wg2 Button（onClick）/ ImageButton / Image（loadTextureRGBA 生成纹理）。";
 	static constexpr std::string_view code = snips::kButton;
 
 using Root = ui::VBox<

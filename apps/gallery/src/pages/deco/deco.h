@@ -10,7 +10,7 @@ namespace ui = Mk::wg2;   // 本文件用短名
 struct PageDeco {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "装饰件";
-	static constexpr const char* desc  = "wg2 ui::Tooltip/ui::Colored/ui::Indent/ui::ItemWidth/When 均为编译期包装；禁用用 state.enabled=false。";
+	static constexpr const char* desc  = "wg2 Tooltip/Colored/Indent/ItemWidth/When 均为编译期包装；禁用用 state.enabled=false。";
 	static constexpr std::string_view code = snips::kDeco;
 
 using Root = ui::VBox<

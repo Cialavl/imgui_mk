@@ -10,7 +10,7 @@ namespace ui = Mk::wg2;   // 本文件用短名
 struct PageDrag {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "拖拽与滑块";
-	static constexpr const char* desc  = "wg2 ui::DragF/ui::DragI（speed/mn/mx）与 ui::SliderF/ui::SliderInt/ui::SliderAngle（角度转弧度）。值直接写回外部变量。";
+	static constexpr const char* desc  = "wg2 DragF/DragI（speed/mn/mx）与 SliderF/SliderInt/SliderAngle（角度转弧度）。值直接写回外部变量。";
 	static constexpr std::string_view code = snips::kDrag;
 
 using Root = ui::VBox<

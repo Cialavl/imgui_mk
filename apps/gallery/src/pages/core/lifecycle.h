@@ -12,7 +12,7 @@ namespace ui = Mk::wg2;   // 本文件用短名
 struct PageLifecycle {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "基础：生命周期";
-	static constexpr const char* desc  = "wg2 静态树没有全局 Node 状态机；动态叶子通过 ui::RuntimeList opt-in，"
+	static constexpr const char* desc  = "wg2 静态树没有全局 Node 状态机；动态叶子通过 RuntimeList opt-in，"
 "When 装饰件负责显示/隐藏。";
 	static constexpr std::string_view code = snips::kLife;
 
@@ -41,7 +41,7 @@ auto& w_add = root.at<ui::Id("buttons"), ui::Id("add")>();
 w_add.label = "添加动态叶子";
 w_add.onClick = [&] {
 auto label = std::make_unique<ui::Label<ui::Id("leaf")>>(
-"动态叶子（wg2 ui::RuntimeList 项）");
+"动态叶子（wg2 RuntimeList 项）");
 ui::AnyWidget any = ui::AnyWidget::own(std::move(label));
 any.idname = "lifeLeaf";
 root.at<ui::Id("dynamic")>().add(std::move(any));

@@ -10,7 +10,7 @@ namespace ui = Mk::wg2;   // 本文件用短名
 struct PageContainer {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "容器控件";
-	static constexpr const char* desc  = "wg2 ui::Overlay 叠放 / ui::Collapsing / ui::Tree / ui::SubWindow；子节点经模板参数编译期传入。";
+	static constexpr const char* desc  = "wg2 Overlay 叠放 / Collapsing / Tree / SubWindow；子节点经模板参数编译期传入。";
 	static constexpr std::string_view code = snips::kContainers;
 
 using Root = ui::VBox<
@@ -39,7 +39,7 @@ ui::Label<ui::Id("subLabel")>
 PageContainer() {
 
 
-root.at<ui::Id("overlay"), ui::Id("overlayOffset"), ui::Id("overlayLabel")>().text = "ui::Overlay 叠放（重叠渲染）";
+root.at<ui::Id("overlay"), ui::Id("overlayOffset"), ui::Id("overlayLabel")>().text = "Overlay 叠放（重叠渲染）";
 	// 叠放时错开：标签浮到按钮右侧，避免两段文字完全叠在一起看不清
 	auto& w_overlayOffset = root.at<ui::Id("overlay"), ui::Id("overlayOffset")>();
 	w_overlayOffset.dxEm = 7.5f;
@@ -59,7 +59,7 @@ root.at<ui::Id("tree"), ui::Id("leaf2")>().text = "叶子二";
 auto& w_sub = root.at<ui::Id("sub")>();
 w_sub.idname = "subwin";
 w_sub.height = 70.0f;
-root.at<ui::Id("sub"), ui::Id("subLabel")>().text = "ui::SubWindow：嵌套滚动子窗口";
+root.at<ui::Id("sub"), ui::Id("subLabel")>().text = "SubWindow：嵌套滚动子窗口";
 
 }
 

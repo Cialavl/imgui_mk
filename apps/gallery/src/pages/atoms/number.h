@@ -10,7 +10,7 @@ namespace ui = Mk::wg2;   // 本文件用短名
 struct PageNumber {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "数值输入";
-	static constexpr const char* desc  = "wg2 ui::InputInt/Float/Double 与 vec2 变体（std::array<T,2>* 绑定）。数值直接写回外部变量。";
+	static constexpr const char* desc  = "wg2 InputInt/Float/Double 与 vec2 变体（std::array<T,2>* 绑定）。数值直接写回外部变量。";
 	static constexpr std::string_view code = snips::kInputNum;
 
 using Root = ui::VBox<

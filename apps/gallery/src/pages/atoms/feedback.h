@@ -10,7 +10,7 @@ namespace ui = Mk::wg2;   // 本文件用短名
 struct PageFeedback {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "反馈与指示";
-	static constexpr const char* desc  = "wg2 ui::ProgressBar（fraction 绑定）/ ui::PlotLines（外部 vector 只读绑定）/ ui::Separator(Text)。";
+	static constexpr const char* desc  = "wg2 ProgressBar（fraction 绑定）/ PlotLines（外部 vector 只读绑定）/ Separator(Text)。";
 	static constexpr std::string_view code = snips::kFeedback;
 
 using Root = ui::VBox<

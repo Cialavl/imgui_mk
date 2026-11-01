@@ -12,7 +12,7 @@ namespace ui = Mk::wg2;   // 本文件用短名
 struct PageTable {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "表格";
-	static constexpr const char* desc  = "wg2 ui::TextTable（数据驱动：外部 vector 只读绑定）；ui::FnTable（单元回调 cell(r,c)）。";
+	static constexpr const char* desc  = "wg2 TextTable（数据驱动：外部 vector 只读绑定）；FnTable（单元回调 cell(r,c)）。";
 	static constexpr std::string_view code = snips::kTable;
 
 using Root = ui::VBox<

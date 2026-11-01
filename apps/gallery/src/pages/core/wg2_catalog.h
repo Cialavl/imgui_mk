@@ -13,12 +13,12 @@ struct PageWg2Catalog {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "wg2：控件巡礼";
 	static constexpr const char* desc  = "输入、显示、装饰件、页签等控件全部是直接 struct，"
-			"经 ui::VBox/ui::HBox/ui::SubWindow 编译期组合，字符串路径访问。";
-	static constexpr std::string_view code = R"(using Root = ui::VBox<
-    ui::Id("root"),
-    ui::HBox<ui::Id("row"),
-        ui::CheckBox<ui::Id("check")>,
-        ui::SliderF<ui::Id("volume")>
+			"经 VBox/HBox/SubWindow 编译期组合，字符串路径访问。";
+	static constexpr std::string_view code = R"(using Root = VBox<
+    Id("root"),
+    HBox<Id("row"),
+        CheckBox<Id("check")>,
+        SliderF<Id("volume")>
     >
 >;)";
 
@@ -80,20 +80,20 @@ struct PageWg2Catalog {
 		root.at<ui::Id("display_row"), ui::Id("count")>().name = "clicks";
 
 		root.at<ui::Id("colored")>().color = ImVec4(0.4f, 0.9f, 0.6f, 1.0f);
-		root.at<ui::Id("colored"), ui::Id("color_label")>().text = "ui::Colored 装饰件";
+		root.at<ui::Id("colored"), ui::Id("color_label")>().text = "Colored 装饰件";
 
 		auto& w_tip_btn = root.at<ui::Id("tip"), ui::Id("tip_btn")>();
 		w_tip_btn.label = "悬停看提示";
 		w_tip_btn.onClick = [&] { ++clicks; };
-		root.at<ui::Id("tip")>().text = "这是 ui::Tooltip 装饰件";
+		root.at<ui::Id("tip")>().text = "这是 Tooltip 装饰件";
 
 		auto& w_tabwin = root.at<ui::Id("tabwin")>();
 		w_tabwin.height = 170.0f;
 		w_tabwin.idname = "wg2catalog:tabs";
 		root.at<ui::Id("tabwin"), ui::Id("tabs"), ui::Id("tab_a")>().title = "页 A";
-		root.at<ui::Id("tabwin"), ui::Id("tabs"), ui::Id("tab_a"), ui::Id("tab_a_text")>().text = "编译期 ui::Tab A";
+		root.at<ui::Id("tabwin"), ui::Id("tabs"), ui::Id("tab_a"), ui::Id("tab_a_text")>().text = "编译期 Tab A";
 		root.at<ui::Id("tabwin"), ui::Id("tabs"), ui::Id("tab_b")>().title = "页 B";
-		root.at<ui::Id("tabwin"), ui::Id("tabs"), ui::Id("tab_b"), ui::Id("tab_b_text")>().text = "编译期 ui::Tab B";
+		root.at<ui::Id("tabwin"), ui::Id("tabs"), ui::Id("tab_b"), ui::Id("tab_b_text")>().text = "编译期 Tab B";
 
 	}
 

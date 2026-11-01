@@ -15,13 +15,13 @@ namespace ui = Mk::wg2;   // 本文件用短名
 struct PageWg2 {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "wg2：静态树 + 动态列表 opt-in";
-	static constexpr const char* desc  = "普通控件是直接 struct：ui::VBox<ui::Id(\"...\"), ...> 编译期组合，"
-			"字符串路径访问；只有 ui::RuntimeList 内部才有 ui::AnyWidget 类型擦除。";
-	static constexpr std::string_view code = R"(using Root = ui::VBox<
-    ui::Id("root"),
-    ui::Label<ui::Id("title")>,
-    ui::SubWindow<ui::Id("listwin"),
-        ui::RuntimeList<ui::Id("list")>>
+	static constexpr const char* desc  = "普通控件是直接 struct：VBox<Id(\"...\"), ...> 编译期组合，"
+			"字符串路径访问；只有 RuntimeList 内部才有 AnyWidget 类型擦除。";
+	static constexpr std::string_view code = R"(using Root = VBox<
+    Id("root"),
+    Label<Id("title")>,
+    SubWindow<Id("listwin"),
+        RuntimeList<Id("list")>>
 >;)";
 
 	using Wg2Root = ui::VBox<

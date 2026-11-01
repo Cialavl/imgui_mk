@@ -9,8 +9,8 @@ namespace ui = Mk::wg2;   // 本文件用短名
 
 struct PageLayoutBasic {
 	// 页面元数据（Page 用它填外壳）
-	static constexpr const char* title = "布局·基础：ui::VBox 堆叠 / ui::HBox 横排";
-	static constexpr const char* desc  = "最简单的两种组合：ui::VBox 按行堆叠、ui::HBox 按列排布；"
+	static constexpr const char* title = "布局·基础：VBox 堆叠 / HBox 横排";
+	static constexpr const char* desc  = "最简单的两种组合：VBox 按行堆叠、HBox 按列排布；"
 			"子项间距由容器 spacing、整体边距由 marginX/marginY 控制。";
 	static constexpr std::string_view code = snips::kLayoutBasic;
 
@@ -35,7 +35,7 @@ struct PageLayoutBasic {
 	PageLayoutBasic() {
 		
 
-		root.at<ui::Id("intro")>().text = "ui::HBox：三个按钮自动均分宽度（都可增长）";
+		root.at<ui::Id("intro")>().text = "HBox：三个按钮自动均分宽度（都可增长）";
 
 		auto& row1 = root.at<ui::Id("row1")>();
 		row1.at<ui::Id("a1")>().label = "左";
@@ -51,10 +51,10 @@ struct PageLayoutBasic {
 		b2.state.stretch = 1.0f;
 
 		auto& stack = root.at<ui::Id("stack")>();
-		stack.at<ui::Id("s1")>().text = "ui::VBox 第一行";
-		stack.at<ui::Id("s2")>().text = "ui::VBox 第二行";
-		stack.at<ui::Id("s3")>().text = "ui::VBox 第三行";
-		root.at<ui::Id("note")>().text = "把窗口拖宽：ui::HBox 跟着变宽，ui::VBox 只吃高度。";
+		stack.at<ui::Id("s1")>().text = "VBox 第一行";
+		stack.at<ui::Id("s2")>().text = "VBox 第二行";
+		stack.at<ui::Id("s3")>().text = "VBox 第三行";
+		root.at<ui::Id("note")>().text = "把窗口拖宽：HBox 跟着变宽，VBox 只吃高度。";
 
 	}
 };

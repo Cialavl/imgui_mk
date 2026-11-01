@@ -11,7 +11,7 @@ namespace ui = Mk::wg2;   // 本文件用短名
 struct PageSelect {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "选择控件";
-	static constexpr const char* desc  = "wg2 ui::CheckBox/ui::RadioButton/ui::RadioGroup/ui::Combo/ui::ListBox/ui::Selectable/ui::CheckboxFlags。"
+	static constexpr const char* desc  = "wg2 CheckBox/RadioButton/RadioGroup/Combo/ListBox/Selectable/CheckboxFlags。"
 "items 数组需长寿命（static constexpr）。";
 	static constexpr std::string_view code = snips::kSelect;
 

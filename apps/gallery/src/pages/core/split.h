@@ -10,8 +10,8 @@ namespace ui = Mk::wg2;   // 本文件用短名
 struct PageSplit {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "分格模式";
-	static constexpr const char* desc  = "wg2 ui::SplitH/ui::SplitV 是 ui::HBox/ui::VBox 别名；stretch 与 fixed size 都存在 WidgetState。"
-"ui::Wrap 换行、ui::Grid 固定列网格。";
+	static constexpr const char* desc  = "wg2 SplitH/SplitV 是 HBox/VBox 别名；stretch 与 fixed size 都存在 WidgetState。"
+"Wrap 换行、Grid 固定列网格。";
 	static constexpr std::string_view code = snips::kSplit;
 
 using Root = ui::VBox<
@@ -47,7 +47,7 @@ ui::Label<ui::Id("g12")>
 PageSplit() {
 
 
-root.at<ui::Id("intro")>().text = "分格演示：ui::SplitH 权重分割 / ui::SplitV 垂直分割 / ui::Wrap 换行 / ui::Grid 网格";
+root.at<ui::Id("intro")>().text = "分格演示：SplitH 权重分割 / SplitV 垂直分割 / Wrap 换行 / Grid 网格";
 auto& w_sfA = root.at<ui::Id("splitH"), ui::Id("sfA")>();
 w_sfA.text = "fixed 160";
 w_sfA.state.size.fixedW = 160.0f;

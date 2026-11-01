@@ -10,7 +10,7 @@ namespace ui = Mk::wg2;   // 本文件用短名
 struct PageTheme {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "主题与自适应";
-	static constexpr const char* desc  = "wg2 全局 Theme 切换与 rescale 重载字号；局部主题可用 ui::Colored/样式作用域代替。";
+	static constexpr const char* desc  = "wg2 全局 Theme 切换与 rescale 重载字号；局部主题可用 Colored/样式作用域代替。";
 	static constexpr std::string_view code = snips::kTheme;
 
 using Root = ui::VBox<
@@ -48,7 +48,7 @@ w_accent.label = "Accent 红";
 w_accent.onClick = [&] {
 Mk::mkui<Mk::window>::RegistrationWindow().emit(ThemeChanged{Theme::dark().withAccent(ImVec4(1.0f, 0.0f, 0.0f, 1.0f))});
 };
-root.at<ui::Id("scopeNote")>().text = "局部主题：wg2 当前使用 ui::Colored 装饰件替代 Styled";
+root.at<ui::Id("scopeNote")>().text = "局部主题：wg2 当前使用 Colored 装饰件替代 Styled";
 root.at<ui::Id("compact")>().spacing = 2.0f;
 root.at<ui::Id("compact"), ui::Id("compact1")>().label = "紧凑按钮一";
 root.at<ui::Id("compact"), ui::Id("compact2")>().label = "紧凑按钮二";
