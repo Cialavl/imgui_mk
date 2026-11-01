@@ -97,24 +97,26 @@ if (cm) ImGui::PushFont(cm);
 const float copyRow = ImGui::GetFrameHeight() + st.ItemSpacing.y;
 const float childH = r.h > copyRow ? r.h - copyRow : 0.0f;
 const float codeW = std::max(0.0f, ImGui::GetContentRegionAvail().x);
-ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, pad);   // 代码块内边距：上下更松，避免贴边
-if (ImGui::BeginChild("code_wg2", ImVec2(codeW, childH), ImGuiChildFlags_Border,
-ImGuiWindowFlags_HorizontalScrollbar)) {
-int lineNo = 1;
-std::size_t pos = 0;
-while (pos <= code.size()) {
-std::size_t end = code.find('\n', pos);
-if (end == std::string_view::npos) end = code.size();
-ImGui::Text("%4d  ", lineNo);
-ImGui::SameLine();
-ImGui::TextUnformatted(code.data() + pos, code.data() + end);
-++lineNo;
-if (end == code.size()) break;
-pos = end + 1;
-}
-}
-ImGui::EndChild();
-ImGui::PopStyleVar();
+		Mk::wg2::ChildRegion<Mk::wg2::Id("codeRegion")> region;
+		region.idname = "code_wg2";
+		region.padding = pad;
+		region.border = true;
+		region.flags = ImGuiWindowFlags_HorizontalScrollbar;
+		region.body = [&](const ImVec2&) {
+			int lineNo = 1;
+			std::size_t pos = 0;
+			while (pos <= code.size()) {
+				std::size_t end = code.find('\n', pos);
+				if (end == std::string_view::npos) end = code.size();
+				ImGui::Text("%4d  ", lineNo);
+				ImGui::SameLine();
+				ImGui::TextUnformatted(code.data() + pos, code.data() + end);
+				++lineNo;
+				if (end == code.size()) break;
+				pos = end + 1;
+			}
+		};
+		region.draw(Mk::wg2::Rect{ImGui::GetCursorPosX(), ImGui::GetCursorPosY(), codeW, childH});
 if (cm) ImGui::PopFont();
 }
 };
