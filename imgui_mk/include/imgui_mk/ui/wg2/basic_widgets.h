@@ -148,4 +148,38 @@ struct Update {
 	void draw(const Rect&) { if (fn) fn(); }
 };
 
+// 弹性空白：HBox 里推挤后续控件到右端；width>0 时固定宽
+template<FixedString Id>
+struct Spacer {
+	static constexpr auto id = Id;
+	WidgetState<> state;
+	float width = 0.0f;
+
+	Size hint(const Size& avail) const {
+		if (!state.visible) return Size{0.0f, 0.0f};
+		return Size{width > 0.0f ? width : avail.w, 0.0f};
+	}
+	Policy policy() const { return Policy{}; }
+	void draw(const Rect& r) { ImGui::Dummy(ImVec2(r.w > 0.0f ? r.w : 0.0f, r.h > 0.0f ? r.h : 0.0f)); }
+};
+
+// 小按钮：与 ImGui::SmallButton 等价，带点击回调
+template<FixedString Id>
+struct SmallButton {
+	static constexpr auto id = Id;
+	WidgetState<> state;
+	std::string label;
+	std::function<void()> onClick;
+
+	Size hint(const Size&) const {
+		if (!state.visible) return Size{0.0f, 0.0f};
+		return Size{ImGui::CalcTextSize(label.c_str()).x + ImGui::GetStyle().FramePadding.x * 2.0f,
+		            ImGui::GetFrameHeight()};
+	}
+	Policy policy() const { return Policy{}; }
+	void draw(const Rect&) {
+		if (ImGui::SmallButton(label.c_str()) && onClick) onClick();
+	}
+};
+
 } // namespace Mk::wg2
