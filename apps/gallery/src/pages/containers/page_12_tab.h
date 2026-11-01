@@ -5,6 +5,11 @@
 namespace gallery {
 
 struct PageTab {
+	// 页面元数据（Page 用它填外壳）
+	static constexpr const char* title = "标签页";
+	static constexpr const char* desc  = "wg2 TabBar/Tab 是编译期模板；页签标题为 Tab::title。";
+	static constexpr std::string_view code = snips::kTabBar;
+
 using Root = VBox<
 Id("root"),
 TabBar<Id("tabs"),
@@ -17,18 +22,16 @@ Label<Id("text2")>
 >
 >;
 
-	Page<Root> page;
+	Root root;
 
 PageTab() {
-page.setup("标签页",
-"wg2 TabBar/Tab 是编译期模板；页签标题为 Tab::title。",
-snips::kTabBar);
 
-page.root.at<Id("tabs")>().idname = "galtabs";
-page.root.at<Id("tabs"), Id("tab1")>().title = "页一";
-page.root.at<Id("tabs"), Id("tab1"), Id("text1")>().text = "TabBar 容器：页签渲染";
-page.root.at<Id("tabs"), Id("tab2")>().title = "页二";
-page.root.at<Id("tabs"), Id("tab2"), Id("text2")>().text = "第二页内容";
+
+root.at<Id("tabs")>().idname = "galtabs";
+root.at<Id("tabs"), Id("tab1")>().title = "页一";
+root.at<Id("tabs"), Id("tab1"), Id("text1")>().text = "TabBar 容器：页签渲染";
+root.at<Id("tabs"), Id("tab2")>().title = "页二";
+root.at<Id("tabs"), Id("tab2"), Id("text2")>().text = "第二页内容";
 
 }
 

@@ -5,6 +5,11 @@
 namespace gallery {
 
 struct PageDrag {
+	// 页面元数据（Page 用它填外壳）
+	static constexpr const char* title = "拖拽与滑块";
+	static constexpr const char* desc  = "wg2 DragF/DragI（speed/mn/mx）与 SliderF/SliderInt/SliderAngle（角度转弧度）。值直接写回外部变量。";
+	static constexpr std::string_view code = snips::kDrag;
+
 using Root = VBox<
 Id("root"),
 DragF<Id("dragF")>,
@@ -14,7 +19,7 @@ SliderInt<Id("slideI")>,
 SliderAngle<Id("slideA")>
 >;
 
-	Page<Root> page;
+	Root root;
 
 	// 本页自己的数据（不共享、不依赖外部状态容器）
 	float drag = 0.5f;
@@ -24,17 +29,15 @@ SliderAngle<Id("slideA")>
 	float volume = 0.6f;
 
 PageDrag() {
-page.setup("拖拽与滑块",
-"wg2 DragF/DragI（speed/mn/mx）与 SliderF/SliderInt/SliderAngle（角度转弧度）。值直接写回外部变量。",
-snips::kDrag);
 
-auto& w_dragF = page.root.at<Id("dragF")>();
-w_dragF.name = "拖拽f";  page.root.at<Id("dragF")>().value = &drag;
+
+auto& w_dragF = root.at<Id("dragF")>();
+w_dragF.name = "拖拽f";  root.at<Id("dragF")>().value = &drag;
 w_dragF.speed = 0.01f;
-page.root.at<Id("dragI")>().name = "拖拽i";  page.root.at<Id("dragI")>().value = &dragInt;
-page.root.at<Id("slideF")>().name = "滑块f"; page.root.at<Id("slideF")>().value = &volume;
-page.root.at<Id("slideI")>().name = "滑块i"; page.root.at<Id("slideI")>().value = &slideI;
-page.root.at<Id("slideA")>().name = "角度";  page.root.at<Id("slideA")>().valueRad = &angle;
+root.at<Id("dragI")>().name = "拖拽i";  root.at<Id("dragI")>().value = &dragInt;
+root.at<Id("slideF")>().name = "滑块f"; root.at<Id("slideF")>().value = &volume;
+root.at<Id("slideI")>().name = "滑块i"; root.at<Id("slideI")>().value = &slideI;
+root.at<Id("slideA")>().name = "角度";  root.at<Id("slideA")>().valueRad = &angle;
 
 }
 

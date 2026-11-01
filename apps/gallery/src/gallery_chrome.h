@@ -161,10 +161,9 @@ ImGui::PopStyleVar();
 
 // ============ 页面架 ============
 
-// 页面 = 外壳（标题/说明/演示区/代码块）+ 内容树
-//   page.setup(标题, 描述, 代码)  填外壳，并把演示槽挂到自己的 root 上
-//   page.root.xxx               绑内容控件
-template<class DemoRoot>
+// 页面 = 外壳 + 内容对象
+//   内容类约定：static constexpr title/desc/code + 名为 root 的控件树
+template<class Content>
 struct Page {
 	using Chrome = Mk::wg2::VBox<
 		Mk::wg2::Id("page"),
@@ -173,22 +172,25 @@ struct Page {
 		Mk::wg2::SeparatorText<Mk::wg2::Id("codeTitle")>,
 		CodeBlock<Mk::wg2::Id("code")>>;
 
-	Chrome chrome;   // 外壳
-	DemoRoot root;   // 内容（页面自己的控件树）
+	Chrome chrome;
+	Content content;
 	const char* title = "";
 
-	void setup(const char* pageTitle, const char* desc, std::string_view snippet) {
-		title = pageTitle;
-		chrome.at<Mk::wg2::Id("head")>().title = pageTitle;
-		chrome.at<Mk::wg2::Id("head")>().desc = desc;
+	Page() = default;
+	template<class... Args>
+	explicit Page(Args&&... args) : content(std::forward<Args>(args)...) {}
+
+	void setup() {
+		title = Content::title;
+		chrome.at<Mk::wg2::Id("head")>().title = Content::title;
+		chrome.at<Mk::wg2::Id("head")>().desc = Content::desc;
 		chrome.at<Mk::wg2::Id("codeTitle")>().name = "Code";
-		chrome.at<Mk::wg2::Id("code")>().code = snippet;
+		chrome.at<Mk::wg2::Id("code")>().code = Content::code;
 		chrome.at<Mk::wg2::Id("code")>().monoFn = [] { return gMono; };
 		chrome.marginX = 0.0f;
 		chrome.marginY = 0.0f;
-		// 挂载：演示槽渲染本页内容树（Page 拥有 root，页面无需再 bind）
-		chrome.at<Mk::wg2::Id("demo")>().render  = [this](const Mk::wg2::Rect& r) { Mk::wg2::layout(root, r); };
-		chrome.at<Mk::wg2::Id("demo")>().measure = [this](const Mk::wg2::Size& a) { return root.hint(a); };
+		chrome.at<Mk::wg2::Id("demo")>().render  = [this](const Mk::wg2::Rect& r) { Mk::wg2::layout(content.root, r); };
+		chrome.at<Mk::wg2::Id("demo")>().measure = [this](const Mk::wg2::Size& a) { return content.root.hint(a); };
 	}
 
 	void renderTo(const Mk::wg2::Rect& r) {

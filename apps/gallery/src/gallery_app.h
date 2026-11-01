@@ -74,35 +74,35 @@ InspectorWindow inspector;
 		initShell();
 
 		// 注册表：{页, 分组}；分组为空 = 沿用上一组
-		addPage(pageLayoutBasic.page, kGroupLayout);
-		addPage(pageLayoutSize.page);
-		addPage(pageLayoutGrid.page);
-		addPage(pageLayoutRuntime.page);
-		addPage(pageLayoutDynamic.page);
-		addPage(pageBase.page, kGroupWg);
-		addPage(pageLifecycle.page);
-		addPage(pageWg2.page);
-		addPage(pageWg2Catalog.page);
-		addPage(pageLayout.page);
-		addPage(pageSplit.page);
-		addPage(pageText.page, kGroupAtoms);
-		addPage(pageButton.page);
-		addPage(pageInput.page);
-		addPage(pageNumber.page);
-		addPage(pageDrag.page);
-		addPage(pageSelect.page);
-		addPage(pageFeedback.page);
-		addPage(pageContainer.page, kGroupContainers);
-		addPage(pageTab.page);
-		addPage(pageMenu.page);
-		addPage(pageTable.page);
-		addPage(pagePopup.page, kGroupPopColor);
-		addPage(pageColor.page);
-		addPage(pageDeco.page, kGroupDeco);
-		addPage(pageTheme.page, kGroupApp);
-		addPage(pageWindow.page);
-		addPage(pageFile.page);
-		addPage(pageFnRender.page);
+		addPage(pageLayoutBasic, kGroupLayout);
+		addPage(pageLayoutSize);
+		addPage(pageLayoutGrid);
+		addPage(pageLayoutRuntime);
+		addPage(pageLayoutDynamic);
+		addPage(pageBase, kGroupWg);
+		addPage(pageLifecycle);
+		addPage(pageWg2);
+		addPage(pageWg2Catalog);
+		addPage(pageLayout);
+		addPage(pageSplit);
+		addPage(pageText, kGroupAtoms);
+		addPage(pageButton);
+		addPage(pageInput);
+		addPage(pageNumber);
+		addPage(pageDrag);
+		addPage(pageSelect);
+		addPage(pageFeedback);
+		addPage(pageContainer, kGroupContainers);
+		addPage(pageTab);
+		addPage(pageMenu);
+		addPage(pageTable);
+		addPage(pagePopup, kGroupPopColor);
+		addPage(pageColor);
+		addPage(pageDeco, kGroupDeco);
+		addPage(pageTheme, kGroupApp);
+		addPage(pageWindow);
+		addPage(pageFile);
+		addPage(pageFnRender);
 	}
 
 	// —— 应用壳自己的数据（选中页 / 主题 / 侧栏演示值 / 弹窗开关 / 纹理句柄）——
@@ -114,35 +114,35 @@ InspectorWindow inspector;
 	ImTextureID tex = makeCheckerTexture();   // 声明即创建
 
 	// —— 29 个演示页：由应用壳持有并注册（main 不再关心）——
-	gallery::PageLayoutBasic   pageLayoutBasic;
-	gallery::PageLayoutSize    pageLayoutSize;
-	gallery::PageLayoutGrid    pageLayoutGrid;
-	gallery::PageLayoutRuntime pageLayoutRuntime;
-	gallery::PageLayoutDynamic pageLayoutDynamic;
-	gallery::PageBase          pageBase;
-	gallery::PageLifecycle     pageLifecycle;
-	gallery::PageWg2           pageWg2;
-	gallery::PageWg2Catalog    pageWg2Catalog;
-	gallery::PageLayout        pageLayout;
-	gallery::PageSplit         pageSplit;
-	gallery::PageText          pageText;
-	gallery::PageInput         pageInput;
-	gallery::PageNumber        pageNumber;
-	gallery::PageDrag          pageDrag;
-	gallery::PageSelect        pageSelect;
-	gallery::PageContainer     pageContainer;
-	gallery::PageTab           pageTab;
-	gallery::PageTable         pageTable;
-	gallery::PagePopup         pagePopup;
-	gallery::PageColor         pageColor;
-	gallery::PageDeco          pageDeco;
-	gallery::PageTheme         pageTheme;
-	gallery::PageFnRender      pageFnRender;
-	gallery::PageButton        pageButton{tex};
-	gallery::PageFeedback      pageFeedback{win};
-	gallery::PageMenu          pageMenu{win};
-	gallery::PageWindow        pageWindow{win, inspector.win.get()};
-	gallery::PageFile          pageFile{win};
+	gallery::Page<gallery::PageLayoutBasic>   pageLayoutBasic;
+	gallery::Page<gallery::PageLayoutSize>    pageLayoutSize;
+	gallery::Page<gallery::PageLayoutGrid>    pageLayoutGrid;
+	gallery::Page<gallery::PageLayoutRuntime> pageLayoutRuntime;
+	gallery::Page<gallery::PageLayoutDynamic> pageLayoutDynamic;
+	gallery::Page<gallery::PageBase>          pageBase;
+	gallery::Page<gallery::PageLifecycle>     pageLifecycle;
+	gallery::Page<gallery::PageWg2>           pageWg2;
+	gallery::Page<gallery::PageWg2Catalog>    pageWg2Catalog;
+	gallery::Page<gallery::PageLayout>        pageLayout;
+	gallery::Page<gallery::PageSplit>         pageSplit;
+	gallery::Page<gallery::PageText>          pageText;
+	gallery::Page<gallery::PageInput>         pageInput;
+	gallery::Page<gallery::PageNumber>        pageNumber;
+	gallery::Page<gallery::PageDrag>          pageDrag;
+	gallery::Page<gallery::PageSelect>        pageSelect;
+	gallery::Page<gallery::PageContainer>     pageContainer;
+	gallery::Page<gallery::PageTab>           pageTab;
+	gallery::Page<gallery::PageTable>         pageTable;
+	gallery::Page<gallery::PagePopup>         pagePopup;
+	gallery::Page<gallery::PageColor>         pageColor;
+	gallery::Page<gallery::PageDeco>          pageDeco;
+	gallery::Page<gallery::PageTheme>         pageTheme;
+	gallery::Page<gallery::PageFnRender>      pageFnRender;
+	gallery::Page<gallery::PageButton> pageButton{tex};
+	gallery::Page<gallery::PageFeedback> pageFeedback{win};
+	gallery::Page<gallery::PageMenu> pageMenu{win};
+	gallery::Page<gallery::PageWindow> pageWindow{win, inspector.win.get()};
+	gallery::Page<gallery::PageFile> pageFile{win};
 
 	Mk::window* inspectorWin() { return inspector.win.get(); }
 
@@ -153,12 +153,13 @@ InspectorWindow inspector;
 		Mk::mkui<Mk::window>::RegistrationWindow().emit(ThemeChanged{t});
 	}
 
-	template<class DemoRoot>
-	void addPage(Page<DemoRoot>& page, const char* group = nullptr) {
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().nav.addEntry(page.title, false);
- auto render = [&page](const Mk::wg2::Rect& r) { page.renderTo(r); };
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>().host.addPage(render);
-}
+	template<class Content>
+	void addPage(Page<Content>& page, const char* group = nullptr) {
+		page.setup();   // 装配外壳：读 Content::title / desc / code，并把演示槽挂到 content.root
+		auto& book = shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow"), Mk::wg2::Id("book")>();
+		if (group && *group) book.addGroup(group);
+		book.addPage(page.title, [&page](const Mk::wg2::Rect& r) { page.renderTo(r); });
+	}
 
 // 页面总数（导航条目中非组标题的数量）：供键盘翻页等使用
 int pageCount() {

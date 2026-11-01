@@ -12,20 +12,23 @@ using PanelDemo = ui::SubWindow<ui::Id("panel"),
 	ui::LabelText<ui::Id("frames")>>;
 
 struct PageMenu {
+	// 页面元数据（Page 用它填外壳）
+	static constexpr const char* title = "菜单与面板";
+	static constexpr const char* desc  = "wg2 Panel = SubWindow 别名；面板内容经模板参数编译期传入。";
+	static constexpr std::string_view code = snips::kPanel;
+
 	// 根只列结构：面板 / 注解
 	using Root = ui::VBox<ui::Id("root"), PanelDemo, ui::Label<ui::Id("note")>>;
 
-	Page<Root> page;
+	Root root;
 
 	Mk::window* win = nullptr;   // 形参存成员，避免 [&] 捕获形参后悬垂
 	float volume = 0.6f;         // 本页自己的数据
 
 	PageMenu(Mk::window* w) : win(w) {
-		page.setup("菜单与面板",
-			"wg2 Panel = SubWindow 别名；面板内容经模板参数编译期传入。",
-			snips::kPanel);
+		
 
-		auto& w_panel = page.root.at<ui::Id("panel")>();
+		auto& w_panel = root.at<ui::Id("panel")>();
 		w_panel.idname = "面板";
 		w_panel.height = 110.0f;
 
@@ -37,7 +40,7 @@ struct PageMenu {
 		w_frames.name = "帧";
 		w_frames.valueFn = [this] { return std::to_string(win->frameIndex()); };
 
-		page.root.at<ui::Id("note")>().text = "Panel 是浮动窗口；菜单栏是常驻点（主窗口顶部）。";
+		root.at<ui::Id("note")>().text = "Panel 是浮动窗口；菜单栏是常驻点（主窗口顶部）。";
 
 	}
 };

@@ -5,6 +5,11 @@
 namespace gallery {
 
 struct PageContainer {
+	// 页面元数据（Page 用它填外壳）
+	static constexpr const char* title = "容器控件";
+	static constexpr const char* desc  = "wg2 Overlay 叠放 / Collapsing / Tree / SubWindow；子节点经模板参数编译期传入。";
+	static constexpr std::string_view code = snips::kContainers;
+
 using Root = VBox<
 Id("root"),
 Overlay<Id("overlay"),
@@ -23,37 +28,35 @@ Label<Id("subLabel")>
 >
 >;
 
-	Page<Root> page;
+	Root root;
 
 	// 本页自己的数据（不共享、不依赖外部状态容器）
 	int clicks = 0;
 
 PageContainer() {
-page.setup("容器控件",
-"wg2 Overlay 叠放 / Collapsing / Tree / SubWindow；子节点经模板参数编译期传入。",
-snips::kContainers);
 
-page.root.at<Id("overlay"), Id("overlayOffset"), Id("overlayLabel")>().text = "Overlay 叠放（重叠渲染）";
+
+root.at<Id("overlay"), Id("overlayOffset"), Id("overlayLabel")>().text = "Overlay 叠放（重叠渲染）";
 	// 叠放时错开：标签浮到按钮右侧，避免两段文字完全叠在一起看不清
-	auto& w_overlayOffset = page.root.at<Id("overlay"), Id("overlayOffset")>();
+	auto& w_overlayOffset = root.at<Id("overlay"), Id("overlayOffset")>();
 	w_overlayOffset.dxEm = 7.5f;
 	w_overlayOffset.dyEm = 0.35f;
-auto& w_overlayButton = page.root.at<Id("overlay"), Id("overlayButton")>();
+auto& w_overlayButton = root.at<Id("overlay"), Id("overlayButton")>();
 w_overlayButton.label = "叠放按钮";
 w_overlayButton.onClick = [&] { ++clicks; };
-auto& w_collapsing = page.root.at<Id("collapsing")>();
+auto& w_collapsing = root.at<Id("collapsing")>();
 w_collapsing.title = "折叠容器（默认展开）";
 w_collapsing.defaultOpen = true;
-page.root.at<Id("collapsing"), Id("collLabel")>().text = "折叠内容";
-auto& w_tree = page.root.at<Id("tree")>();
+root.at<Id("collapsing"), Id("collLabel")>().text = "折叠内容";
+auto& w_tree = root.at<Id("tree")>();
 w_tree.title = "树节点（默认展开）";
 w_tree.defaultOpen = true;
-page.root.at<Id("tree"), Id("leaf1")>().text = "叶子一";
-page.root.at<Id("tree"), Id("leaf2")>().text = "叶子二";
-auto& w_sub = page.root.at<Id("sub")>();
+root.at<Id("tree"), Id("leaf1")>().text = "叶子一";
+root.at<Id("tree"), Id("leaf2")>().text = "叶子二";
+auto& w_sub = root.at<Id("sub")>();
 w_sub.idname = "subwin";
 w_sub.height = 70.0f;
-page.root.at<Id("sub"), Id("subLabel")>().text = "SubWindow：嵌套滚动子窗口";
+root.at<Id("sub"), Id("subLabel")>().text = "SubWindow：嵌套滚动子窗口";
 
 }
 

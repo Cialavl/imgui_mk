@@ -15,6 +15,12 @@ using TabPane  = ui::SubWindow<ui::Id("tabZone"),  ui::RuntimeTabs<ui::Id("tabs"
 using BodyRow  = ui::HBox<ui::Id("body"), TileGrid, TabPane>;
 
 struct PageLayoutDynamic {
+	// 页面元数据（Page 用它填外壳）
+	static constexpr const char* title = "布局·复杂动态：RuntimeGrid + RuntimeTabs";
+	static constexpr const char* desc  = "两个动态容器并排：左边网格随窗口宽度自动排布列，右边页签运行时追加；"
+			"整体由 HBox 分配，SubWindow 给各自滚动。";
+	static constexpr std::string_view code = snips::kLayoutDynamic;
+
 	// 根只列结构：说明 / 工具条 / 两块动态区 / 注解
 	using Root = ui::VBox<ui::Id("root"),
 		ui::Label<ui::Id("intro")>,
@@ -22,23 +28,20 @@ struct PageLayoutDynamic {
 		BodyRow,
 		ui::Label<ui::Id("note")>>;
 
-	Page<Root> page;
+	Root root;
 	int tiles = 0;
 	int tabs = 0;
 
 	PageLayoutDynamic() {
-		page.setup("布局·复杂动态：RuntimeGrid + RuntimeTabs",
-			"两个动态容器并排：左边网格随窗口宽度自动排布列，右边页签运行时追加；"
-			"整体由 HBox 分配，SubWindow 给各自滚动。",
-			snips::kLayoutDynamic);
+		
 
-		page.root.at<ui::Id("intro")>().text = "左边网格加卡片、右边页签加页；窗口变窄时网格自动压列宽";
+		root.at<ui::Id("intro")>().text = "左边网格加卡片、右边页签加页；窗口变窄时网格自动压列宽";
 
-		auto& w_body = page.root.at<ui::Id("body")>();
+		auto& w_body = root.at<ui::Id("body")>();
 		auto& w_grid = w_body.at<ui::Id("gridZone")>();
 		auto& w_tabs = w_body.at<ui::Id("tabZone")>();
 
-		auto& w_addTile = page.root.at<ui::Id("bar"), ui::Id("addTile")>();
+		auto& w_addTile = root.at<ui::Id("bar"), ui::Id("addTile")>();
 		w_addTile.label = "网格 +1";
 		w_addTile.onClick = [this, &w_grid] {
 			auto tile = std::make_unique<ui::Label<ui::Id("tile")>>(
@@ -48,7 +51,7 @@ struct PageLayoutDynamic {
 			w_grid.child<0>().add(std::move(any));
 		};
 
-		auto& w_addTab = page.root.at<ui::Id("bar"), ui::Id("addTab")>();
+		auto& w_addTab = root.at<ui::Id("bar"), ui::Id("addTab")>();
 		w_addTab.label = "页签 +1";
 		w_addTab.onClick = [this, &w_tabs] {
 			auto body = std::make_unique<ui::Label<ui::Id("tabBody")>>(
@@ -58,7 +61,7 @@ struct PageLayoutDynamic {
 			w_tabs.child<0>().add("页 " + std::to_string(tabs), std::move(any));
 		};
 
-		auto& w_clearTiles = page.root.at<ui::Id("bar"), ui::Id("clearTiles")>();
+		auto& w_clearTiles = root.at<ui::Id("bar"), ui::Id("clearTiles")>();
 		w_clearTiles.label = "清空网格";
 		w_clearTiles.onClick = [&w_grid] { w_grid.child<0>().clear(); };
 
@@ -72,7 +75,7 @@ struct PageLayoutDynamic {
 		w_tabs.height = 220.0f;
 		w_tabs.border = true;
 
-		page.root.at<ui::Id("note")>().text = "两个容器都是 wg2 的动态层（AnyWidget 类型擦除），静态树其余部分完全不受影响。";
+		root.at<ui::Id("note")>().text = "两个容器都是 wg2 的动态层（AnyWidget 类型擦除），静态树其余部分完全不受影响。";
 
 	}
 };
