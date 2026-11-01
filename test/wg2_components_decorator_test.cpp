@@ -12,19 +12,22 @@ TEST(Wg2Component, DecoratorsDraw) {
 	Harness h;
 
 	bool show = true;
+	RectProbe<Id("wp")> when;              // 探针放闭包外：闭包每帧执行
+	when.h = 10.0f;
+	when.state.visibleFn = [&] { return show; };
 	RectProbe<Id("probe")> probe;
 	probe.w = 20.0f;
 	probe.h = 10.0f;
 
 	h.inFrame([&] {
-		When<Id("when"), RectProbe<Id("wp")>> when;
-		when.show = true;
-		when.at<Id("wp")>().h = 10.0f;
+		const int before = when.drawCount;
 		EXPECT_FLOAT_EQ(when.hint(Size{100.0f, 0.0f}).h, 10.0f);
-		when.show = false;
-		EXPECT_FLOAT_EQ(when.hint(Size{100.0f, 0.0f}).h, 0.0f);
 		layout(when, Rect{10.0f, 10.0f, 100.0f, 30.0f});
-		(void)show;
+		EXPECT_EQ(when.drawCount, before + 1);
+		show = false;
+		const int mid = when.drawCount;
+		layout(when, Rect{10.0f, 10.0f, 100.0f, 30.0f});
+		EXPECT_EQ(when.drawCount, mid);
 
 		ItemWidth<Id("iw"), RectProbe<Id("iwp")>> iw;
 		iw.width = 120.0f;

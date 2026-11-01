@@ -10,40 +10,6 @@
 namespace Mk::wg2 {
 
 template<FixedString Id, class Child>
-struct When {
-	static constexpr auto id = Id;
-
-	WidgetState<> state;
-	Child child;
-	bool show = false;
-	// 拉取式可见性：设置后每帧调用一次，优先于 show（外部状态无需每帧同步）
-	std::function<bool()> showFn;
-
-	bool visibleNow() const { return showFn ? showFn() : show; }
-
-	Size hint(const Size& avail) const {
-		if (!visibleNow()) return Size{0.0f, 0.0f};
-		return child.hint(avail);
-	}
-
-	Policy policy() const { return child.policy(); }
-
-	void draw(const Rect& r) {
-		if (visibleNow()) drawWidget(child, r);
-	}
-
-	constexpr Child& childRef() & { return child; }
-	constexpr const Child& childRef() const & { return child; }
-
-	template<FixedString First, FixedString... Rest>
-	constexpr decltype(auto) at() & {
-		static_assert(fixed_equal<Child::id, First>(), "wg2: decorator child id mismatch");
-		if constexpr (sizeof...(Rest) == 0) return (child);
-		else return child.template at<Rest...>();
-	}
-};
-
-template<FixedString Id, class Child>
 struct ItemWidth {
 	static constexpr auto id = Id;
 

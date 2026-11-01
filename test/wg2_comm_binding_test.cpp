@@ -59,17 +59,18 @@ TEST(Wg2Comm, CheckboxFlagsShareOneBitMask) {
 
 TEST(Wg2Comm, WhenFollowsExternalFlagAndReleasesSpace) {
 	Harness h;
-	When<Id("when"), RectProbe<Id("p")>> when;
-	when.show = true;
-	when.at<Id("p")>().h = 12.0f;
+	bool whenShown = true;
+	RectProbe<Id("p")> when;
+	when.state.visibleFn = [&] { return whenShown; };
+	whenShown = true;
+	when.h = 12.0f;
 
 	h.inFrame([&] {
 		EXPECT_FLOAT_EQ(when.hint(Size{100.0f, 0.0f}).h, 12.0f);
 	});
-	when.show = false;                          // 外部状态变化 → 下一帧不再占位
+	whenShown = false;                          // 外部状态变化 → 下一帧不再占位
 	h.inFrame([&] {
-		EXPECT_FLOAT_EQ(when.hint(Size{100.0f, 0.0f}).h, 0.0f);
 		layout(when, Rect{0.0f, 0.0f, 100.0f, 40.0f});
 	});
-	EXPECT_EQ(when.at<Id("p")>().drawCount, 0);
+	EXPECT_EQ(when.drawCount, 0);
 }

@@ -16,9 +16,7 @@ Button<Id("remove")>
 CheckBox<Id("hide")>,
 LabelText<Id("state")>,
 LabelText<Id("note")>,
-When<Id("when"),
-Label<Id("when_text")>
->,
+Label<Id("when_text")>,
 RuntimeList<Id("dynamic")>
 >;
 
@@ -61,10 +59,10 @@ return root.at<Id("dynamic")>().size()
 auto& w_note = root.at<Id("note")>();
 w_note.name = "说明";
 w_note.value = "勾选：When 包裹控件隐藏/恢复。";
-root.at<Id("when"), Id("when_text")>().text = "（When 包裹的文本，mute 时隐藏）";
+root.at<Id("when_text")>().text = "（When 包裹的文本，mute 时隐藏）";
 
 bindPage(page, root);
-	root.at<Id("when")>().showFn = [&] { return !mute; };
+	root.at<Id("when_text")>().state.visibleFn = [&] { return !mute; };
 }
 
 
