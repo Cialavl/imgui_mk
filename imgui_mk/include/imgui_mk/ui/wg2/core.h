@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
+#include <functional>
 #include <string>
 #include <utility>
 
@@ -123,6 +124,9 @@ struct DefaultStyle {
 template<class Style = DefaultStyle>
 struct WidgetState {
 	bool visible = true;
+	// 拉取式可见性：设置后每帧求值，优先于 visible（控件自带的条件显隐）
+	std::function<bool()> visibleFn;
+	bool shown() const { return visibleFn ? visibleFn() : visible; }
 	bool enabled = true;
 	float stretch = 0.0f;      // 布局权重（Qt addWidget(w, stretch) 语义）
 	SizeOverrides size;        // setFixedSize / setMinSize / setPrefSize

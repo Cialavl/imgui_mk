@@ -26,6 +26,7 @@ inline float marginX(float m) { return m >= 0.0f ? m : ImGui::GetStyle().WindowP
 inline float marginY(float m) { return m >= 0.0f ? m : ImGui::GetStyle().WindowPadding.y; }
 template<class W>
 LayoutItem makeLayoutItem(const W& w, bool axis, float availCross) {
+	if (!w.state.shown()) return LayoutItem{};   // 控件自带的条件显隐：隐藏即不占位
 	const auto& ov = w.state.size;
 	const Size hs = w.hint(Size{axis ? 0.0f : availCross, axis ? availCross : 0.0f});
 

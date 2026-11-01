@@ -70,7 +70,7 @@ inline std::string ellipsize(const std::string& text, float avail) {
 template<class W>
 requires StaticWidget<std::remove_cvref_t<W>>
 inline void drawWidget(W& widget, const Rect& r) {
-	if (!widget.state.visible) return;
+	if (!widget.state.shown()) return;   // 与布局保持一致：隐藏的控件不绘制
 
 	ImGui::SetCursorPos(ImVec2(r.x, r.y));
 	// 静态树对象通常长期存活，地址即稳定 ID；临时对象应显式传 ID。
