@@ -5,6 +5,7 @@
 #include "gallery_inspector.h"
 #include "popups.h"
 #include "status_bar.h"
+#include "menu_bar.h"
 #include "content_area.h"
 #include "gallery_nav.h"
 #include <imgui_mk/ui/wg2/texture.h>
@@ -31,16 +32,10 @@ inline ImTextureID makeCheckerTexture() {
 
 namespace ui = Mk::wg2;   // 本文件用短名
 
-// —— 菜单 ——
-using FileMenu   = ui::Menu<ui::Id("menuFile"),   ui::MenuItem<ui::Id("miOpen")>, ui::MenuItem<ui::Id("miExit")>>;
-using ThemeMenu  = ui::Menu<ui::Id("menuTheme"),  ui::MenuItem<ui::Id("miDark")>, ui::MenuItem<ui::Id("miLight")>>;
-using WindowMenu = ui::Menu<ui::Id("menuWindow"), ui::MenuItem<ui::Id("miInspector")>>;
-using HelpMenu   = ui::Menu<ui::Id("menuHelp"),   ui::MenuItem<ui::Id("miAbout")>>;
-using AppMenuBar = ui::MenuBar<ui::Id("menuBar"), FileMenu, ThemeMenu, WindowMenu, HelpMenu>;
 
 // —— 主体三行 ——
 using ContentRow = ui::HBox<ui::Id("contentRow"), ContentArea>;   // 中间内容区（页集合自成组件）
-using AppBody    = ui::VBox<ui::Id("mainCol"), AppMenuBar, ContentRow, StatusBar>;
+using AppBody    = ui::VBox<ui::Id("mainCol"), MenuBar, ContentRow, StatusBar>;
 
 // —— 浮层 ——
 
@@ -64,7 +59,7 @@ InspectorWindow inspector;
 		Mk::mkui<Mk::window>::RegistrationWindow().on<ThemeChanged>([this](const ThemeChanged& e) {
 			winRef->setTheme(e.theme);
 		});
-		initMenus();
+		menuBar().init(winRef, [this] { popups().showAbout(); });
 		initPanels();
 		popups().init();
 		statusBar().init(win, [this] { return currentPageTitle(); });
@@ -82,6 +77,7 @@ InspectorWindow inspector;
 
 
 	// 树里的浮层组件实例
+	MenuBar& menuBar() { return shell.at<ui::Id("mainCol"), ui::Id("menuBar")>(); }
 	StatusBar& statusBar() { return shell.at<ui::Id("mainCol"), ui::Id("statusBar")>(); }
 	Popups& popups() { return shell.at<ui::Id("popups")>(); }
 
@@ -114,37 +110,6 @@ return n;
 
 
 private:
-void initMenus() {
-auto& f = shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile")>();
-f.name = "File";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miOpen")>().name = "Open...";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miOpen")>().shortcut = "Ctrl+O";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miOpen")>().onClick = [] {
-		Mk::mkui<Mk::window>::RegistrationWindow().emit(OpenFile{});
-	};
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miExit")>().name = "Exit";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuFile"), Mk::wg2::Id("miExit")>().onClick = [&] {
-winRef->requestClose();
-};
-
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme")>().name = "Theme";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miDark")>().name = "Dark";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miDark")>().onClick = [this] { applyTheme(Theme::dark()); };
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miDark")>().selectedFn = [this] { return darkActive; };
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miLight")>().name = "Light";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miLight")>().onClick = [this] { applyTheme(Theme::light()); };
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuTheme"), Mk::wg2::Id("miLight")>().selectedFn = [this] { return !darkActive; };
-
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuWindow")>().name = "Window";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuWindow"), Mk::wg2::Id("miInspector")>().name = "Show/Hide Inspector";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuWindow"), Mk::wg2::Id("miInspector")>().onClick = [] {
-		Mk::mkui<Mk::window>::RegistrationWindow().emit(ToggleInspector{});
-	};
-
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp")>().name = "Help";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp"), Mk::wg2::Id("miAbout")>().name = "About Gallery";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp"), Mk::wg2::Id("miAbout")>().onClick = [this] { popups().showAbout(); };
-}
 
 	// 树里的内容区实例（页簿与页面都在这棵树上）
 	ContentArea& contentArea() {
