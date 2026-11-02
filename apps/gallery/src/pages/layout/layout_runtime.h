@@ -1,6 +1,6 @@
 #pragma once
 // p27 布局·简单动态：RuntimeList 运行时增删（墓碑机制）
-#include "../../page.h"
+#include "../../gallery_chrome.h"
 
 namespace gallery {
 

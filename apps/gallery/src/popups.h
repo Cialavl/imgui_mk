@@ -1,6 +1,6 @@
 #pragma once
 // 三个浮层弹窗：开关状态归本组件所有
-#include "page.h"
+#include "gallery_chrome.h"
 
 namespace gallery {
 

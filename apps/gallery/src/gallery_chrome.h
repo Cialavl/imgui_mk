@@ -1,5 +1,5 @@
 #pragma once
-// 页面组件：页头 + 演示区 + 代码块，页面与内容区共用
+// gallery 页架（wg2 迁移版）：
 //   SectionHead + PageDemo(demo) + CodeBlock 编译期组成页面根。
 //   每个页面把自己的 wg2 root 渲染/测量回调 addWidget 进 demo 槽位。
 #include "snippets.h"
@@ -12,9 +12,35 @@
 #include <algorithm>
 #include <string_view>
 
-#include "gallery_events.h"
-
 namespace gallery {
+
+// 等宽代码字体（main 创建窗口后、首帧前装载并回填）
+inline ImFont* gMono = nullptr;
+
+// 首个存活窗口的实际烘焙字号（无窗口返回 0）
+inline float engineFontSize() {
+	return Mk::mkui<Mk::window>::RegistrationWindow().fontSize();
+}
+
+// 引擎级字号重烘焙广播（各窗口帧内应用）
+inline void engineRescale(float fontSize) {
+	Mk::mkui<Mk::window>::RegistrationWindow().rescaleAll(fontSize);
+}
+
+struct ThemeChanged {          // 换肤：各窗口自己 setTheme
+	Mk::wg2::Theme theme;
+};
+
+struct ToggleInspector {};     // 显示/隐藏检查器：检查器窗口自己处理
+
+struct OpenFile {};            // 打开文件：文件页自持对话框并处理
+
+
+using namespace Mk::wg2;   // 页面代码沿用 wg2 名字
+
+
+// ============ 引擎访问助手（页面零窗口依赖）============
+
 
 // ============ 节标题 ============
 
@@ -202,7 +228,5 @@ struct Page {
 		region.draw(r);
 	}
 };
-
-
 
 } // namespace gallery

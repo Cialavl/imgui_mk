@@ -1,6 +1,6 @@
 #pragma once
 // p28 布局·复杂动态：RuntimeGrid + RuntimeTabs 组合，随窗口伸缩
-#include "../../page.h"
+#include "../../gallery_chrome.h"
 
 namespace gallery {
 

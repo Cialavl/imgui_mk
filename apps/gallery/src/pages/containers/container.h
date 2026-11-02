@@ -1,6 +1,6 @@
 #pragma once
 // p11 容器：ui::Overlay / ui::Collapsing / ui::Tree / ui::SubWindow（wg2 编译期子节点）
-#include "../../page.h"
+#include "../../gallery_chrome.h"
 
 namespace gallery {
 

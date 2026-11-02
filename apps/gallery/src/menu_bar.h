@@ -1,7 +1,7 @@
 #pragma once
 // 顶部菜单栏：File / Theme / Window / Help
 //   回调只做两件事：发事件、请求关窗——不依赖应用壳的数据
-#include "page.h"
+#include "gallery_chrome.h"
 #include <Mainwindow.h>
 #include <functional>
 
