@@ -4,6 +4,8 @@
 
 ## 已完成的第一阶段
 
+- `font.h`
+  - `setExtraGlyphs` / `fontGlyphRanges`：字形 = 常用汉字 + 应用用字；`MKUI_FONT_FULL_CJK=1` 用全量 CJK（重建慢）
 - `core.h`
   - `FixedString` 编译期 ID：`Button<Id("save")>`
   - 控件状态 `Chrome`（`visible / enabled / stretch / size overrides / style`）：
@@ -49,6 +51,8 @@
   - `When / ItemWidth / Indent / Colored / Tooltip`
 - `widgets/container.h`
   - `SubWindow / Panel / Tab / TabBar / Collapsing`（`Tab::open` 非空时可关闭）
+- `Card`：卡片容器（底色 + 圆角 + 描边 + margin/padding），应用层不用自己画背景
+- `Label`：支持 `textFn` 拉取式文本与 `textColor` 主题色
 - `widgets/nav.h`
   - `NavTree`：WinUI NavigationView 风格导航树（分组可展开/收起、叶子选中左侧强调条）
   - `PageHost / PageBook`：页宿主与页簿；页簿用 `HBox<NavTree, PageHost>` 组合，宽度切分交给布局容器（选中页归页簿所有）

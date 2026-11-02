@@ -4,9 +4,11 @@
 #include <imgui_mk/ui/wg2/style.h>
 #include <imgui_mk/ui/wg2/widget.h>
 #include <imgui_mk/ui/wg2/core.h>
+#include <imgui_mk/ui/wg2/font.h>
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <string>
 #include <type_traits>
@@ -108,7 +110,9 @@ namespace Mk {
 				close();
 			}
 
-			// 默认字体链：按字号加载中文（雅黑→黑体→宋体），全量 CJK 字形。
+			// 默认字体链：按字号加载中文（雅黑→黑体→宋体）。
+			// 字形 = 「常用汉字」+ 应用登记用字（setExtraGlyphs）：重建快且覆盖界面文案；
+			// 需要全量 CJK（生僻字）时设 MKUI_FONT_FULL_CJK=1。
 			// ImGui 默认字体仅含 ASCII，中文会渲染成“?”；全部缺失时退回默认字体
 			static bool defaultFontLoader(float fontSize) {
 				ImGuiIO& io = ImGui::GetIO();
@@ -117,9 +121,14 @@ namespace Mk {
 					"C:\\Windows\\Fonts\\simhei.ttf", // 黑体
 					"C:\\Windows\\Fonts\\simsun.ttc", // 宋体
 				};
+				// 1x 采样：字体图集是换字号的主要开销来源
+				ImFontConfig cfg;
+				cfg.OversampleH = 1;
+				cfg.OversampleV = 1;
+				cfg.PixelSnapH = true;
+				const ImWchar* ranges = wg2::fontGlyphRanges();
 				for(const char* path : cjkFonts) {
-					if(io.Fonts->AddFontFromFileTTF(path, fontSize, nullptr,
-						   io.Fonts->GetGlyphRangesChineseFull())) {
+					if(io.Fonts->AddFontFromFileTTF(path, fontSize, &cfg, ranges)) {
 						return true;
 					}
 				}
@@ -163,7 +172,7 @@ namespace Mk {
 					ImFontConfig merge;
 					merge.MergeMode = true;
 					if(io.Fonts->AddFontFromFileTTF(path, px, &merge,
-						   io.Fonts->GetGlyphRangesChineseSimplifiedCommon())) break;
+						   wg2::fontGlyphRanges())) break;
 				}
 				return mono;
 			}

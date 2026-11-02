@@ -292,4 +292,56 @@ struct ChildRegion {
 	}
 };
 
+// ============ Card（卡片容器：底色 + 圆角 + 描边 + 内边距） ============
+// 应用层不直接碰 ImGui 画背景：卡片样式统一由框架提供。
+//   - 单个子控件（通常是 HBox/VBox 组成的行/列）
+//   - margin 外面距、padding 内边距、rounding 圆角、background 底色、border 描边
+
+template<FixedString Id, class Child>
+struct Card {
+	static constexpr auto id = Id;
+
+	Child child;
+
+	float marginX = -1.0f, marginY = -1.0f;     // <0 → WindowPadding
+	float paddingX = -1.0f, paddingY = -1.0f;   // <0 → WindowPadding
+	float rounding = -1.0f;                     // <0 → WindowRounding
+	bool border = true;
+	ImGuiCol background = ImGuiCol_MenuBarBg;   // 主题色，随换肤
+
+	Size hint(const Size& avail) const {
+		const float mx = marginX >= 0.0f ? marginX : ImGui::GetStyle().WindowPadding.x;
+		const float my = marginY >= 0.0f ? marginY : ImGui::GetStyle().WindowPadding.y;
+		const float px = paddingX >= 0.0f ? paddingX : ImGui::GetStyle().WindowPadding.x;
+		const float py = paddingY >= 0.0f ? paddingY : ImGui::GetStyle().WindowPadding.y;
+		const Size inner = hintOf(child, Size{std::max(0.0f, avail.w - (mx + px) * 2.0f), 0.0f});
+		return Size{inner.w + (mx + px) * 2.0f, inner.h + (my + py) * 2.0f};
+	}
+
+	Policy policy() const { return Policy{}; }
+
+	void draw(const Rect& r) {
+		const float mx = marginX >= 0.0f ? marginX : ImGui::GetStyle().WindowPadding.x;
+		const float my = marginY >= 0.0f ? marginY : ImGui::GetStyle().WindowPadding.y;
+		const float px = paddingX >= 0.0f ? paddingX : ImGui::GetStyle().WindowPadding.x;
+		const float py = paddingY >= 0.0f ? paddingY : ImGui::GetStyle().WindowPadding.y;
+
+		const Rect box{r.x + mx, r.y + my,
+			std::max(0.0f, r.w - mx * 2.0f), std::max(0.0f, r.h - my * 2.0f)};
+		if (box.w <= 0.0f || box.h <= 0.0f) return;
+
+		const ImVec2 p = ImGui::GetCursorScreenPos();
+		ImDrawList* dl = ImGui::GetWindowDrawList();
+		const float rad = rounding >= 0.0f ? rounding : ImGui::GetStyle().WindowRounding;
+		const ImVec2 p0(p.x + (box.x - r.x), p.y + (box.y - r.y));
+		const ImVec2 p1(p0.x + box.w, p0.y + box.h);
+		dl->AddRectFilled(p0, p1, ImGui::GetColorU32(background), rad);
+		if (border) dl->AddRect(p0, p1, ImGui::GetColorU32(ImGuiCol_Border), rad, 0, 1.0f);
+
+		const Rect content{box.x + px, box.y + py,
+			std::max(0.0f, box.w - px * 2.0f), std::max(0.0f, box.h - py * 2.0f)};
+		layout(child, content);
+	}
+};
+
 } // namespace Mk::wg2

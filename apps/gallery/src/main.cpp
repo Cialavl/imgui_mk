@@ -1,7 +1,9 @@
 // mkui 控件画廊应用入口：
 //   GalleryWindow 就是主窗口：构造即建窗，并一行挂载组合界面；随后跑框架主循环。
 #include "gallery_app.h"
+#include "ui_glyphs.h"
 #include <imgui_mk/ui/wg2/style.h>
+#include <imgui_mk/ui/wg2/font.h>
 
 #include <windows.h>   // 崩溃自诊断写盘（调试用）
 #include <cstdio>
@@ -30,6 +32,9 @@ static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
 } // namespace
 
 int main() {
+	// 字形子集：常用汉字 + gallery 实际用字（换字号重建快、又不会缺字）
+	Mk::wg2::setExtraGlyphs(gallery::kUiGlyphs);
+
 	// 全局主题必须在窗口创建前设置（框架默认主题，进程级）
 	Mk::wg2::setDefaultTheme(Mk::wg2::scaledForMonitor(Mk::wg2::Theme::dark()));
 

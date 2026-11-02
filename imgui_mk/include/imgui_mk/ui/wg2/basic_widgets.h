@@ -15,24 +15,30 @@ struct Label {
 	static constexpr auto id = Id;
 
 	std::string text;
+	// 拉取式文本：每帧取（标题/状态这类随外部状态变化的文本）
+	std::function<std::string()> textFn;
+	int textColor = -1;   // -1 = 默认；否则用该 ImGuiCol（随主题变化）
 
 	Label() = default;
 	Label(std::string t) : text(std::move(t)) {}
 
 	Size hint(const Size&) const {
-		const ImVec2 s = ImGui::CalcTextSize(text.c_str());
+		const std::string shown = textFn ? textFn() : text;
+		const ImVec2 s = ImGui::CalcTextSize(shown.c_str());
 		return Size{s.x, s.y};
 	}
 
 	Policy policy() const { return Policy{}; }
 
 	void draw(const Rect& r) {
+		if (textFn) text = textFn();
+		if (textColor >= 0)
+			ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(static_cast<ImGuiCol>(textColor)));
 		// 容器给了宽度时按宽度省略，避免长文本被右缘硬切（r.w == 0 为流式上下文，原样输出）
-		if (r.w > 0.0f && ImGui::CalcTextSize(text.c_str()).x > r.w) {
-			ImGui::TextUnformatted(detail::ellipsize(text, r.w).c_str());
-			return;
-		}
-		ImGui::TextUnformatted(text.c_str());
+		const std::string shown = (r.w > 0.0f && ImGui::CalcTextSize(text.c_str()).x > r.w)
+			? detail::ellipsize(text, r.w) : text;
+		ImGui::TextUnformatted(shown.c_str());
+		if (textColor >= 0) ImGui::PopStyleColor();
 	}
 };
 
