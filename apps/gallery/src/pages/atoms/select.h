@@ -1,6 +1,6 @@
 #pragma once
 // p9 选择控件：ui::CheckBox/ui::RadioButton/ui::RadioGroup/ui::Combo/ui::ListBox/ui::Selectable/ui::CheckboxFlags（wg2）
-#include "../../page.h"
+#include "../../page_frame.h"
 #include <bitset>
 
 namespace gallery {

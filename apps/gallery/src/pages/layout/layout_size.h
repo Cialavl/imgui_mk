@@ -1,6 +1,6 @@
 #pragma once
 // p25 布局·尺寸策略：fixed / pref / min / max / stretch / em（静态，随字号联动）
-#include "../../page.h"
+#include "../../page_frame.h"
 
 namespace gallery {
 

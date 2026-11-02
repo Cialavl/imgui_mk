@@ -1,5 +1,5 @@
 #pragma once
-// 页面组件（Page<Content>）：页头 + 演示区 + 代码块
+// 页面框架（PageFrame<Content>）：页头 + 演示区 + 代码块
 //   SectionHead + PageDemo(demo) + CodeBlock 编译期组成页面根。
 //   每个页面把自己的 wg2 root 渲染/测量回调 addWidget 进 demo 槽位。
 #include "snippets.h"
@@ -181,10 +181,10 @@ void draw(const Mk::wg2::Rect& r) {
 
 // ============ 页面架 ============
 
-// 页面 = 外壳 + 内容对象
+// 页面框架 = 外壳 + 内容对象
 //   内容类约定：static constexpr title/desc/code + 名为 root 的控件树
 template<class Content>
-struct Page {
+struct PageFrame {
 	using Chrome = Mk::wg2::VBox<
 		Mk::wg2::Id("page"),
 		SectionHead<Mk::wg2::Id("head")>,
@@ -196,9 +196,9 @@ struct Page {
 	Content content;
 	const char* title = "";
 
-	Page() = default;
+	PageFrame() = default;
 	template<class... Args>
-	explicit Page(Args&&... args) : content(std::forward<Args>(args)...) {}
+	explicit PageFrame(Args&&... args) : content(std::forward<Args>(args)...) {}
 
 	void setup() {
 		title = Content::title;

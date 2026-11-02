@@ -1,6 +1,6 @@
 #pragma once
 // p7 数值输入：ui::InputInt/Float/Double + vec2（wg2）
-#include "../../page.h"
+#include "../../page_frame.h"
 
 namespace gallery {
 

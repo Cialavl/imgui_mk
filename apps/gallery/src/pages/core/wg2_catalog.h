@@ -1,6 +1,6 @@
 #pragma once
 // p23 wg2 控件巡礼：输入 / 显示 / 装饰件 / 页签 在同一棵静态树中。
-#include "../../page.h"
+#include "../../page_frame.h"
 
 #include <string>
 

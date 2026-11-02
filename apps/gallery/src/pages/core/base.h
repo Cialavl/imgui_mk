@@ -1,6 +1,6 @@
 #pragma once
 // p0 基础：wg2 直接 struct 控件树
-#include "../../page.h"
+#include "../../page_frame.h"
 
 namespace gallery {
 

@@ -1,6 +1,6 @@
 #pragma once
 // 中间内容区：拥有页簿与 29 个演示页，对外是一个 wg2 控件
-#include "page.h"
+#include "page_frame.h"
 
 #include "pages/core/base.h"
 #include "pages/core/lifecycle.h"
@@ -51,35 +51,35 @@ struct ContentArea {
 	Mk::wg2::WidgetState<> state;
 	Mk::wg2::PageBook<Mk::wg2::Id("book")> book;
 
-	gallery::Page<gallery::PageLayoutBasic>   pageLayoutBasic;
-	gallery::Page<gallery::PageLayoutSize>    pageLayoutSize;
-	gallery::Page<gallery::PageLayoutGrid>    pageLayoutGrid;
-	gallery::Page<gallery::PageLayoutRuntime> pageLayoutRuntime;
-	gallery::Page<gallery::PageLayoutDynamic> pageLayoutDynamic;
-	gallery::Page<gallery::PageBase>          pageBase;
-	gallery::Page<gallery::PageLifecycle>     pageLifecycle;
-	gallery::Page<gallery::PageWg2>           pageWg2;
-	gallery::Page<gallery::PageWg2Catalog>    pageWg2Catalog;
-	gallery::Page<gallery::PageLayout>        pageLayout;
-	gallery::Page<gallery::PageSplit>         pageSplit;
-	gallery::Page<gallery::PageText>          pageText;
-	gallery::Page<gallery::PageInput>         pageInput;
-	gallery::Page<gallery::PageNumber>        pageNumber;
-	gallery::Page<gallery::PageDrag>          pageDrag;
-	gallery::Page<gallery::PageSelect>        pageSelect;
-	gallery::Page<gallery::PageFeedback>      pageFeedback;
-	gallery::Page<gallery::PageContainer>     pageContainer;
-	gallery::Page<gallery::PageTab>           pageTab;
-	gallery::Page<gallery::PageMenu>          pageMenu;
-	gallery::Page<gallery::PageTable>         pageTable;
-	gallery::Page<gallery::PagePopup>         pagePopup;
-	gallery::Page<gallery::PageColor>         pageColor;
-	gallery::Page<gallery::PageDeco>          pageDeco;
-	gallery::Page<gallery::PageTheme>         pageTheme;
-	gallery::Page<gallery::PageWindow>        pageWindow;
-	gallery::Page<gallery::PageFile>          pageFile;
-	gallery::Page<gallery::PageFnRender>      pageFnRender;
-	gallery::Page<gallery::PageButton>        pageButton;
+	gallery::PageFrame<gallery::PageLayoutBasic>   pageLayoutBasic;
+	gallery::PageFrame<gallery::PageLayoutSize>    pageLayoutSize;
+	gallery::PageFrame<gallery::PageLayoutGrid>    pageLayoutGrid;
+	gallery::PageFrame<gallery::PageLayoutRuntime> pageLayoutRuntime;
+	gallery::PageFrame<gallery::PageLayoutDynamic> pageLayoutDynamic;
+	gallery::PageFrame<gallery::PageBase>          pageBase;
+	gallery::PageFrame<gallery::PageLifecycle>     pageLifecycle;
+	gallery::PageFrame<gallery::PageWg2>           pageWg2;
+	gallery::PageFrame<gallery::PageWg2Catalog>    pageWg2Catalog;
+	gallery::PageFrame<gallery::PageLayout>        pageLayout;
+	gallery::PageFrame<gallery::PageSplit>         pageSplit;
+	gallery::PageFrame<gallery::PageText>          pageText;
+	gallery::PageFrame<gallery::PageInput>         pageInput;
+	gallery::PageFrame<gallery::PageNumber>        pageNumber;
+	gallery::PageFrame<gallery::PageDrag>          pageDrag;
+	gallery::PageFrame<gallery::PageSelect>        pageSelect;
+	gallery::PageFrame<gallery::PageFeedback>      pageFeedback;
+	gallery::PageFrame<gallery::PageContainer>     pageContainer;
+	gallery::PageFrame<gallery::PageTab>           pageTab;
+	gallery::PageFrame<gallery::PageMenu>          pageMenu;
+	gallery::PageFrame<gallery::PageTable>         pageTable;
+	gallery::PageFrame<gallery::PagePopup>         pagePopup;
+	gallery::PageFrame<gallery::PageColor>         pageColor;
+	gallery::PageFrame<gallery::PageDeco>          pageDeco;
+	gallery::PageFrame<gallery::PageTheme>         pageTheme;
+	gallery::PageFrame<gallery::PageWindow>        pageWindow;
+	gallery::PageFrame<gallery::PageFile>          pageFile;
+	gallery::PageFrame<gallery::PageFnRender>      pageFnRender;
+	gallery::PageFrame<gallery::PageButton>        pageButton;
 
 	// 依赖注入 + 注册（GalleryWindow 构造末尾调用一次）
 	void init(ImTextureID tex, Mk::window* win, Mk::window* ins) {
@@ -98,7 +98,7 @@ struct ContentArea {
 
 private:
 	template<class Content>
-	void add(gallery::Page<Content>& p, const char* group = nullptr) {
+	void add(gallery::PageFrame<Content>& p, const char* group = nullptr) {
 		p.setup();
 		if (group && *group) book.addGroup(group);
 		book.addPage(p.title, [&p](const Mk::wg2::Rect& r) { p.renderTo(r); });

@@ -1,6 +1,6 @@
 #pragma once
 // p10 反馈指示：ui::ProgressBar/ui::PlotLines/ui::Separator/ui::SeparatorText（wg2）
-#include "../../page.h"
+#include "../../page_frame.h"
 
 namespace gallery {
 

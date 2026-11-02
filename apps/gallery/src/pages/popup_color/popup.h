@@ -1,6 +1,6 @@
 #pragma once
 // p15 弹窗：Popup/PopupModal（wg2 open 标志驱动）
-#include "../../page.h"
+#include "../../page_frame.h"
 
 namespace gallery {
 

@@ -1,6 +1,6 @@
 #pragma once
 // p16 颜色编辑：ColorEdit3/4 + ColorPicker3/4（wg2）
-#include "../../page.h"
+#include "../../page_frame.h"
 
 namespace gallery {
 

@@ -90,7 +90,7 @@ InspectorWindow inspector;
 	}
 
 	template<class Content>
-	void addPage(Page<Content>& page, const char* group = nullptr) {
+	void addPage(PageFrame<Content>& page, const char* group = nullptr) {
 		page.setup();   // 装配外壳：读 Content::title / desc / code，并把演示槽挂到 content.root
 		auto& book = contentArea().book;
 		if (group && *group) book.addGroup(group);

@@ -1,6 +1,6 @@
 #pragma once
 // p24 布局·基础：ui::VBox 堆叠 / ui::HBox 横排 / 间距与边距（简单静态）
-#include "../../page.h"
+#include "../../page_frame.h"
 
 namespace gallery {
 
