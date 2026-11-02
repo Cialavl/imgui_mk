@@ -2,7 +2,7 @@
 #include <fstream>
 #include <filesystem>
 // p20 文件对话框：FileDialog（Win32 异步，wg2 页面）
-#include "../../page_frame.h"
+#include "../../demo_page.h"
 
 namespace gallery {
 

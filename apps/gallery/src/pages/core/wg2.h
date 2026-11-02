@@ -1,7 +1,7 @@
 #pragma once
 // p22 wg2：新控件层演示页。PageHostWg2 保存渲染回调；wg2 layout 回调 在旧 demo
 // ui::SubWindow 的 bounds 内执行 layout()。
-#include "../../page_frame.h"
+#include "../../demo_page.h"
 
 #include <memory>
 #include <string>

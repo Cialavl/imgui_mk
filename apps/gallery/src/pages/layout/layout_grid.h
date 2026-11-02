@@ -1,6 +1,6 @@
 #pragma once
 // p26 布局·复杂静态：Grid 网格 / Wrap 换行 / Overlay 叠放（嵌套组合）
-#include "../../page_frame.h"
+#include "../../demo_page.h"
 
 namespace gallery {
 

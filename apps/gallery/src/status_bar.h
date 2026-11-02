@@ -1,6 +1,6 @@
 #pragma once
 // 底部状态栏：FPS / 帧号 / 当前页标题
-#include "page_frame.h"
+#include "demo_page.h"
 
 #include <functional>
 

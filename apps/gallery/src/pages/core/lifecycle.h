@@ -1,6 +1,6 @@
 #pragma once
 // p1 基础：生命周期（ui::RuntimeList 动态叶子 + When 隐藏）
-#include "../../page_frame.h"
+#include "../../demo_page.h"
 
 #include <memory>
 

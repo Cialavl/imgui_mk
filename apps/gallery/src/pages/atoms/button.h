@@ -1,6 +1,6 @@
 #pragma once
 // p5 按钮图片：ui::Button/ui::ImageButton/ui::Image（wg2）
-#include "../../page_frame.h"
+#include "../../demo_page.h"
 
 namespace gallery {
 

@@ -1,6 +1,6 @@
 #pragma once
 // p14 表格：ui::TextTable/ui::FnTable（wg2）
-#include "../../page_frame.h"
+#include "../../demo_page.h"
 
 #include <string>
 
