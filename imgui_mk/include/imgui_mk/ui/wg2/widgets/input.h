@@ -14,7 +14,6 @@ template<FixedString Id>
 struct CheckBox {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::string name;
 	bool* checked = nullptr;
 	// 勾选状态变化时回调（事件式，不必每帧轮询）
@@ -38,7 +37,6 @@ template<FixedString Id, std::size_t N = 64>
 struct InputText {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::string name;
 	std::array<char, N> buf{};
 
@@ -58,10 +56,38 @@ struct InputText {
 	}
 };
 
+// 多行文本输入（IME 候选框由窗口层 Platform_SetImeDataFn 定位）
+template<FixedString Id, std::size_t N = 4096>
+struct InputTextMultiline {
+	static constexpr auto id = Id;
+
+	std::string name;
+	std::array<char, N> buf{};
+	int lines = 5;           // <=0：用 height
+	float height = 0.0f;     // >0 优先
+	bool allowTab = false;
+
+	void setText(const std::string& t) { std::snprintf(buf.data(), N, "%s", t.c_str()); }
+	const char* c_str() const { return buf.data(); }
+
+	Size hint(const Size& avail) const {
+		const float h = height > 0.0f ? height
+			: (lines > 0 ? static_cast<float>(lines) * ImGui::GetTextLineHeightWithSpacing()
+				: ImGui::GetTextLineHeightWithSpacing() * 5.0f);
+		return Size{avail.w > 0.0f ? avail.w : 320.0f, h};
+	}
+
+	Policy policy() const { return Policy{}; }
+
+	void draw(const Rect& r) {
+		ImGuiInputTextFlags flags = allowTab ? ImGuiInputTextFlags_AllowTabInput : 0;
+		ImGui::InputTextMultiline(name.c_str(), buf.data(), N, ImVec2(r.w, r.h), flags);
+	}
+};
+
 template<FixedString Id>
 struct InputInt {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	int* value = nullptr;
 
@@ -77,7 +103,6 @@ struct InputInt {
 template<FixedString Id>
 struct InputFloat {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	float* value = nullptr;
 
@@ -93,7 +118,6 @@ struct InputFloat {
 template<FixedString Id>
 struct InputDouble {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	double* value = nullptr;
 
@@ -109,7 +133,6 @@ struct InputDouble {
 template<FixedString Id>
 struct InputInt2 {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	std::array<int, 2>* value = nullptr;
 
@@ -125,7 +148,6 @@ struct InputInt2 {
 template<FixedString Id>
 struct InputFloat2 {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	std::array<float, 2>* value = nullptr;
 
@@ -141,7 +163,6 @@ struct InputFloat2 {
 template<FixedString Id>
 struct SliderF {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	float* value = nullptr;
 	float mn = 0.0f, mx = 1.0f;
@@ -158,7 +179,6 @@ struct SliderF {
 template<FixedString Id>
 struct SliderInt {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	int* value = nullptr;
 	int mn = 0, mx = 100;
@@ -175,7 +195,6 @@ struct SliderInt {
 template<FixedString Id>
 struct SliderAngle {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	float* valueRad = nullptr;
 	float degMin = -360.0f, degMax = 360.0f;
@@ -192,7 +211,6 @@ struct SliderAngle {
 template<FixedString Id>
 struct DragF {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	float* value = nullptr;
 	float speed = 0.01f, mn = 0.0f, mx = 10.0f;
@@ -209,7 +227,6 @@ struct DragF {
 template<FixedString Id>
 struct DragI {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	int* value = nullptr;
 	float speed = 1.0f;
@@ -227,7 +244,6 @@ struct DragI {
 template<FixedString Id>
 struct Combo {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	int* current = nullptr;
 	const char* const* items = nullptr;
@@ -245,7 +261,6 @@ struct Combo {
 template<FixedString Id>
 struct RadioButton {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	bool* active = nullptr;
 
@@ -263,7 +278,6 @@ struct RadioButton {
 template<FixedString Id>
 struct RadioGroup {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	const char* const* items = nullptr;
 	int count = 0;
 	int* current = nullptr;
@@ -286,7 +300,6 @@ struct RadioGroup {
 template<FixedString Id>
 struct ListBox {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	const char* const* items = nullptr;
 	int count = 0;

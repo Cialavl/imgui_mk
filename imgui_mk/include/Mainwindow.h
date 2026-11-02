@@ -1,7 +1,11 @@
 #pragma once
 #include <imgui_mk/mkui.h>
 #include <imgui_mk/window.h>
+#include <imgui_mk/ui_context.h>
+#include <imgui_mk/ui/wg2/font.h>
+#include <imgui_mk/ui/wg2/mount.h>
 #include <imgui_mk/ui/wg2/style.h>
+#include <imgui_mk/ui/wg2/tree.h>
 #include <functional>
 #include <memory>
 #include <type_traits>
@@ -17,8 +21,10 @@ namespace Mk {
 	template <typename WindowT = Mk::window, typename S = void>
 	class MainWindow {
 	public:
-		MainWindow(const char* title, int width = 1600, int height = 900)
-			: m_Window(title, width, height) {
+		// 默认尺寸：设计尺寸 × 显示器缩放，再限制到工作区比例（传 0 用默认值）
+		MainWindow(const char* title = "mkui", int width = 0, int height = 0)
+			: m_Window(title, width > 0 ? width : defaultWidth(), height > 0 ? height : defaultHeight()) {
+			applyDefaults();        // 框架默认窗口能力：字号自适应 / 等宽字体 / 主题跟随
 			registerStateIfAny();   // S 指定时：创建及注册一步完成
 		}
 		// 共享状态取用（转发引擎注册表；类型键多槽，未注册抛异常）
@@ -30,6 +36,25 @@ namespace Mk {
 		void setCentralWidget(Mk::wg2::StaticWidget auto& root, float padX = 0.0f, float padY = 0.0f) {
 			m_Window.setCentralWidget(root, padX, padY);
 		}
+
+		// —— 一行挂载复合界面（Qt setCentralWidget 语义）——
+		// composite 约定：有 root（控件树根）；可选 setup(ctx) / ready(ctx)。
+		// 框架负责：root 的父节点 = 本窗口 → 树的 setup/ready → 中央视图挂载。
+		template <class Composite>
+		void setContent(Composite& ui) {
+			Mk::UiContext& ctx = m_UiContext;
+			ctx.window = &m_Window;
+			ctx.bus = &Mk::mkui<WindowT>::Events();
+			Mk::wg2::attach(ui.root, m_Window);   // 复合界面的父节点 = 本窗口
+			if constexpr (requires { ui.setup(ctx); }) ui.setup(ctx);   // 复合界面自己的初始化
+			Mk::wg2::setupTree(ui.root, ctx);
+			Mk::wg2::readyTree(ui.root, ctx);
+			if constexpr (requires { ui.ready(ctx); }) ui.ready(ctx);   // 子树就绪后的处理
+			setCentralWidget(ui.root);
+		}
+
+		// 跑引擎主循环（窗口已创建、内容已挂载）
+		void run() { Mk::mkui<WindowT>::run(); }
 
 		// 显示窗口（转发到内部窗口的 show）
 		void show() {
@@ -43,6 +68,10 @@ namespace Mk {
 
 		// 已渲染帧数（1 起）：动画/计数显示直接拉取
 		unsigned long long frameIndex() const { return m_Window.frameIndex(); }
+
+		// 窗口状态持久化（转发）
+		bool saveLayout(const std::string& path) const { return m_Window.saveLayout(path); }
+		bool loadLayout(const std::string& path) { return m_Window.loadLayout(path); }
 
 		// 当前帧中央布局矩形（内容区 − pad 增量；须在帧内调用）
 		Mk::wg2::Rect contentRect() const { return m_Window.contentRect(); }
@@ -114,6 +143,32 @@ namespace Mk {
 		}
 
 	private:
+		// 默认窗口尺寸：设计尺寸 × 显示器缩放，再限制到工作区比例
+		static int defaultWidth() {
+			const float dpi = Mk::wg2::dpiScale();
+			const auto [w, h] = Mk::workAreaSize(0.75f, 0.8f,
+				static_cast<int>(1440.0f * dpi), static_cast<int>(880.0f * dpi));
+			(void)h;
+			return w;
+		}
+		static int defaultHeight() {
+			const float dpi = Mk::wg2::dpiScale();
+			const auto [w, h] = Mk::workAreaSize(0.75f, 0.8f,
+				static_cast<int>(1440.0f * dpi), static_cast<int>(880.0f * dpi));
+			(void)w;
+			return h;
+		}
+
+		// 框架默认窗口能力（应用可随后覆盖）
+		void applyDefaults() {
+			m_Window.setAutoScaleFont(true);
+			m_Window.addAuxFont(0.85f);   // 等宽代码字体（×0.85 随字号联动）
+			Mk::wg2::setMonoFontProvider([this] { return m_Window.auxFont(); });
+			Mk::mkui<WindowT>::Events().on<Mk::ThemeChanged>([this](const Mk::ThemeChanged& e) {
+				m_Window.setTheme(e.theme);
+			});
+		}
+
 		void registerStateIfAny() {
 			if constexpr (!std::is_void_v<S>) {
 				m_State = std::make_shared<S>();
@@ -123,7 +178,29 @@ namespace Mk {
 
 		WindowT m_Window;
 		std::shared_ptr<S> m_State;   // S=void 时为空，不参与状态注册
+		Mk::UiContext m_UiContext;    // 控件树上下文（setContent 时填充，随窗口存活）
 	};
+
+	// ============ 框架主窗口（进程内一份，启动即由框架创建并配置）============
+	// 首次调用创建：标题/尺寸缺省时给默认值（设计尺寸 × 显示器缩放，限制到工作区比例），
+	// 并应用框架默认窗口能力：字号自适应、等宽字体（引擎 monoFont 的 provider）、主题跟随。
+	// 之后任何组件都从同一个入口取，不需要各自持有主窗口。
+	template <typename WindowT = Mk::window>
+	MainWindow<WindowT>& mainWindow(const char* title = nullptr, int width = 0, int height = 0) {
+		static std::unique_ptr<MainWindow<WindowT>> window;
+		if (!window) {
+			window = std::make_unique<MainWindow<WindowT>>(title ? title : "mkui", width, height);
+		}
+		return *window;
+	}
+
+	// 启动：框架主窗口一行挂载复合界面 + 跑引擎主循环
+	template <class Composite, typename WindowT = Mk::window>
+	void runUi(Composite& ui) {
+		auto& main = mainWindow<WindowT>();
+		main.setContent(ui);
+		Mk::mkui<WindowT>::run();
+	}
 
 }
 

@@ -27,8 +27,8 @@ inline constexpr std::string_view kSplit = R"(using Root = Mk::wg2::VBox<
     Mk::wg2::Grid<Id("grid"), Label<Id("g00")>, Label<Id("g01")>>
 >;
 Root root;
-root.at<Id("split"), Id("nav")>().state.size.fixedW = 160.0f;
-root.at<Id("split"), Id("main")>().state.stretch = 2.0f;
-root.at<Id("split"), Id("side")>().state.stretch = 1.0f;)";
+Mk::wg2::sizeOf(root.at<Id("split"), Id("nav")>()).fixedW = 160.0f;
+Mk::wg2::setStretch(root.at<Id("split"), Id("main")>(), 2.0f);
+Mk::wg2::setStretch(root.at<Id("split"), Id("side")>(), 1.0f);)";
 
 } // namespace gallery::snips

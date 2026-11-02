@@ -20,19 +20,18 @@ template<FixedString Id, class... Children>
 struct Tree {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::tuple<Children...> children;
 	std::string title;
 	bool defaultOpen = false;
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		float h = ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.y;
 		float w = ImGui::CalcTextSize(title.c_str()).x;
 		std::apply([&](const auto&... c) {
 			auto one = [&](const auto& child) {
-				if (!child.state.visible) return;
-				const Size s = child.hint(avail);
+				if (!widgetChrome(child).visible) return;
+				const Size s = hintOf(child, avail);
 				h += s.h;
 				w = std::max(w, s.w);
 			};
@@ -50,8 +49,8 @@ struct Tree {
 		float y = r.y + ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.y;
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
-				if (!child.state.visible) return;
-				const Size s = child.hint(Size{r.w, r.h - (y - r.y)});
+				if (!widgetChrome(child).visible) return;
+				const Size s = hintOf(child, Size{r.w, r.h - (y - r.y)});
 				drawWidget(child, Rect{r.x, y, s.w, s.h});
 				y += s.h;
 			};
@@ -81,7 +80,6 @@ template<FixedString Id>
 struct MenuItem {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::string name;
 	std::string shortcut;
 	bool selected = false;
@@ -110,17 +108,16 @@ template<FixedString Id, class... Children>
 struct Menu {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::tuple<Children...> children;
 	std::string name;
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		float w = 0.0f, h = 0.0f;
 		std::apply([&](const auto&... c) {
 			auto one = [&](const auto& child) {
-				if (!child.state.visible) return;
-				const Size s = child.hint(avail);
+				if (!widgetChrome(child).visible) return;
+				const Size s = hintOf(child, avail);
 				w = std::max(w, s.w);
 				h += s.h;
 			};
@@ -135,7 +132,7 @@ struct Menu {
 		if (!ImGui::BeginMenu(name.c_str())) return;
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
-				if (child.state.visible) drawFlow(child);   // 弹菜单内流式排布（含内边距）
+				if (widgetChrome(child).visible) drawFlow(child);   // 弹菜单内流式排布（含内边距）
 			};
 			(one(c), ...);
 		}, children);
@@ -161,7 +158,6 @@ template<FixedString Id, class... Children>
 struct MenuBar {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::tuple<Children...> children;
 
 	Size hint(const Size&) const {
@@ -174,7 +170,7 @@ struct MenuBar {
 		if (!ImGui::BeginMainMenuBar()) return;   // 浮顶独立菜单栏（宿主窗口无需 MenuBar 标志）
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
-				if (child.state.visible) drawFlow(child);   // 流式排布：菜单从左到右跟随光标
+				if (widgetChrome(child).visible) drawFlow(child);   // 流式排布：菜单从左到右跟随光标
 			};
 			(one(c), ...);
 		}, children);
@@ -204,18 +200,18 @@ template<FixedString Id, class... Children>
 struct Popup {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::tuple<Children...> children;
-	bool* open = nullptr;
+	bool open = false;              // 置 true 请求打开；绘制时消费并清回 false
+	bool alive = false;             // 上一帧弹窗是否仍打开（shouldRender 用，免查 ID 栈）
 	std::string idname;
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		float w = 0.0f, h = 0.0f;
 		std::apply([&](const auto&... c) {
 			auto one = [&](const auto& child) {
-				if (!child.state.visible) return;
-				const Size s = child.hint(avail);
+				if (!widgetChrome(child).visible) return;
+				const Size s = hintOf(child, avail);
 				w = std::max(w, s.w);
 				h += s.h;
 			};
@@ -226,16 +222,23 @@ struct Popup {
 
 	Policy policy() const { return Policy{}; }
 
+	// 打开或已打开时才需要提交（关闭状态不空转）
+	bool shouldRender() const { return open || alive; }
+
 	void draw(const Rect& r) {
 		const char* pid = idname.empty() ? id.data : idname.c_str();
-		if (open && *open) {
+		if (open) {
 			ImGui::OpenPopup(pid);
-			*open = false;
+			open = false;
 		}
-		if (!ImGui::BeginPopup(pid)) return;
+		if (!ImGui::BeginPopup(pid)) {
+			alive = false;
+			return;
+		}
+		alive = true;
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
-				if (child.state.visible) drawFlow(child);   // 弹窗内流式排布（含内边距）
+				if (widgetChrome(child).visible) drawFlow(child);   // 弹窗内流式排布（含内边距）
 			};
 			(one(c), ...);
 		}, children);
@@ -261,19 +264,19 @@ template<FixedString Id, class... Children>
 struct PopupModal {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::tuple<Children...> children;
-	bool* open = nullptr;
+	bool open = false;              // 置 true 请求打开；绘制时消费并清回 false
+	bool alive = false;             // 上一帧弹窗是否仍打开
 	ImGuiWindowFlags flags = 0;
 	std::string idname;
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		float w = 0.0f, h = 0.0f;
 		std::apply([&](const auto&... c) {
 			auto one = [&](const auto& child) {
-				if (!child.state.visible) return;
-				const Size s = child.hint(avail);
+				if (!widgetChrome(child).visible) return;
+				const Size s = hintOf(child, avail);
 				w = std::max(w, s.w);
 				h += s.h;
 			};
@@ -284,21 +287,24 @@ struct PopupModal {
 
 	Policy policy() const { return Policy{}; }
 
+	bool shouldRender() const { return open || alive; }
+
 	void draw(const Rect& r) {
 		const char* pid = idname.empty() ? id.data : idname.c_str();
-		if (open && *open) {
+		if (open) {
 			ImGui::OpenPopup(pid);
-			*open = false;
+			open = false;
 		}
-		if (!ImGui::BeginPopupModal(pid, nullptr, flags)) { if (open) *open = false; return; }   // 关闭后同步外部开关，否则下一帧会重新打开
-			// ESC 是模态弹窗的通用关闭键：框架统一处理
-			if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-				ImGui::CloseCurrentPopup();
-				if (open) *open = false;
-			}
+		if (!ImGui::BeginPopupModal(pid, nullptr, flags)) {
+			alive = false;
+			return;
+		}
+		alive = true;
+		// ESC 是模态弹窗的通用关闭键：框架统一处理
+		if (ImGui::IsKeyPressed(ImGuiKey_Escape)) ImGui::CloseCurrentPopup();
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
-				if (child.state.visible) drawFlow(child);   // 模态弹窗内流式排布（含内边距）
+				if (widgetChrome(child).visible) drawFlow(child);   // 模态弹窗内流式排布（含内边距）
 			};
 			(one(c), ...);
 		}, children);
@@ -326,7 +332,6 @@ template<FixedString Id>
 struct TextTable {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	const char* const* headers = nullptr;
 	int headerCount = 0;
 	const std::vector<std::vector<std::string>>* rows = nullptr;
@@ -361,7 +366,6 @@ template<FixedString Id>
 struct FnTable {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	const char* const* headers = nullptr;
 	int headerCount = 0;
 	int rowCount = 0;

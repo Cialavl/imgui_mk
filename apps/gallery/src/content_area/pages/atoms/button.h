@@ -10,7 +10,7 @@ namespace ui = Mk::wg2;   // 本文件用短名
 struct PageButton {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "按钮与图片";
-	static constexpr const char* desc  = "wg2 Button（onClick）/ ImageButton / Image（loadTextureRGBA 生成纹理）。";
+	static constexpr const char* desc  = "wg2 Button（onClick）/ ImageButton / Image（不设纹理时用引擎默认棋盘）。";
 	static constexpr std::string_view code = snips::kButton;
 
 using Root = ui::VBox<
@@ -31,7 +31,7 @@ ui::Image<ui::Id("imageB")>
 	int clicks = 0;
 	int imgBtnClicks = 0;
 
-PageButton(ImTextureID tex = 0) {
+PageButton() {
 
 
 auto& w_plain = root.at<ui::Id("plain")>();
@@ -41,14 +41,11 @@ auto& w_count = root.at<ui::Id("count")>();
 w_count.label = "计数按钮";
 w_count.onClick = [&] { clicks += 10; };
 auto& w_imgbtn = root.at<ui::Id("imgbtn")>();
-w_imgbtn.tex = tex;
-w_imgbtn.size = ImVec2(96, 96);
+w_imgbtn.size = ImVec2(96, 96);   // 纹理留空 → 引擎默认棋盘
 w_imgbtn.onClick = [&] { ++imgBtnClicks; };
 auto& w_clicks = root.at<ui::Id("clicks")>();
 w_clicks.name = "图片按钮点击";
 w_clicks.valueFn = [&] { return std::to_string(imgBtnClicks); };
-root.at<ui::Id("imageRow"), ui::Id("imageA")>().tex = tex;
-root.at<ui::Id("imageRow"), ui::Id("imageB")>().tex = tex;
 
 }
 

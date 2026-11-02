@@ -12,7 +12,6 @@ namespace Mk::wg2 {
 template<FixedString Id>
 struct ColorEdit3 {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	std::array<float, 3>* color = nullptr;
 
@@ -28,7 +27,6 @@ struct ColorEdit3 {
 template<FixedString Id>
 struct ColorEdit4 {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	std::array<float, 4>* color = nullptr;
 
@@ -44,7 +42,6 @@ struct ColorEdit4 {
 template<FixedString Id>
 struct ColorPicker3 {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	std::array<float, 3>* color = nullptr;
 
@@ -60,7 +57,6 @@ struct ColorPicker3 {
 template<FixedString Id>
 struct ColorPicker4 {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	std::array<float, 4>* color = nullptr;
 
@@ -76,7 +72,6 @@ struct ColorPicker4 {
 template<FixedString Id>
 struct CheckboxFlags {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string name;
 	int* flags = nullptr;
 	int mask = 1;

@@ -13,12 +13,11 @@ template<FixedString Id, class Child>
 struct ItemWidth {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	Child child;
 	float width = 0.0f;
 
-	Size hint(const Size& avail) const { return child.hint(avail); }
-	Policy policy() const { return child.policy(); }
+	Size hint(const Size& avail) const { return hintOf(child, avail); }
+	Policy policy() const { return policyOf(child); }
 
 	void draw(const Rect& r) {
 		// 用子项自身宽度作为绘制矩形：drawWidget 会按 r.w 设置 SetNextItemWidth，
@@ -39,16 +38,15 @@ template<FixedString Id, class Child>
 struct Indent {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	Child child;
 	float amount = 0.0f;
 
 	Size hint(const Size& avail) const {
-		const Size s = child.hint(Size{std::max(0.0f, avail.w - amount), avail.h});
+		const Size s = hintOf(child, Size{std::max(0.0f, avail.w - amount), avail.h});
 		return Size{s.w + amount, s.h};
 	}
 
-	Policy policy() const { return child.policy(); }
+	Policy policy() const { return policyOf(child); }
 
 	void draw(const Rect& r) {
 		const Rect inner{r.x + amount, r.y, std::max(0.0f, r.w - amount), r.h};
@@ -71,7 +69,6 @@ template<FixedString Id, class Child>
 struct Offset {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	Child child;
 	float dxEm = 0.0f, dyEm = 0.0f;   // 以当前字号为单位
 	float dx = 0.0f, dy = 0.0f;       // 额外像素
@@ -79,11 +76,11 @@ struct Offset {
 	Size hint(const Size& avail) const {
 		const float ox = dxEm * ImGui::GetFontSize() + dx;
 		const float oy = dyEm * ImGui::GetFontSize() + dy;
-		const Size s = child.hint(Size{std::max(0.0f, avail.w - ox), std::max(0.0f, avail.h - oy)});
+		const Size s = hintOf(child, Size{std::max(0.0f, avail.w - ox), std::max(0.0f, avail.h - oy)});
 		return Size{s.w + std::max(0.0f, ox), s.h + std::max(0.0f, oy)};
 	}
 
-	Policy policy() const { return child.policy(); }
+	Policy policy() const { return policyOf(child); }
 
 	void draw(const Rect& r) {
 		const float ox = dxEm * ImGui::GetFontSize() + dx;
@@ -104,12 +101,11 @@ template<FixedString Id, class Child>
 struct Colored {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	Child child;
 	ImVec4 color{1.0f, 1.0f, 1.0f, 1.0f};
 
-	Size hint(const Size& avail) const { return child.hint(avail); }
-	Policy policy() const { return child.policy(); }
+	Size hint(const Size& avail) const { return hintOf(child, avail); }
+	Policy policy() const { return policyOf(child); }
 
 	void draw(const Rect& r) {
 		ImGui::PushStyleColor(ImGuiCol_Text, color);
@@ -129,12 +125,11 @@ template<FixedString Id, class Child>
 struct Tooltip {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	Child child;
 	std::string text;
 
-	Size hint(const Size& avail) const { return child.hint(avail); }
-	Policy policy() const { return child.policy(); }
+	Size hint(const Size& avail) const { return hintOf(child, avail); }
+	Policy policy() const { return policyOf(child); }
 
 	void draw(const Rect& r) {
 		drawWidget(child, r);

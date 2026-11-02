@@ -1,6 +1,7 @@
 #pragma once
 // p19 多窗口：双顶层窗口各自的帧计数 + 显隐切换（事件）
 #include "../../demo_page.h"
+#include "../../../menu_bar.h"
 
 namespace gallery {
 

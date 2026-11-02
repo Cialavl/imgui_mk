@@ -57,12 +57,12 @@ TEST(Wg2Component, VisibleAndEnabledGateDrawing) {
 	probe.w = 10.0f;
 	probe.h = 10.0f;
 
-	probe.state.visible = false;
+	setVisible(probe, false);
 	h.inFrame([&] { drawWidget(probe, Rect{0.0f, 0.0f, 50.0f, 50.0f}); });
 	EXPECT_EQ(probe.drawCount, 0);
 
-	probe.state.visible = true;
-	probe.state.enabled = false;
+	setVisible(probe, true);
+	setEnabled(probe, false);
 	h.inFrame([&] { drawWidget(probe, Rect{0.0f, 0.0f, 50.0f, 50.0f}); });
 	EXPECT_EQ(probe.drawCount, 1);   // 禁用仍绘制（BeginDisabled 包裹），只是交互被禁
 
@@ -74,7 +74,7 @@ TEST(Wg2Component, VisibleAndEnabledGateDrawing) {
 	box.at<Id("a")>().h = 5.0f;
 	box.at<Id("b")>().w = 10.0f;
 	box.at<Id("b")>().h = 7.0f;
-	box.at<Id("a")>().state.visible = false;
+	setVisible(box.at<Id("a")>(), false);
 	h.inFrame([&] {
 		EXPECT_FLOAT_EQ(box.hint(Size{100.0f, 0.0f}).h, 7.0f);   // 不可见子项不占高
 		layout(box, Rect{0.0f, 0.0f, 100.0f, 40.0f});

@@ -22,11 +22,11 @@ inline constexpr std::string_view kLayoutBasic = R"(Mk::wg2::VBox<Id("root"),
 root.spacing = 8.0f;          // 子项间距
 root.marginX = 0.0f;          // 外边距)";
 
-inline constexpr std::string_view kLayoutSize = R"(btn.state.size.fixedW = 120.0f;   // 钉死宽度
-btn.state.size.prefW  = 200.0f;   // 期望宽度
-btn.state.size.maxW   = 120.0f;   // 可被压缩的上限
-btn.state.size.prefWEm = 9.0f;    // 按字号换算（随字体缩放）
-other.state.stretch = 1.0f;       // 分配剩余空间)";
+inline constexpr std::string_view kLayoutSize = R"(Mk::wg2::sizeOf(btn).fixedW = 120.0f;    // 钉死宽度
+Mk::wg2::sizeOf(btn).prefW  = 200.0f;    // 期望宽度
+Mk::wg2::sizeOf(btn).maxW   = 120.0f;    // 可被压缩的上限
+Mk::wg2::sizeOf(btn).prefWEm = 9.0f;     // 按字号换算（随字体缩放）
+Mk::wg2::setStretch(other, 1.0f);        // 分配剩余空间)";
 
 inline constexpr std::string_view kLayoutGrid = R"(Mk::wg2::Grid<Id("g"), Button<Id("a")>, Button<Id("b")>> g;
 g.cols = 3; g.spacing = 8.0f;

@@ -16,7 +16,8 @@ btn.label = "点我";
 btn.onClick = [&]{ ++clicks; };
 
 Mk::wg2::ImageButton<Id("img")> img;
-img.tex = tex;  img.size = ImVec2(96, 96);)";
+img.size = ImVec2(96, 96);   // 不设 tex：用默认纹理
+// img.tex = myTex;         // 可选：换成自己的纹理)";
 
 inline constexpr std::string_view kInputText = R"(Mk::wg2::InputText<Id("text"), 128> it;   // N = 缓冲容量
 it.name = "文本";           // 显示名（左侧标签）

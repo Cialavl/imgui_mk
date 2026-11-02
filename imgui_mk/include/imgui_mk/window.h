@@ -7,12 +7,58 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <fstream>
+#include <string>
 #include <type_traits>
 #include <functional>
 #include <memory>
 #include <utility>
+#include <vector>
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <imm.h>
+#pragma comment(lib, "imm32.lib")
+#if __has_include(<GLFW/glfw3native.h>)
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+#define MK_HAS_GLFW_NATIVE 1
+#endif
+#endif
 
 namespace Mk {
+
+	// 窗口位置/尺寸状态（持久化用；纯数据 + 文本序列化，可离线测试）
+	struct WindowLayout {
+		int x = 0;
+		int y = 0;
+		int width = 0;
+		int height = 0;
+		bool maximized = false;
+	};
+
+	inline bool saveWindowLayout(const std::string& path, const WindowLayout& layout) {
+		std::ofstream f(path);
+		if (!f) return false;
+		f << layout.x << ' ' << layout.y << ' ' << layout.width << ' '
+		  << layout.height << ' ' << (layout.maximized ? 1 : 0) << '\n';
+		return static_cast<bool>(f);
+	}
+
+	inline bool loadWindowLayout(const std::string& path, WindowLayout& out) {
+		std::ifstream f(path);
+		if (!f) return false;
+		int maximized = 0;
+		if (!(f >> out.x >> out.y >> out.width >> out.height >> maximized)) return false;
+		out.maximized = maximized != 0;
+		return true;
+	}
 
 	class window {
 	public:
@@ -36,6 +82,7 @@ namespace Mk {
 			};
 			std::vector<Shortcut> m_Shortcuts;               // 快捷键轮询（addShortcut 注册）
 			std::vector<std::function<void()>> m_FileWatchers;   // 文件对话框托管（watchFileDialog 注册，每帧 poll）
+			std::function<void(std::vector<std::string>)> m_DropFn;   // 系统文件拖入（onFilesDropped 注册）
 			struct AuxFont { float scale; ImFont** out; ImFont* baked = nullptr; };   // 追加字体（重烘焙后写回 baked 与 out）
 			std::vector<AuxFont> m_AuxFonts;
 			std::vector<std::shared_ptr<Impl>> m_Children;  // 挂载的子窗口（mountChild；父关随关，生命周期随父）
@@ -361,6 +408,40 @@ ImGui::End();
 				if(!impl || !impl->m_AutoScaleFont || xscale <= 0.0f) return;
 				impl->m_PendingScale = xscale;
 			}
+			// 系统文件拖入：转交应用回调（路径列表）
+			static void DropCallback(GLFWwindow* win, int count, const char** paths) {
+				auto impl = static_cast<Impl*>(glfwGetWindowUserPointer(win));
+				if(!impl || !impl->m_DropFn) return;
+				std::vector<std::string> files;
+				files.reserve(static_cast<std::size_t>(count > 0 ? count : 0));
+				for(int i = 0; i < count; ++i) {
+					if(paths && paths[i]) files.emplace_back(paths[i]);
+				}
+				if(!files.empty()) impl->m_DropFn(std::move(files));
+			}
+#ifdef MK_HAS_GLFW_NATIVE
+			// 输入法候选框跟随输入位置（ImGui 平台 IME 回调）
+			static void SetImeData(ImGuiContext*, ImGuiViewport*, ImGuiPlatformImeData* data) {
+				if(!data || !data->WantVisible) return;
+				GLFWwindow* glfwWin = glfwGetCurrentContext();
+				if(!glfwWin) return;
+				HWND hwnd = glfwGetWin32Window(glfwWin);
+				if(!hwnd) return;
+				HIMC himc = ImmGetContext(hwnd);
+				if(!himc) return;
+				COMPOSITIONFORM cf{};
+				cf.dwStyle = CFS_POINT;
+				cf.ptCurrentPos.x = static_cast<LONG>(data->InputPos.x);
+				cf.ptCurrentPos.y = static_cast<LONG>(data->InputPos.y + data->InputLineHeight);
+				ImmSetCompositionWindow(himc, &cf);
+				CANDIDATEFORM cand{};
+				cand.dwIndex = 0;
+				cand.dwStyle = CFS_CANDIDATEPOS;
+				cand.ptCurrentPos = cf.ptCurrentPos;
+				ImmSetCandidateWindow(himc, &cand);
+				ImmReleaseContext(hwnd, himc);
+			}
+#endif
 		};
 
 		window(const char* title, int width, int height) : m_Impl(std::make_shared<Impl>()) {
@@ -373,6 +454,12 @@ ImGui::End();
 			IMGUI_CHECKVERSION();
 			impl.m_ImGuiContext = ImGui::CreateContext();
 			ImGui::SetCurrentContext(impl.m_ImGuiContext);
+
+			// 键盘导航（Tab/方向键/回车）与平台 IME 候选框定位
+			ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+#ifdef MK_HAS_GLFW_NATIVE
+			ImGui::GetPlatformIO().Platform_SetImeDataFn = &Impl::SetImeData;
+#endif
 
 			// 全局默认主题（setDefaultTheme 须在首个窗口创建前调用；此处读取烘焙）
 			impl.m_Theme = wg2::defaultTheme();
@@ -410,6 +497,7 @@ ImGui::End();
 			glfwSetKeyCallback(impl.m_Handle, Impl::KeyCallback);
 			glfwSetCharCallback(impl.m_Handle, Impl::CharCallback);
 			glfwSetCursorPosCallback(impl.m_Handle, Impl::CursorPosCallback);
+			glfwSetDropCallback(impl.m_Handle, Impl::DropCallback);
 		glfwSetWindowContentScaleCallback(impl.m_Handle, Impl::ContentScaleCallback);
 
 			// 创建窗口后自动注册到全局引擎（引擎与调用方共享窗口状态）
@@ -433,6 +521,40 @@ ImGui::End();
 			m_Impl->m_CentralPadY = padY;
 			m_Impl->m_CentralFn = [&root](const wg2::Rect& r) { wg2::layout(root, r); };
 		}
+	}
+
+	// —— 窗口状态持久化（位置/尺寸/最大化）——
+	WindowLayout layoutState() const {
+		WindowLayout l;
+		if (!m_Impl || !m_Impl->m_Handle) return l;
+		glfwGetWindowPos(m_Impl->m_Handle, &l.x, &l.y);
+		glfwGetWindowSize(m_Impl->m_Handle, &l.width, &l.height);
+		l.maximized = glfwGetWindowAttrib(m_Impl->m_Handle, GLFW_MAXIMIZED) != 0;
+		return l;
+	}
+
+	void restoreLayout(const WindowLayout& l) {
+		if (!m_Impl || !m_Impl->m_Handle) return;
+		if (l.maximized) {
+			glfwMaximizeWindow(m_Impl->m_Handle);
+			return;
+		}
+		if (l.width > 0 && l.height > 0) glfwSetWindowSize(m_Impl->m_Handle, l.width, l.height);
+		glfwSetWindowPos(m_Impl->m_Handle, l.x, l.y);
+	}
+
+	bool saveLayout(const std::string& path) const { return saveWindowLayout(path, layoutState()); }
+	bool loadLayout(const std::string& path) {
+		WindowLayout l;
+		if (!loadWindowLayout(path, l)) return false;
+		restoreLayout(l);
+		return true;
+	}
+
+	// 系统文件拖入：注册回调（路径列表）；回调在 UI 线程（GLFW 事件分发）里调用
+	template <class F>
+	void onFilesDropped(F&& fn) {
+		if (m_Impl) m_Impl->m_DropFn = std::forward<F>(fn);
 	}
 
 	// 当前帧中央布局矩形（内容区 − pad 增量；须在帧内调用，手动布局应用按需取）

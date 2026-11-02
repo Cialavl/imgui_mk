@@ -11,6 +11,6 @@ col.color = ImVec4(0.4f,0.9f,0.6f,1);
 Mk::wg2::Indent<Id("ind"), Label<Id("il")>> ind; ind.amount = 24.0f;
 Mk::wg2::ItemWidth<Id("iw"), DragF<Id("df")>> iw; iw.width = 180.0f;
 Mk::wg2::When<Id("w"), Label<Id("wl")>> w; w.show = cond;
-btn.state.enabled = false;)";
+Mk::wg2::setEnabled(btn, false);)";
 
 } // namespace gallery::snips

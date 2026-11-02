@@ -10,7 +10,7 @@ namespace ui = Mk::wg2;   // 本文件用短名
 struct PageSplit {
 	// 页面元数据（Page 用它填外壳）
 	static constexpr const char* title = "分格模式";
-	static constexpr const char* desc  = "wg2 SplitH/SplitV 是 HBox/VBox 别名；stretch 与 fixed size 都存在 WidgetState。"
+	static constexpr const char* desc  = "wg2 SplitH/SplitV 是 HBox/VBox 别名；stretch 与 fixed size 由 setStretch/sizeOf 设置。"
 "Wrap 换行、Grid 固定列网格。";
 	static constexpr std::string_view code = snips::kSplit;
 
@@ -50,20 +50,20 @@ PageSplit() {
 root.at<ui::Id("intro")>().text = "分格演示：SplitH 权重分割 / SplitV 垂直分割 / Wrap 换行 / Grid 网格";
 auto& w_sfA = root.at<ui::Id("splitH"), ui::Id("sfA")>();
 w_sfA.text = "fixed 160";
-w_sfA.state.size.fixedW = 160.0f;
+Mk::wg2::sizeOf(w_sfA).fixedW = 160.0f;
 auto& w_sfB = root.at<ui::Id("splitH"), ui::Id("sfB")>();
 w_sfB.text = "stretch 1";
-w_sfB.state.stretch = 1.0f;
+Mk::wg2::setStretch(w_sfB, 1.0f);
 auto& w_sfC = root.at<ui::Id("splitH"), ui::Id("sfC")>();
 w_sfC.text = "stretch 2";
-w_sfC.state.stretch = 2.0f;
+Mk::wg2::setStretch(w_sfC, 2.0f);
 
 auto& w_svA = root.at<ui::Id("splitV"), ui::Id("svA")>();
 w_svA.text = "fixed 44";
-w_svA.state.size.fixedH = 44.0f;
+Mk::wg2::sizeOf(w_svA).fixedH = 44.0f;
 auto& w_svB = root.at<ui::Id("splitV"), ui::Id("svB")>();
 w_svB.text = "VSplit stretch";
-w_svB.state.stretch = 1.0f;
+Mk::wg2::setStretch(w_svB, 1.0f);
 
 root.at<ui::Id("wrap"), ui::Id("wA")>().text = "换行一";
 root.at<ui::Id("wrap"), ui::Id("wB")>().text = "换行二（较长项）";

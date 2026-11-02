@@ -40,6 +40,12 @@ if(BUILD_TESTING)
         # 窗口层
         wg2_window_ui_test.cpp
 	wg2_nav_test.cpp
+        wg2_p0_test.cpp
+        wg2_p1_test.cpp
+        wg2_p2_test.cpp
+        wg2_p3_test.cpp
+        wg2_p4_test.cpp
+        wg2_p5_test.cpp
         # 其它模块
         mk_string_test.cpp)
 

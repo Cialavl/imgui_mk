@@ -44,11 +44,11 @@ struct PageLayoutBasic {
 
 		auto& b1 = root.at<ui::Id("row2"), ui::Id("b1")>();
 		b1.label = "固定 160";
-		b1.state.size.fixedW = 160.0f;
+		Mk::wg2::sizeOf(b1).fixedW = 160.0f;
 
 		auto& b2 = root.at<ui::Id("row2"), ui::Id("b2")>();
 		b2.label = "吃掉剩余宽度（stretch = 1）";
-		b2.state.stretch = 1.0f;
+		Mk::wg2::setStretch(b2, 1.0f);
 
 		auto& stack = root.at<ui::Id("stack")>();
 		stack.at<ui::Id("s1")>().text = "VBox 第一行";

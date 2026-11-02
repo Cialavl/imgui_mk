@@ -61,7 +61,7 @@ TEST(Wg2Comm, WhenFollowsExternalFlagAndReleasesSpace) {
 	Harness h;
 	bool whenShown = true;
 	RectProbe<Id("p")> when;
-	when.state.visibleFn = [&] { return whenShown; };
+	setVisibleFn(when, [&] { return whenShown; });
 	whenShown = true;
 	when.h = 12.0f;
 

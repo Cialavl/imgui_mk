@@ -66,7 +66,7 @@ w_note.name = "说明";
 w_note.value = "勾选：When 包裹控件隐藏/恢复。";
 root.at<ui::Id("when_text")>().text = "（When 包裹的文本，mute 时隐藏）";
 
-	root.at<ui::Id("when_text")>().state.visibleFn = [&] { return !mute; };
+	Mk::wg2::setVisibleFn(root.at<ui::Id("when_text")>(), [&] { return !mute; });
 }
 
 

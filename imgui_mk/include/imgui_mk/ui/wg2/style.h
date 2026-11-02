@@ -18,37 +18,43 @@ namespace Mk::wg2 {
 
 	struct Theme {
 		// —— 颜色（ImVec4，w=alpha）——
-		ImVec4 windowBg{0.11f, 0.11f, 0.13f, 1.00f};
-		ImVec4 childBg{0.15f, 0.15f, 0.17f, 1.00f};
-		ImVec4 popupBg{0.16f, 0.16f, 0.18f, 1.00f};
-		ImVec4 frameBg{0.20f, 0.20f, 0.23f, 1.00f};
-		ImVec4 frameBgHover{0.26f, 0.26f, 0.30f, 1.00f};
-		ImVec4 frameBgActive{0.30f, 0.30f, 0.34f, 1.00f};
-		ImVec4 text{0.92f, 0.92f, 0.94f, 1.00f};
-		ImVec4 textDisabled{0.50f, 0.50f, 0.54f, 1.00f};
-		ImVec4 button{0.24f, 0.26f, 0.31f, 1.00f};
-		ImVec4 buttonHovered{0.30f, 0.33f, 0.39f, 1.00f};
-		ImVec4 buttonActive{0.34f, 0.37f, 0.44f, 1.00f};
-		ImVec4 header{0.19f, 0.21f, 0.25f, 1.00f};      // 列表选中/表头底
-		ImVec4 headerHovered{0.25f, 0.27f, 0.32f, 1.00f};
-		ImVec4 headerActive{0.28f, 0.31f, 0.36f, 1.00f};
-		ImVec4 accent{0.26f, 0.59f, 0.98f, 1.00f};      // 主色：滑块柄/进度/选中强调
-		ImVec4 accentHover{0.33f, 0.66f, 1.00f, 1.00f};
-		ImVec4 accentActive{0.20f, 0.50f, 0.90f, 1.00f};
-		ImVec4 border{0.28f, 0.28f, 0.32f, 0.60f};
+		ImVec4 windowBg{0.075f, 0.082f, 0.094f, 1.00f};
+		ImVec4 childBg{0.098f, 0.106f, 0.120f, 1.00f};
+		ImVec4 popupBg{0.114f, 0.125f, 0.144f, 1.00f};
+		ImVec4 frameBg{0.137f, 0.149f, 0.169f, 1.00f};
+		ImVec4 frameBgHover{0.173f, 0.188f, 0.212f, 1.00f};
+		ImVec4 frameBgActive{0.204f, 0.223f, 0.251f, 1.00f};
+		ImVec4 text{0.906f, 0.922f, 0.945f, 1.00f};
+		ImVec4 textDisabled{0.529f, 0.553f, 0.596f, 1.00f};
+		ImVec4 button{0.157f, 0.173f, 0.196f, 1.00f};
+		ImVec4 buttonHovered{0.196f, 0.216f, 0.247f, 1.00f};
+		ImVec4 buttonActive{0.235f, 0.259f, 0.294f, 1.00f};
+		ImVec4 header{0.125f, 0.141f, 0.165f, 1.00f};      // 列表选中/表头底
+		ImVec4 headerHovered{0.165f, 0.184f, 0.212f, 1.00f};
+		ImVec4 headerActive{0.196f, 0.216f, 0.247f, 1.00f};
+		ImVec4 accent{0.298f, 0.561f, 0.980f, 1.00f};      // 主色：滑块柄/进度/选中强调
+		ImVec4 accentHover{0.380f, 0.643f, 1.00f, 1.00f};
+		ImVec4 accentActive{0.243f, 0.478f, 0.902f, 1.00f};
+		ImVec4 border{0.235f, 0.255f, 0.294f, 0.65f};
 
 		// —— 几何 ——
 		// 圆角为绝对像素；间距/内边距字段默认 -1 = 按字号比值推导（见 applyTheme），
 		// 显式写入绝对值（withItemSpacing 等）则优先于比例——显式意图覆盖自动推导
-		float rounding = 6.0f;        // 窗口/弹窗圆角（绝对像素）
-		float frameRounding = 4.0f;   // 控件框架圆角（绝对像素）
-		float windowPadding = -1.0f;  // 窗口内边距；<0 → 0.40×fontSize
-		float framePaddingX = -1.0f;  // 控件内边距 X；<0 → 0.38×fontSize
-		float framePaddingY = -1.0f;  // 控件内边距 Y；<0 → 0.16×fontSize
-		float itemSpacingX = -1.0f;   // 控件间距 X；<0 → 0.42×fontSize（容器默认间距来源）
-		float itemSpacingY = -1.0f;   // 控件间距 Y；<0 → 0.23×fontSize
+		float rounding = 8.0f;        // 窗口/弹窗圆角（绝对像素）
+		float frameRounding = 6.0f;   // 控件框架圆角（绝对像素）
+		float windowPadding = -1.0f;  // 窗口内边距；<0 → 0.44×fontSize
+		float framePaddingX = -1.0f;  // 控件内边距 X；<0 → 0.42×fontSize
+		float framePaddingY = -1.0f;  // 控件内边距 Y；<0 → 0.20×fontSize
+		float itemSpacingX = -1.0f;   // 控件间距 X；<0 → 0.45×fontSize（容器默认间距来源）
+		float itemSpacingY = -1.0f;   // 控件间距 Y；<0 → 0.26×fontSize
 		float indentWidth = -1.0f;    // 缩进步进；<0 → 0.90×fontSize
 		float fontSize = 18.0f;       // 基准字号：改此值整套 UI（文字/控件/间距/边距）等比联动
+		float density = 1.0f;         // 密度系数：紧凑 <1 / 宽松 >1（缩放内边距、间距、滚动条）
+
+		// —— 语义色（角色 token）——
+		ImVec4 danger{0.86f, 0.32f, 0.32f, 1.00f};
+		ImVec4 warning{0.95f, 0.68f, 0.25f, 1.00f};
+		ImVec4 success{0.35f, 0.75f, 0.45f, 1.00f};
 
 		// —— 预设 ——
 		static Theme dark() { return Theme{}; }
@@ -88,6 +94,23 @@ namespace Mk::wg2 {
 		Theme withWindowPadding(float p) const { Theme t = *this; t.windowPadding = p; return t; }
 		Theme withItemSpacing(float x, float y) const { Theme t = *this; t.itemSpacingX = x; t.itemSpacingY = y; return t; }
 		Theme withFontSize(float s) const { Theme t = *this; t.fontSize = s; return t; }
+		Theme withDensity(float d) const { Theme t = *this; t.density = d > 0.0f ? d : 1.0f; return t; }
+
+		// 语义色 token：应用只认角色，不认具体颜色字段
+		struct Tokens {
+			ImVec4 bg;
+			ImVec4 surface;
+			ImVec4 border;
+			ImVec4 text;
+			ImVec4 textMuted;
+			ImVec4 accent;
+			ImVec4 danger;
+			ImVec4 warning;
+			ImVec4 success;
+		};
+		Tokens tokens() const {
+			return Tokens{windowBg, childBg, border, text, textDisabled, accent, danger, warning, success};
+		}
 	};
 
 	// ============ 应用：写入当前 ImGui 上下文 ============
@@ -109,15 +132,16 @@ namespace Mk::wg2 {
 		// 比值按紧凑桌面密度标定（@18px ≈ 边距 8.3 / 行距 8.6×4.7 / 控件内距 7.2×3.1）：
 		// 相比早先版本整体收紧约 20%，避免嵌套容器层层叠加内边距显得空旷。
 		const float F = t.fontSize;
+		const float D = t.density > 0.0f ? t.density : 1.0f;
 		const auto pick = [](float absOrSentinel, float ratio, float fontSize_) {
 			return absOrSentinel >= 0.0f ? absOrSentinel : ratio * fontSize_;
 		};
-		s.WindowPadding = ImVec2(pick(t.windowPadding, 0.40f, F), pick(t.windowPadding, 0.40f, F));
-		s.FramePadding = ImVec2(pick(t.framePaddingX, 0.38f, F), pick(t.framePaddingY, 0.16f, F));
-		s.ItemSpacing = ImVec2(pick(t.itemSpacingX, 0.42f, F), pick(t.itemSpacingY, 0.23f, F));
-		s.IndentSpacing = pick(t.indentWidth, 0.90f, F);
-		s.GrabMinSize = 0.55f * F;
-		s.ScrollbarSize = 0.78f * F;
+		s.WindowPadding = ImVec2(pick(t.windowPadding, 0.40f, F) * D, pick(t.windowPadding, 0.40f, F) * D);
+		s.FramePadding = ImVec2(pick(t.framePaddingX, 0.38f, F) * D, pick(t.framePaddingY, 0.16f, F) * D);
+		s.ItemSpacing = ImVec2(pick(t.itemSpacingX, 0.42f, F) * D, pick(t.itemSpacingY, 0.23f, F) * D);
+		s.IndentSpacing = pick(t.indentWidth, 0.90f, F) * D;
+		s.GrabMinSize = 0.55f * F * D;
+		s.ScrollbarSize = 0.78f * F * D;
 		s.WindowBorderSize = 1.0f;
 		s.ChildBorderSize = 1.0f;
 		s.FrameBorderSize = 0.0f;
@@ -215,11 +239,11 @@ namespace Mk::wg2 {
 			ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, t.header);
 			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, t.frameRounding);
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
-				ImVec2(t.framePaddingX >= 0.0f ? t.framePaddingX : 0.38f * t.fontSize,
-					t.framePaddingY >= 0.0f ? t.framePaddingY : 0.16f * t.fontSize));
+				ImVec2((t.framePaddingX >= 0.0f ? t.framePaddingX : 0.38f * t.fontSize) * (t.density > 0.0f ? t.density : 1.0f),
+					(t.framePaddingY >= 0.0f ? t.framePaddingY : 0.16f * t.fontSize) * (t.density > 0.0f ? t.density : 1.0f)));
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
-				ImVec2(t.itemSpacingX >= 0.0f ? t.itemSpacingX : 0.42f * t.fontSize,
-					t.itemSpacingY >= 0.0f ? t.itemSpacingY : 0.23f * t.fontSize));
+				ImVec2((t.itemSpacingX >= 0.0f ? t.itemSpacingX : 0.42f * t.fontSize) * (t.density > 0.0f ? t.density : 1.0f),
+					(t.itemSpacingY >= 0.0f ? t.itemSpacingY : 0.23f * t.fontSize) * (t.density > 0.0f ? t.density : 1.0f)));
 		}
 	} // namespace detail
 

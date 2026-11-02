@@ -13,7 +13,6 @@ namespace {
 
 struct Probe {
 	static constexpr auto id = Id("probe");
-	WidgetState<> state;
 	Size hint(const Size&) const { return Size{0.0f, 0.0f}; }
 	Policy policy() const { return Policy{}; }
 	void draw(const Rect&) {}

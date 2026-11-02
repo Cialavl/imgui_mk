@@ -26,9 +26,10 @@ inline float marginX(float m) { return m >= 0.0f ? m : ImGui::GetStyle().WindowP
 inline float marginY(float m) { return m >= 0.0f ? m : ImGui::GetStyle().WindowPadding.y; }
 template<class W>
 LayoutItem makeLayoutItem(const W& w, bool axis, float availCross) {
-	if (!w.state.shown()) return LayoutItem{};   // 控件自带的条件显隐：隐藏即不占位
-	const auto& ov = w.state.size;
-	const Size hs = w.hint(Size{axis ? 0.0f : availCross, axis ? availCross : 0.0f});
+	const auto& st = widgetChrome(w);              // 引擎登记的状态
+	if (!st.shown()) return LayoutItem{};          // 条件显隐：隐藏即不占位
+	const auto& ov = st.size;
+	const Size hs = hintOf(w, Size{axis ? 0.0f : availCross, axis ? availCross : 0.0f});
 
 	// em 覆盖换算：字号变化时自动跟随（字体缩放后无需应用层重设数值）
 	auto emOr = [](float px, float rel) { return rel >= 0.0f ? rel * ImGui::GetFontSize() : px; };
@@ -56,9 +57,9 @@ LayoutItem makeLayoutItem(const W& w, bool axis, float availCross) {
 	it.mn = std::min(it.mn, it.hint);
 	it.mn = std::min(it.mn, it.mx);
 
-	const Policy p = w.policy();
+	const Policy p = policyOf(w);
 	const Policy::Kind kind = axis ? p.h : p.v;
-	it.stretch = w.state.stretch;
+	it.stretch = st.stretch;
 	it.canGrow = p.canGrow(kind) || it.stretch > 0.0f;
 	it.canShrink = p.canShrink(kind);
 	it.wantsExpand = p.wantsExpand(kind) || it.stretch > 0.0f;
@@ -68,7 +69,7 @@ LayoutItem makeLayoutItem(const W& w, bool axis, float availCross) {
 
 template<class W>
 void collectOne(const W& w, std::vector<LayoutItem>& out, bool axis, float availCross) {
-	if (!w.state.visible) return;
+	if (!widgetChrome(w).visible) return;
 	out.push_back(makeLayoutItem(w, axis, availCross));
 }
 
@@ -165,14 +166,13 @@ template<FixedString Id, class... Children>
 struct VBox {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::tuple<Children...> children;
 
 	float spacing = -1.0f;
 	float marginX = -1.0f, marginY = -1.0f;
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		const float mx = detail::marginX(marginX), my = detail::marginY(marginY);
 		const float innerW = std::max(0.0f, avail.w - mx * 2.0f);
 
@@ -205,7 +205,7 @@ struct VBox {
 		float y = r.y + my;
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
-				if (!child.state.visible) return;
+				if (!widgetChrome(child).visible) return;
 				const Rect cr{r.x + mx, y, innerW, tracks[vi]};
 				drawWidget(child, cr);
 				y += tracks[vi] + sp;
@@ -238,6 +238,18 @@ struct VBox {
 			return c.template at<Rest...>();
 		}
 	}
+
+	// const 版本：容器作为 const 成员/临时对象时按路径只读访问
+	template<FixedString First, FixedString... Rest>
+	constexpr decltype(auto) at() const & {
+		constexpr std::size_t idx = childIndex<First>();
+		const auto& c = std::get<idx>(children);
+		if constexpr (sizeof...(Rest) == 0) {
+			return c;
+		} else {
+			return c.template at<Rest...>();
+		}
+	}
 };
 
 // ============ 水平盒 ============
@@ -246,14 +258,13 @@ template<FixedString Id, class... Children>
 struct HBox {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::tuple<Children...> children;
 
 	float spacing = -1.0f;
 	float marginX = -1.0f, marginY = -1.0f;
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		const float mx = detail::marginX(marginX), my = detail::marginY(marginY);
 		const float innerH = std::max(0.0f, avail.h - my * 2.0f);
 
@@ -286,7 +297,7 @@ struct HBox {
 		float x = r.x + mx;
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
-				if (!child.state.visible) return;
+				if (!widgetChrome(child).visible) return;
 				const Rect cr{x, r.y + my, tracks[vi], innerH};
 				drawWidget(child, cr);
 				x += tracks[vi] + sp;
@@ -319,6 +330,18 @@ struct HBox {
 			return c.template at<Rest...>();
 		}
 	}
+
+	// const 版本：容器作为 const 成员/临时对象时按路径只读访问
+	template<FixedString First, FixedString... Rest>
+	constexpr decltype(auto) at() const & {
+		constexpr std::size_t idx = childIndex<First>();
+		const auto& c = std::get<idx>(children);
+		if constexpr (sizeof...(Rest) == 0) {
+			return c;
+		} else {
+			return c.template at<Rest...>();
+		}
+	}
 };
 
 // SplitH / SplitV：当前求解器已支持 stretch，语义与 HBox / VBox 相同。
@@ -334,7 +357,6 @@ template<FixedString Id, class... Children>
 struct Grid {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::tuple<Children...> children;
 
 	int cols = 3;
@@ -342,7 +364,7 @@ struct Grid {
 	float marginX = -1.0f, marginY = -1.0f;
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		const float mx = detail::marginX(marginX), my = detail::marginY(marginY);
 		const float spx = detail::spacingX(spacing), spy = detail::spacingY(spacing);
 		const int c = std::max(1, cols);
@@ -388,7 +410,7 @@ struct Grid {
 		std::size_t vi = 0;
 		std::apply([&](auto&... child) {
 			auto one = [&](auto& w) {
-				if (!w.state.visible) return;
+				if (!widgetChrome(w).visible) return;
 				const std::size_t ri = vi / static_cast<std::size_t>(c);
 				const std::size_t ci = vi % static_cast<std::size_t>(c);
 				const float x = r.x + mx + static_cast<float>(ci) * (colW + spx);
@@ -425,6 +447,18 @@ struct Grid {
 			return c.template at<Rest...>();
 		}
 	}
+
+	// const 版本：容器作为 const 成员/临时对象时按路径只读访问
+	template<FixedString First, FixedString... Rest>
+	constexpr decltype(auto) at() const & {
+		constexpr std::size_t idx = childIndex<First>();
+		const auto& c = std::get<idx>(children);
+		if constexpr (sizeof...(Rest) == 0) {
+			return c;
+		} else {
+			return c.template at<Rest...>();
+		}
+	}
 };
 
 // ============ 自动换行 ============
@@ -433,14 +467,13 @@ template<FixedString Id, class... Children>
 struct Wrap {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::tuple<Children...> children;
 
 	float spacing = -1.0f;
 	float marginX = -1.0f, marginY = -1.0f;
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		const float mx = detail::marginX(marginX), my = detail::marginY(marginY);
 		const float spx = detail::spacingX(spacing), spy = detail::spacingY(spacing);
 		const float maxW = avail.w > 0.0f ? std::max(0.0f, avail.w - mx * 2.0f) : 1.0e9f;
@@ -478,7 +511,7 @@ struct Wrap {
 
 		std::apply([&](auto&... child) {
 			auto one = [&](auto& w) {
-				if (!w.state.visible) return;
+				if (!widgetChrome(w).visible) return;
 				const LayoutItem& it = items[vi];
 				if (x > innerX && x + it.hint > innerX + innerW) {
 					y += rowH + spy;
@@ -517,6 +550,18 @@ struct Wrap {
 			return c.template at<Rest...>();
 		}
 	}
+
+	// const 版本：容器作为 const 成员/临时对象时按路径只读访问
+	template<FixedString First, FixedString... Rest>
+	constexpr decltype(auto) at() const & {
+		constexpr std::size_t idx = childIndex<First>();
+		const auto& c = std::get<idx>(children);
+		if constexpr (sizeof...(Rest) == 0) {
+			return c;
+		} else {
+			return c.template at<Rest...>();
+		}
+	}
 };
 
 // ============ 覆盖盒 ============
@@ -525,19 +570,18 @@ template<FixedString Id, class... Children>
 struct Overlay {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::tuple<Children...> children;
 
 	float marginX = -1.0f, marginY = -1.0f;
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		const float mx = detail::marginX(marginX), my = detail::marginY(marginY);
 		float w = 0.0f, h = 0.0f;
 		std::apply([&](const auto&... c) {
 			auto one = [&](const auto& child) {
-				if (!child.state.visible) return;
-				const Size s = child.hint(Size{std::max(0.0f, avail.w - mx * 2.0f), 0.0f});
+				if (!widgetChrome(child).visible) return;
+				const Size s = hintOf(child, Size{std::max(0.0f, avail.w - mx * 2.0f), 0.0f});
 				w = std::max(w, s.w);
 				h = std::max(h, s.h);
 			};
@@ -554,7 +598,7 @@ struct Overlay {
 		const Rect inner{r.x + mx, r.y + my, std::max(0.0f, r.w - mx * 2.0f), std::max(0.0f, r.h - my * 2.0f)};
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
-				if (child.state.visible) drawWidget(child, inner);
+				if (widgetChrome(child).visible) drawWidget(child, inner);
 			};
 			(one(c), ...);
 		}, children);
@@ -576,6 +620,18 @@ struct Overlay {
 	constexpr decltype(auto) at() & {
 		constexpr std::size_t idx = childIndex<First>();
 		auto& c = std::get<idx>(children);
+		if constexpr (sizeof...(Rest) == 0) {
+			return c;
+		} else {
+			return c.template at<Rest...>();
+		}
+	}
+
+	// const 版本：容器作为 const 成员/临时对象时按路径只读访问
+	template<FixedString First, FixedString... Rest>
+	constexpr decltype(auto) at() const & {
+		constexpr std::size_t idx = childIndex<First>();
+		const auto& c = std::get<idx>(children);
 		if constexpr (sizeof...(Rest) == 0) {
 			return c;
 		} else {

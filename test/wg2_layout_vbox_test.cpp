@@ -59,9 +59,9 @@ TEST(Wg2Layout, VBoxHonoursFixedAndStretch) {
 	box.marginY = 0.0f;
 	box.spacing = 0.0f;
 	box.at<Id("fixed")>().h = 10.0f;
-	box.at<Id("fixed")>().state.size.fixedH = 30.0f;     // 固定高度优先于 hint
+	sizeOf(box.at<Id("fixed")>()).fixedH = 30.0f;     // 固定高度优先于 hint
 	box.at<Id("flex")>().h = 10.0f;
-	box.at<Id("flex")>().state.stretch = 1.0f;            // 吃掉全部剩余空间
+	setStretch(box.at<Id("flex")>(), 1.0f);            // 吃掉全部剩余空间
 
 	h.inFrame([&] {
 		layout(box, Rect{0.0f, 0.0f, 100.0f, 100.0f});
@@ -78,7 +78,7 @@ TEST(Wg2Layout, VBoxClampsHeightByMaxSize) {
 	box.marginY = 0.0f;
 	box.spacing = 0.0f;
 	box.at<Id("clamped")>().h = 30.0f;
-	box.at<Id("clamped")>().state.size.maxH = 10.0f;      // 上限裁剪
+	sizeOf(box.at<Id("clamped")>()).maxH = 10.0f;      // 上限裁剪
 	box.at<Id("after")>().h = 10.0f;
 
 	h.inFrame([&] {
@@ -104,7 +104,7 @@ TEST(Wg2Layout, VBoxHintAggregatesVisibleChildren) {
 		EXPECT_FLOAT_EQ(s.w, 30.0f);
 		EXPECT_FLOAT_EQ(s.h, 68.0f);   // 20 + 8 + 40
 
-		box.at<Id("a")>().state.visible = false;
+		setVisible(box.at<Id("a")>(), false);
 		const Size s2 = box.hint(Size{100.0f, 100.0f});
 		EXPECT_FLOAT_EQ(s2.w, 30.0f);
 		EXPECT_FLOAT_EQ(s2.h, 40.0f);  // 不可见子项不占空间

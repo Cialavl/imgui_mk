@@ -35,23 +35,23 @@ struct PageLayoutSize {
 		root.at<ui::Id("intro")>().text = "同一行三种策略：固定 170 / 期望 200 / 吃掉剩余";
 		auto& w_fixed = root.at<ui::Id("row1"), ui::Id("fixed")>();
 		w_fixed.label = "fixedW = 170";
-		w_fixed.state.size.fixedW = 170.0f;
+		Mk::wg2::sizeOf(w_fixed).fixedW = 170.0f;
 		auto& w_pref = root.at<ui::Id("row1"), ui::Id("pref")>();
 		w_pref.label = "prefW = 200";
-		w_pref.state.size.prefW = 200.0f;
+		Mk::wg2::sizeOf(w_pref).prefW = 200.0f;
 		auto& w_stretch = root.at<ui::Id("row1"), ui::Id("stretch")>();
 		w_stretch.label = "stretch = 1";
-		w_stretch.state.stretch = 1.0f;
+		Mk::wg2::setStretch(w_stretch, 1.0f);
 
 		auto& w_em = root.at<ui::Id("row2"), ui::Id("em")>();
 		w_em.label = "prefWEm = 9（跟字号）";
-		w_em.state.size.prefWEm = 9.0f;
+		Mk::wg2::sizeOf(w_em).prefWEm = 9.0f;
 		auto& w_fixedH = root.at<ui::Id("row2"), ui::Id("fixedH")>();
 		w_fixedH.text = "固定高 48";
-		w_fixedH.state.size.fixedH = 48.0f;
+		Mk::wg2::sizeOf(w_fixedH).fixedH = 48.0f;
 		auto& w_max = root.at<ui::Id("row2"), ui::Id("max")>();
 		w_max.label = "maxW = 120（可被压缩）";
-		w_max.state.size.maxW = 120.0f;
+		Mk::wg2::sizeOf(w_max).maxW = 120.0f;
 		root.at<ui::Id("note")>().text = "在主题页切换字号 18/24，em 宽度会跟着变，像素值不变。";
 
 	}

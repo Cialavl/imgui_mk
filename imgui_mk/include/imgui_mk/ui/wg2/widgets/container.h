@@ -19,7 +19,6 @@ template<FixedString Id, class... Children>
 struct SubWindow {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::tuple<Children...> children;
 
 	float width = 0.0f;    // 0 = 填满可用宽度
@@ -30,7 +29,7 @@ struct SubWindow {
 	std::string idname;
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		const float w = width > 0.0f ? width : avail.w;
 		if (height > 0.0f) return Size{w, height};
 
@@ -43,8 +42,8 @@ struct SubWindow {
 		std::size_t n = 0;
 		std::apply([&](const auto&... c) {
 			auto one = [&](const auto& child) {
-				if (!child.state.visible) return;
-				h += child.hint(Size{innerW, avail.h}).h;
+				if (!widgetChrome(child).visible) return;
+				h += hintOf(child, Size{innerW, avail.h}).h;
 				++n;
 			};
 			(one(c), ...);
@@ -69,8 +68,8 @@ struct SubWindow {
 			float y = 0.0f;
 			std::apply([&](auto&... c) {
 				auto one = [&](auto& child) {
-					if (!child.state.visible) return;
-					const Size s = child.hint(Size{innerW, r.h - y});
+					if (!widgetChrome(child).visible) return;
+					const Size s = hintOf(child, Size{innerW, r.h - y});
 					drawWidget(child, Rect{origin.x, origin.y + y, innerW, s.h});
 					y += s.h + sp;
 				};
@@ -105,17 +104,17 @@ template<FixedString Id, class... Children>
 struct Tab {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::tuple<Children...> children;
 	std::string title;
+	bool* open = nullptr;   // 非空时显示关闭按钮；置 false 后页签隐藏
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		float w = 0.0f, h = 0.0f;
 		std::apply([&](const auto&... c) {
 			auto one = [&](const auto& child) {
-				if (!child.state.visible) return;
-				const Size s = child.hint(avail);
+				if (!widgetChrome(child).visible) return;
+				const Size s = hintOf(child, avail);
 				w = std::max(w, s.w);
 				h = std::max(h, s.h);
 			};
@@ -134,8 +133,8 @@ struct Tab {
 		float y = origin.y;
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
-				if (!child.state.visible) return;
-				const Size s = child.hint(Size{w, 0.0f});
+				if (!widgetChrome(child).visible) return;
+				const Size s = hintOf(child, Size{w, 0.0f});
 				drawWidget(child, Rect{origin.x, y, w, s.h});
 				y += s.h;
 			};
@@ -162,17 +161,16 @@ template<FixedString Id, class... Children>
 struct TabBar {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::tuple<Children...> children;
 	std::string idname;
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		float w = 0.0f, h = 0.0f;
 		std::apply([&](const auto&... c) {
 			auto one = [&](const auto& child) {
-				if (!child.state.visible) return;
-				const Size s = child.hint(avail);
+				if (!widgetChrome(child).visible) return;
+				const Size s = hintOf(child, avail);
 				w = std::max(w, s.w);
 				h = std::max(h, s.h);
 			};
@@ -190,12 +188,15 @@ struct TabBar {
 		if (!ImGui::BeginTabBar(cid)) return;
 		std::apply([&](auto&... c) {
 			auto one = [&](auto& child) {
-				if (!child.state.visible) return;
+				if (!widgetChrome(child).visible) return;
+				bool* open = nullptr;
+				if constexpr (requires { child.open; }) open = child.open;
+				if (open && !*open) return;   // 已关闭
 				// 页签宽度取标签自然宽：容器统一设置的 SetNextItemWidth(r.w) 会把首个页签拉满整行
 				const float tabW = ImGui::CalcTextSize(child.title.c_str()).x
 					+ ImGui::GetStyle().FramePadding.x * 2.0f;
 				ImGui::SetNextItemWidth(tabW);
-				if (ImGui::BeginTabItem(child.title.c_str())) {
+				if (ImGui::BeginTabItem(child.title.c_str(), open)) {
 					drawFlow(child);   // 页签内容流式排布（位于 tab 条之后）
 					ImGui::EndTabItem();
 				}
@@ -226,18 +227,17 @@ template<FixedString Id, class Child>
 struct Collapsing {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	Child child;
 	std::string title;
 	bool defaultOpen = false;
 
 	Size hint(const Size& avail) const {
 		const float header = ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.y;
-		const Size cs = child.hint(avail);
+		const Size cs = hintOf(child, avail);
 		return Size{std::max(avail.w, cs.w), header + cs.h};
 	}
 
-	Policy policy() const { return child.policy(); }
+	Policy policy() const { return policyOf(child); }
 
 	void draw(const Rect& r) {
 		ImGuiTreeNodeFlags flags = defaultOpen ? ImGuiTreeNodeFlags_DefaultOpen : 0;
@@ -267,7 +267,6 @@ template<FixedString Id>
 struct ChildRegion {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	ImVec2 padding{-1.0f, -1.0f};        // <0 用主题 WindowPadding
 	float height = 0.0f;                 // >0 固定高（hint 用），0 = 填满可用高
 	bool border = false;

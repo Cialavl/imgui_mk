@@ -14,7 +14,6 @@ template<FixedString Id>
 struct Label {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::string text;
 
 	Label() = default;
@@ -41,7 +40,6 @@ template<FixedString Id>
 struct Button {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::string label;
 	std::function<void()> onClick;
 
@@ -74,7 +72,6 @@ template<FixedString Id>
 struct TextColored {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::string text;
 	ImVec4 color{0.92f, 0.92f, 0.94f, 1.0f};
 
@@ -98,7 +95,6 @@ template<FixedString Id>
 struct Separator {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 
 	Size hint(const Size&) const {
 		return Size{0.0f, ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.y};
@@ -116,7 +112,6 @@ template<FixedString Id, class F>
 struct FnWidget {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	F fn;
 
 	FnWidget() = default;
@@ -140,7 +135,6 @@ template<FixedString Id>
 struct Update {
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::function<void()> fn;
 
 	Size hint(const Size&) const { return Size{0.0f, 0.0f}; }
@@ -152,11 +146,10 @@ struct Update {
 template<FixedString Id>
 struct Spacer {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	float width = 0.0f;
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		return Size{width > 0.0f ? width : avail.w, 0.0f};
 	}
 	Policy policy() const { return Policy{}; }
@@ -167,12 +160,11 @@ struct Spacer {
 template<FixedString Id>
 struct SmallButton {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 	std::string label;
 	std::function<void()> onClick;
 
 	Size hint(const Size&) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		return Size{ImGui::CalcTextSize(label.c_str()).x + ImGui::GetStyle().FramePadding.x * 2.0f,
 		            ImGui::GetFrameHeight()};
 	}
@@ -186,10 +178,9 @@ struct SmallButton {
 template<FixedString Id>
 struct Rule {
 	static constexpr auto id = Id;
-	WidgetState<> state;
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		return Size{avail.w, ImGui::GetStyle().ItemSpacing.y};
 	}
 	Policy policy() const { return Policy{}; }

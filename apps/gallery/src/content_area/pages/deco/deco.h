@@ -58,9 +58,9 @@ root.at<ui::Id("styled")>().color = ImVec4(0.4f, 0.7f, 1.0f, 1.0f);
 root.at<ui::Id("styled"), ui::Id("styledBtn")>().label = "Styled 主题按钮";
 auto& w_disabled = root.at<ui::Id("disabled")>();
 w_disabled.label = "禁用按钮（state.enabled=false）";
-w_disabled.state.enabled = false;
+Mk::wg2::setEnabled(w_disabled, false);
 
-	root.at<ui::Id("whenText")>().state.visibleFn = [&] { return !mute; };
+	Mk::wg2::setVisibleFn(root.at<ui::Id("whenText")>(), [&] { return !mute; });
 }
 
 

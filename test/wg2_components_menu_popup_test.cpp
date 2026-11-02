@@ -29,27 +29,24 @@ TEST(Wg2Component, MenuBarMenuAndMenuItemDraw) {
 	EXPECT_EQ(clicks, 0);
 }
 
-TEST(Wg2Component, PopupAndModalOpenThroughStateBinding) {
+TEST(Wg2Component, PopupAndModalOpenThroughOwnState) {
 	Harness h;
-	bool open = false;
 	Popup<Id("pop"), RectProbe<Id("pl")>> pop;
 	pop.idname = "wg2-test-popup";
-	pop.open = &open;
 
 	// 关闭状态：BeginPopup 返回 false，子项不绘制
 	h.inFrame([&] { layout(pop, Rect{0.0f, 0.0f, 100.0f, 40.0f}); });
 	EXPECT_EQ(pop.at<Id("pl")>().drawCount, 0);
 
-	open = true;   // 外部状态置位 → 本帧 OpenPopup
+	pop.open = true;   // 控件自己的请求位 → 本帧 OpenPopup
 	h.inFrame([&] { layout(pop, Rect{0.0f, 0.0f, 100.0f, 40.0f}); });
 	EXPECT_EQ(pop.at<Id("pl")>().drawCount, 1);
-	EXPECT_FALSE(open);   // 一次性标志已被消费
+	EXPECT_FALSE(pop.open);   // 一次性请求已被消费
 
-	bool modalOpen = false;
 	PopupModal<Id("modal"), RectProbe<Id("ml")>> modal;
 	modal.idname = "wg2-test-modal";
-	modal.open = &modalOpen;
-	modalOpen = true;
+	modal.open = true;
 	h.inFrame([&] { layout(modal, Rect{0.0f, 0.0f, 100.0f, 40.0f}); });
 	EXPECT_EQ(modal.at<Id("ml")>().drawCount, 1);
+	EXPECT_FALSE(modal.open);
 }

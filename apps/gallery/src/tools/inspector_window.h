@@ -1,8 +1,9 @@
 #pragma once
 // gallery Inspector 子窗口：独立文件分层。
 // 子窗口挂载语义保持不变（构造即创建窗口并 mountChild 到父窗口）；
-#include "../demo_page.h"
+#include "../content_area/demo_page.h"
 #include "../menu_bar.h"
+#include <imgui_mk/ui_context.h>
 #include <imgui_mk/window.h>
 #include <memory>
 
@@ -59,26 +60,43 @@ u.root.at<Mk::wg2::Id("note")>().text = "Two top-level windows each own an ImGui
 // ============ Inspector 子窗口（Qt 风格装配 struct）============
 
 struct InspectorWindow {
-InsUi ui;                             // Inspector 界面树（buildIns 装配）
-std::unique_ptr<Mk::window> win;      // 子窗口（父窗口经 mountChild 亦持有共享引用）
+	static constexpr auto id = Mk::wg2::Id("inspector");   // 树上的节点 id
 
-// 构造即装配并挂载到父窗口：中央挂载 + 帧回调 + 父关随关/点 X 隐藏
-		InspectorWindow(Mk::window& parent, Mk::window* parentWin = nullptr) {
-			const float uiDpi = Mk::wg2::dpiScale();
-			const auto [w, h] = Mk::workAreaSize(0.3f, 0.7f,
-				static_cast<int>(420.0f * uiDpi), static_cast<int>(640.0f * uiDpi));
-			win = std::make_unique<Mk::window>("Inspector", w, h);
-			buildIns(ui, parentWin, *win);   // 装配界面树（帧序号等由窗口自己提供）
-			win->setAutoScaleFont(true);
-			win->setCentralWidget(ui.root);   // 静态直挂：窗口每帧自动布局
-			// 订阅引擎事件：主题 / 显隐都由本组件处理
-			auto& engine = Mk::mkui<Mk::window>::RegistrationWindow();
-			engine.on<Mk::ThemeChanged>([this](const Mk::ThemeChanged& e) { win->setTheme(e.theme); });
-			engine.on<ToggleInspector>([this](const ToggleInspector&) {
-				if (win->visible()) win->hide(); else win->show();
-			});
-			parent.mountChild(*win);
-}
+	InsUi ui;                             // Inspector 界面树（buildIns 装配）
+	std::unique_ptr<Mk::window> win;      // 子窗口（父窗口经 mountChild 亦持有共享引用）
+
+	InspectorWindow() = default;          // 窗口在 setup() 里创建（主窗口要先存在）
+
+	// 控件树初始化：从上下文拿主窗口，创建自己并挂载，再把窗口登记回上下文
+	void setup(Mk::UiContext& ctx) {
+		if (!ctx.window) return;
+		init(*ctx.window);
+		ctx.inspectorWindow = win.get();
+	}
+
+	// 创建并挂载到主窗口：中央挂载 + 帧回调 + 父关随关/点 X 隐藏
+	void init(Mk::window& parent) {
+		const float uiDpi = Mk::wg2::dpiScale();
+		const auto [w, h] = Mk::workAreaSize(0.3f, 0.7f,
+			static_cast<int>(420.0f * uiDpi), static_cast<int>(640.0f * uiDpi));
+		win = std::make_unique<Mk::window>("Inspector", w, h);
+		buildIns(ui, &parent, *win);   // 装配界面树（帧序号等由窗口自己提供）
+		win->setAutoScaleFont(true);
+		win->setCentralWidget(ui.root);   // 静态直挂：窗口每帧自动布局
+		// 订阅引擎事件：主题 / 显隐都由本组件处理
+		auto& engine = Mk::mkui<Mk::window>::RegistrationWindow();
+		engine.on<Mk::ThemeChanged>([this](const Mk::ThemeChanged& e) { if (win) win->setTheme(e.theme); });
+		engine.on<ToggleInspector>([this](const ToggleInspector&) {
+			if (!win) return;
+			if (win->visible()) win->hide(); else win->show();
+		});
+		parent.mountChild(*win);
+	}
+
+	// 控件协议：它是独立窗口节点，不参与主窗口的布局与绘制
+	Mk::wg2::Size hint(const Mk::wg2::Size&) const { return Mk::wg2::Size{0.0f, 0.0f}; }
+	Mk::wg2::Policy policy() const { return Mk::wg2::Policy{}; }
+	void draw(const Mk::wg2::Rect&) {}
 };
 
 } // namespace gallery

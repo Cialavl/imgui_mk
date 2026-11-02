@@ -34,21 +34,27 @@ public:
 
 	AnyWidget(AnyWidget&& other) noexcept
 		: obj_(std::exchange(other.obj_, nullptr)),
+		  innerType_(std::exchange(other.innerType_, nullptr)),
 		  hintFn_(std::exchange(other.hintFn_, nullptr)),
 		  policyFn_(std::exchange(other.policyFn_, nullptr)),
 		  drawFn_(std::exchange(other.drawFn_, nullptr)),
 		  destroyFn_(std::exchange(other.destroyFn_, nullptr)),
-		  idname(std::move(other.idname)) {}
+		  idname(std::move(other.idname)) {
+		// 状态随对象迁移：旧地址不留残余
+		detail::moveChrome(&other, &typeid(AnyWidget), this, &typeid(AnyWidget));
+	}
 
 	AnyWidget& operator=(AnyWidget&& other) noexcept {
 		if (this != &other) {
 			reset();
 			obj_ = std::exchange(other.obj_, nullptr);
+			innerType_ = std::exchange(other.innerType_, nullptr);
 			hintFn_ = std::exchange(other.hintFn_, nullptr);
 			policyFn_ = std::exchange(other.policyFn_, nullptr);
 			drawFn_ = std::exchange(other.drawFn_, nullptr);
 			destroyFn_ = std::exchange(other.destroyFn_, nullptr);
 			idname = std::move(other.idname);
+			detail::moveChrome(&other, &typeid(AnyWidget), this, &typeid(AnyWidget));
 		}
 		return *this;
 	}
@@ -60,11 +66,12 @@ public:
 		AnyWidget a;
 		if (!w) return a;
 		a.obj_ = w.release();
+		a.innerType_ = &typeid(W);   // 内部控件的状态回收用
 		a.hintFn_ = [](void* p, const Size& s) -> Size {
-			return static_cast<W*>(p)->hint(s);
+			return hintOf(*static_cast<const W*>(p), s);
 		};
 		a.policyFn_ = [](void* p) -> Policy {
-			return static_cast<W*>(p)->policy();
+			return policyOf(*static_cast<const W*>(p));
 		};
 		a.drawFn_ = [](void* p, const Rect& r) {
 			drawWidget(*static_cast<W*>(p), r);
@@ -93,8 +100,13 @@ public:
 
 private:
 	void reset() {
-		if (obj_ && destroyFn_) destroyFn_(obj_);
+		if (obj_) {
+			if (innerType_) detail::chromeStore().erase(detail::ChromeKey{obj_, innerType_});   // 内部控件状态回收
+			if (destroyFn_) destroyFn_(obj_);
+		}
+		clearChromeFor(*this);   // 自身状态回收
 		obj_ = nullptr;
+		innerType_ = nullptr;
 		hintFn_ = nullptr;
 		policyFn_ = nullptr;
 		drawFn_ = nullptr;
@@ -102,6 +114,7 @@ private:
 	}
 
 	void* obj_ = nullptr;
+	const std::type_info* innerType_ = nullptr;
 	HintFn hintFn_ = nullptr;
 	PolicyFn policyFn_ = nullptr;
 	DrawFn drawFn_ = nullptr;
@@ -113,7 +126,6 @@ class RuntimeList {
 public:
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::string idname;
 
 	float spacing = -1.0f;
@@ -173,7 +185,7 @@ public:
 	}
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		flushPending();
 		const float mx = detailMarginX(), my = detailMarginY();
 		const float innerW = std::max(0.0f, avail.w - mx * 2.0f);
@@ -245,7 +257,6 @@ class RuntimeTabs {
 public:
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::string idname;
 
 	void add(std::string title, AnyWidget w) {
@@ -292,7 +303,7 @@ public:
 	}
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		flushPending();
 		float w = 0.0f, h = 0.0f;
 		for (auto& slot : items_) {
@@ -318,8 +329,15 @@ public:
 		if (ImGui::BeginTabBar(tid)) {
 			for (auto& slot : items_) {
 				if (!slot) continue;
+				// 页签按标题自然宽（默认会拉满整条）
+				ImGui::SetNextItemWidth(ImGui::CalcTextSize(slot->title.c_str()).x
+					+ ImGui::GetStyle().FramePadding.x * 2.0f + 12.0f);
 				if (ImGui::BeginTabItem(slot->title.c_str())) {
-					slot->widget.draw(r);
+					// 用页签条之后的当前光标作为内容起点（直接传页签栏矩形会画重叠）
+					const ImVec2 p = ImGui::GetCursorPos();
+					const ImVec2 av = ImGui::GetContentRegionAvail();
+					slot->widget.draw(Rect{p.x, p.y,
+						std::max(0.0f, av.x), std::max(0.0f, av.y)});
 					ImGui::EndTabItem();
 				}
 			}
@@ -352,7 +370,6 @@ class RuntimeGrid {
 public:
 	static constexpr auto id = Id;
 
-	WidgetState<> state;
 	std::string idname;
 
 	int cols = 3;
@@ -400,7 +417,7 @@ public:
 	}
 
 	Size hint(const Size& avail) const {
-		if (!state.visible) return Size{0.0f, 0.0f};
+		if (!widgetChrome(*this).visible) return Size{0.0f, 0.0f};
 		flushPending();
 		const float mx = detailMarginX(), my = detailMarginY();
 		const float spx = detailSpacingX(), spy = detailSpacingY();

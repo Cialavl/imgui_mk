@@ -3,7 +3,7 @@
 #include <filesystem>
 // p20 文件对话框：FileDialog（Win32 异步，wg2 页面）
 #include "../../demo_page.h"
-#include "../../menu_bar.h"
+#include "../../../menu_bar.h"
 
 namespace gallery {
 
@@ -52,8 +52,8 @@ root.at<ui::Id("binaryText")>().name = "二进制";
 auto& w_missingText = root.at<ui::Id("missingText")>();
 w_missingText.name = "错误";
 w_missingText.value = "文件不可读";
-	root.at<ui::Id("binaryText")>().state.visibleFn = [&] { return !filePath.empty() && fileBinary; };
-	root.at<ui::Id("missingText")>().state.visibleFn = [&] { return fileMissing; };
+	Mk::wg2::setVisibleFn(root.at<ui::Id("binaryText")>(), [&] { return !filePath.empty() && fileBinary; });
+	Mk::wg2::setVisibleFn(root.at<ui::Id("missingText")>(), [&] { return fileMissing; });
 
 	// 对话框与结果都归本页；主菜单通过 OpenFile 事件通知本页
 	auto& engine = Mk::mkui<Mk::window>::RegistrationWindow();
@@ -66,7 +66,10 @@ w_missingText.value = "文件不可读";
 	// 依赖注入：默认构造后由内容区调用
 	void attach(Mk::window* w) {
 		win = w;
-		if (win) win->watchFileDialog(dlg, [this](std::string path) { loadResult(std::move(path)); });
+		if (win) {
+			win->watchFileDialog(dlg, [this](std::string path) { loadResult(std::move(path)); });
+			win->addShortcut(ImGuiKey_O, [this] { openDialog(); }, true);   // Ctrl+O 归本页（对话框归本页）
+		}
 	}
 
 	void openDialog() {

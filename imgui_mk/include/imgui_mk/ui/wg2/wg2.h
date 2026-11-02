@@ -1,5 +1,6 @@
 #pragma once
 #include <imgui_mk/ui/wg2/core.h>
+#include <imgui_mk/ui/wg2/font.h>
 #include <imgui_mk/ui/wg2/widget.h>
 #include <imgui_mk/ui/wg2/static_layout.h>
 #include <imgui_mk/ui/wg2/dynamic.h>
@@ -8,9 +9,22 @@
 #include <imgui_mk/ui/wg2/widgets/display.h>
 #include <imgui_mk/ui/wg2/widgets/decorator.h>
 #include <imgui_mk/ui/wg2/widgets/container.h>
+#include <imgui_mk/ui/wg2/widgets/nav.h>
 #include <imgui_mk/ui/wg2/widgets/composite.h>
 #include <imgui_mk/ui/wg2/widgets/color.h>
 #include <imgui_mk/ui/wg2/widgets/file.h>
+#include <imgui_mk/ui/wg2/widgets/dataview.h>
+#include <imgui_mk/ui/wg2/widgets/dragdrop.h>
+#include <imgui_mk/ui/wg2/widgets/dialogs.h>
+#include <imgui_mk/ui/wg2/widgets/selection.h>
+#include <imgui_mk/ui/wg2/widgets/search.h>
+#include <imgui_mk/ui/wg2/widgets/icon.h>
+#include <imgui_mk/ui/wg2/widgets/contextmenu.h>
+#include <imgui_mk/ui/wg2/widgets/chart.h>
+#include <imgui_mk/ui/wg2/widgets/richtext.h>
+#include <imgui_mk/ui/wg2/widgets/dock.h>
+#include <imgui_mk/ui/wg2/i18n.h>
+#include <imgui_mk/ui/wg2/motion.h>
 
 // Mk::wg2 —— 纯编译期静态控件体系。
 //

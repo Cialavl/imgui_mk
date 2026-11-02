@@ -10,6 +10,9 @@ namespace wg2test {
 
 struct Harness {
 	Harness() {
+		Mk::wg2::clearChrome();   // 引擎状态按控件地址登记：每例从干净状态开始
+		Mk::wg2::clearTextures(); // 默认纹理按 ImGui 上下文登记
+		Mk::wg2::clearFonts();    // 等宽字体 provider
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
 		io.DisplaySize = ImVec2(800.0f, 600.0f);
@@ -25,6 +28,7 @@ struct Harness {
 
 	~Harness() {
 		if (ImGui::GetCurrentContext()) ImGui::DestroyContext();
+		Mk::wg2::clearChrome();   // 栈控件的地址会复用：退出时清掉登记
 	}
 
 	Harness(const Harness&) = delete;
@@ -76,6 +80,21 @@ struct Harness {
 	void keyDown(ImGuiKey k) { ImGui::GetIO().AddKeyEvent(k, true); }
 	void keyUp(ImGuiKey k) { ImGui::GetIO().AddKeyEvent(k, false); }
 
+	// 单击：建状态 → 悬停 → 按下 → 松开（frameBody 每帧绘制同一控件树）
+	template <class F>
+	void click(float x, float y, F&& frameBody) {
+		inFrame(frameBody);          // 建立 item 状态
+		mouseTo(x, y);
+		inFrame(frameBody);          // 悬停
+		mouseDown();
+		inFrame(frameBody);          // 按下
+		mouseUp();
+		inFrame(frameBody);          // 松开 → 触发
+	}
+
+	// 输入文本（下一帧生效；目标需已获得焦点）
+	void typeText(const char* utf8) { ImGui::GetIO().AddInputCharactersUTF8(utf8); }
+
 private:
 	bool inFrame_ = false;
 	bool hostWindow_ = true;
@@ -87,7 +106,6 @@ template <Mk::wg2::FixedString Id>
 struct RectProbe {
 	static constexpr auto id = Id;
 
-	Mk::wg2::WidgetState<> state;
 	float w = 0.0f, h = 0.0f;
 	Mk::wg2::Rect last{};
 	int drawCount = 0;
@@ -112,7 +130,6 @@ struct LambdaDrawer {
 // 把布局分配到的矩形写回外部变量：动态容器内部的控件拿不到引用，只能靠它断言排布
 struct CaptureProbe {
 	static constexpr auto id = Mk::wg2::Id("capture");
-	Mk::wg2::WidgetState<> state;
 	float w = 10.0f, h = 10.0f;
 	Mk::wg2::Rect* out = nullptr;
 

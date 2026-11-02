@@ -14,7 +14,7 @@ TEST(Wg2Component, DecoratorsDraw) {
 	bool show = true;
 	RectProbe<Id("wp")> when;              // 探针放闭包外：闭包每帧执行
 	when.h = 10.0f;
-	when.state.visibleFn = [&] { return show; };
+	setVisibleFn(when, [&] { return show; });
 	RectProbe<Id("probe")> probe;
 	probe.w = 20.0f;
 	probe.h = 10.0f;

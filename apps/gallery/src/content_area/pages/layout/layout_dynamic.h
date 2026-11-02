@@ -77,6 +77,22 @@ struct PageLayoutDynamic {
 
 		root.at<ui::Id("note")>().text = "两个容器都是 wg2 的动态层（AnyWidget 类型擦除），静态树其余部分完全不受影响。";
 
+		// 初始示例：一格一页，打开页面就能看到动态内容（也便于验证页签内容不压页签栏）
+		tiles = 1;
+		{
+			auto tile0 = std::make_unique<ui::Label<ui::Id("tile")>>("卡片 1");
+			ui::AnyWidget a0 = ui::AnyWidget::own(std::move(tile0));
+			a0.idname = "tile1";
+			w_grid.child<0>().add(std::move(a0));
+		}
+		tabs = 1;
+		{
+			auto body0 = std::make_unique<ui::Label<ui::Id("tabBody")>>("第 1 页的内容");
+			ui::AnyWidget b0 = ui::AnyWidget::own(std::move(body0));
+			b0.idname = "tab1";
+			w_tabs.child<0>().add("页 1", std::move(b0));
+		}
+
 	}
 };
 

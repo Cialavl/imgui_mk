@@ -166,3 +166,25 @@ TEST(Wg2Comm, DynamicContainersAggregateHint) {
 		EXPECT_FLOAT_EQ(gs.h, 108.0f);      // 40 + 8 + 60
 	});
 }
+
+TEST(Wg2Comm, AnyWidgetDestructionRecyclesChrome) {
+	Harness h;
+	const auto baseline = chromeCount();
+	{
+		AnyWidget a = AnyWidget::own(std::make_unique<RectProbe<Id("cleanup")>>());
+		setStretch(a, 2.0f);
+		h.inFrame([&] { layout(a, Rect{0.0f, 0.0f, 80.0f, 40.0f}); });
+		EXPECT_EQ(chromeCount(), baseline + 2);   // AnyWidget 自身 + 内部控件各一条
+	}
+	EXPECT_EQ(chromeCount(), baseline);           // 析构后两条都回收
+}
+
+TEST(Wg2Comm, AnyWidgetMoveCarriesChrome) {
+	Harness h;
+	AnyWidget a = AnyWidget::own(std::make_unique<RectProbe<Id("move")>>());
+	setVisible(a, false);
+
+	AnyWidget b = std::move(a);
+	EXPECT_FALSE(widgetChrome(b).visible);        // 状态随对象迁移
+	EXPECT_EQ(chromeCount(), std::size_t{1});     // 旧地址不留残余
+}

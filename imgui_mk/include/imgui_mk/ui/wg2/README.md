@@ -6,11 +6,17 @@
 
 - `core.h`
   - `FixedString` 编译期 ID：`Button<Id("save")>`
-  - `WidgetState`：`visible / enabled / stretch / size overrides / style`
+  - 控件状态 `Chrome`（`visible / enabled / stretch / size overrides / style`）：
+    由引擎按「类型 + 地址」登记，统一经 `widgetChrome()` 读取；控件本身不携带状态成员
+  - `WidgetStyle`：每控件样式覆盖（文字/底色/悬停/按下/边框/圆角/边框粗细/内边距/间距/字体）
   - 布局基础类型与渲染深度保护
 - `widget.h`
-  - `StaticWidget` concept
+  - `StaticWidget` concept（完整协议，或只声明 `root` 的组合控件）
   - `drawWidget / layout`
+  - `hintOf / policyOf`：尺寸/策略统一入口（无 hint/policy 时自动转发到 `root`）
+  - `renderable(w)`：渲染开关（引擎 `setVisible/setVisibleFn` + 控件可选 `shouldRender()`）
+  - `styleOf / setStyle / clearStyle`：所有控件通用（原子/容器/组合）的样式设置接口
+  - 组合控件：有 `root` 成员或 `root()` 访问器时，hint/policy/绘制全部由框架转发；`overlays()` 返回的浮层只每帧提交（不进布局）
 - `static_layout.h`
   - `VBox / HBox / Grid / Wrap / SplitH / SplitV / Overlay`
   - `at<Id("a"), Id("b")>()` 编译期字符串路径访问
@@ -23,19 +29,65 @@
 - `basic_widgets.h`
   - `Label / Button / TextColored / Separator / FnWidget`
 - `widgets/input.h`
-  - `CheckBox / InputText / InputInt / InputFloat / InputDouble / InputInt2 / InputFloat2`
+  - `CheckBox / InputText / InputTextMultiline / InputInt / InputFloat / InputDouble / InputInt2 / InputFloat2`
   - `SliderF / SliderInt / SliderAngle / DragF / DragI`
   - `Combo / RadioButton / RadioGroup / ListBox`
 - `widgets/display.h`
   - `ProgressBar / TextWrapped / BulletText / LabelText / Selectable`
-  - `SeparatorText / Image / ImageButton / PlotLines`
+  - `SeparatorText / Image / ImageButton / PlotLines`（Image/ImageButton 未设 `tex` 时用引擎默认纹理）
+  - `Image`：圆角/边框/UV/着色/等比缩放（`fitRect` 居中）
+- `mount.h`
+  - `attach(root, host)`：登记 root 的父节点；窗口挂载由 `MainWindow::setContent(ui)` 一行代劳
+- `tree.h`
+  - `setupTree / readyTree`：Qt 式两段式控件树初始化（沿 `children` 递归，组件各自 `setup(ctx)/ready(ctx)`）
+- `font.h`
+  - `defaultFont()` / `monoFont()`：等宽字体 provider + 回退默认界面字体
+- `texture.h`
+  - `loadTextureRGBA / deleteTexture`：RGBA8 上传与删除
+  - `defaultTexture()` / `textureOr(tex)`：引擎默认棋盘纹理（每窗口一份，懒创建），离线测试安全返回 0
 - `widgets/decorator.h`
   - `When / ItemWidth / Indent / Colored / Tooltip`
 - `widgets/container.h`
-  - `SubWindow / Panel / Tab / TabBar / Collapsing`
+  - `SubWindow / Panel / Tab / TabBar / Collapsing`（`Tab::open` 非空时可关闭）
+- `widgets/nav.h`
+  - `NavTree`：WinUI NavigationView 风格导航树（分组可展开/收起、叶子选中左侧强调条）
+  - `PageHost / PageBook`：页宿主与页簿；页簿用 `HBox<NavTree, PageHost>` 组合，宽度切分交给布局容器（选中页归页簿所有）
 - `widgets/composite.h`
   - `Tree / Menu / MenuBar / MenuItem / Popup / PopupModal`
   - `TextTable / FnTable`
+- `widgets/dataview.h`
+  - `VirtualList`：虚拟列表（ImGuiListClipper 只画可见行、单选/多选、双击/滚动定位）
+  - `DataTable`：数据表格（排序表头、可拖列宽、行选中/多选、双击、虚拟滚动、数字感知排序）
+- `widgets/selection.h`
+  - `SelectionModel`：单选 / Ctrl 多选 / Shift 连选
+- `widgets/search.h`
+  - `SearchCombo`：可搜索下拉（大小写不敏感子串过滤）
+- `widgets/icon.h`
+  - `setIconFont / iconFont`：图标字体注册；`iconGlyph(cp)` 码点转 UTF-8；`IconText` 控件
+- `widgets/contextmenu.h`
+  - `contextMenu / contextMenuWindow`：item 上 / 空白处右键菜单
+- `widgets/chart.h`
+  - `LineChart / BarChart`：draw list 自绘图表（自动值域、网格、轴标签）
+- `widgets/dock.h`
+  - `DockSpace`：停靠布局（分割树 + 页签组；拖页签合并、拖叶子四边停靠、拖分隔条调比例；serialize/deserialize）
+- `widgets/richtext.h`
+  - `parseRichText / RichText`：轻量富文本（**加粗**、代码、可点击链接）
+- `style.h`
+  - `Theme::withDensity(d)`：密度系数（内边距/间距/滚动条等比缩放）
+  - `Theme::tokens()`：语义色 token（bg/surface/border/text/accent/danger/warning/success）
+- `i18n.h`
+  - `setTranslation / tr`：key → 文本表，未命中回退 key
+- `motion.h`
+  - `easeOutCubic / easeInOutCubic / Motion / Transition`：缓动、帧率无关趋近、定时过渡
+- `widgets/dragdrop.h`
+  - `dragSource / dropTarget`：类型安全的拖拽源与接收目标（`payloadType<T>()` 生成负载签名）
+- `widgets/dialogs.h`
+  - `ConfirmDialog`：模态确认框（确定/取消回调）
+  - `ToastHost`：右下角 Toast 堆叠（自动过期/淡出）
+  - `Spinner`：不确定进度指示器
+- `core.h` / `widget.h`
+  - 焦点：`requestFocus(w)` / `hasFocus(w)`（drawWidget 消费，键盘导航已启用）
+  - 指针：`Cursor` / `setCursor` / `cursorOnHover`
 - `widgets/color.h`
   - `ColorEdit3 / ColorEdit4 / ColorPicker3 / ColorPicker4`
   - `CheckboxFlags`
