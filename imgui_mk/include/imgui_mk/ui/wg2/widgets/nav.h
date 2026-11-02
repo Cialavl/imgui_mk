@@ -73,6 +73,7 @@ struct NavList {
 
 	void draw(const Rect& r) {
 		// BeginChild 即使返回 false 也必须配对 EndChild
+		ImGui::SetCursorPos(ImVec2(r.x, r.y));   // 按矩形定位（容器给窗口局部坐标）
 		const bool open = ImGui::BeginChild("wg2_navlist", ImVec2(r.w, r.h), ImGuiChildFlags_Border);
 		if (open) {
 			const ImGuiStyle& st = ImGui::GetStyle();
