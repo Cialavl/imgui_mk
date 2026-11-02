@@ -7,7 +7,6 @@
 #include "status_bar.h"
 #include "menu_bar.h"
 #include "content_area.h"
-#include "gallery_nav.h"
 #include <imgui_mk/ui/wg2/texture.h>
 #include <Mainwindow.h>
 #include <cstdlib>
