@@ -3,6 +3,7 @@
 //   - 菜单、状态栏、侧面板、弹窗全部使用 Mk::wg2 静态树；
 //   - 根节点通过 wg2 layout 回调 挂到旧引擎中央挂载点。
 #include "gallery_inspector.h"
+#include "popups.h"
 #include "content_area.h"
 #include "gallery_nav.h"
 #include <imgui_mk/ui/wg2/texture.h>
@@ -42,12 +43,9 @@ using StatusRow  = ui::HBox<ui::Id("statusRow"), ui::LabelText<ui::Id("stFps")>,
 using AppBody    = ui::VBox<ui::Id("mainCol"), AppMenuBar, ContentRow, StatusRow>;
 
 // —— 浮层 ——
-using PopupTree = ui::Popup<ui::Id("popupTree"), ui::Label<ui::Id("popupText")>, ui::Button<ui::Id("popupClose")>>;
-using ModalTree = ui::PopupModal<ui::Id("modalTree"), ui::Label<ui::Id("modalText")>, ui::Button<ui::Id("modalClose")>>;
-using AboutTree = ui::PopupModal<ui::Id("aboutTree"), ui::Label<ui::Id("aboutText")>, ui::Button<ui::Id("aboutOk")>>;
 
 // 应用壳的静态结构：主体 + 三个浮层
-using ShellRoot = ui::Overlay<ui::Id("root"), AppBody, PopupTree, ModalTree, AboutTree>;
+using ShellRoot = ui::Overlay<ui::Id("root"), AppBody, Popups>;   // 主体 + 浮层组件
 
 
 struct GalleryWindow {
@@ -68,7 +66,7 @@ InspectorWindow inspector;
 		});
 		initMenus();
 		initPanels();
-		initPopups();
+		popups().init();
 		initStatus();
 		initShell();
 
@@ -82,36 +80,9 @@ InspectorWindow inspector;
 	ImTextureID tex = makeCheckerTexture();   // 声明即创建
 
 
-	// —— 29 个演示页：由应用壳持有并注册（main 不再关心）——
-	gallery::Page<gallery::PageLayoutBasic>   pageLayoutBasic;
-	gallery::Page<gallery::PageLayoutSize>    pageLayoutSize;
-	gallery::Page<gallery::PageLayoutGrid>    pageLayoutGrid;
-	gallery::Page<gallery::PageLayoutRuntime> pageLayoutRuntime;
-	gallery::Page<gallery::PageLayoutDynamic> pageLayoutDynamic;
-	gallery::Page<gallery::PageBase>          pageBase;
-	gallery::Page<gallery::PageLifecycle>     pageLifecycle;
-	gallery::Page<gallery::PageWg2>           pageWg2;
-	gallery::Page<gallery::PageWg2Catalog>    pageWg2Catalog;
-	gallery::Page<gallery::PageLayout>        pageLayout;
-	gallery::Page<gallery::PageSplit>         pageSplit;
-	gallery::Page<gallery::PageText>          pageText;
-	gallery::Page<gallery::PageInput>         pageInput;
-	gallery::Page<gallery::PageNumber>        pageNumber;
-	gallery::Page<gallery::PageDrag>          pageDrag;
-	gallery::Page<gallery::PageSelect>        pageSelect;
-	gallery::Page<gallery::PageContainer>     pageContainer;
-	gallery::Page<gallery::PageTab>           pageTab;
-	gallery::Page<gallery::PageTable>         pageTable;
-	gallery::Page<gallery::PagePopup>         pagePopup;
-	gallery::Page<gallery::PageColor>         pageColor;
-	gallery::Page<gallery::PageDeco>          pageDeco;
-	gallery::Page<gallery::PageTheme>         pageTheme;
-	gallery::Page<gallery::PageFnRender>      pageFnRender;
-	gallery::Page<gallery::PageButton> pageButton{tex};
-	gallery::Page<gallery::PageFeedback> pageFeedback{win};
-	gallery::Page<gallery::PageMenu> pageMenu{win};
-	gallery::Page<gallery::PageWindow> pageWindow{win, inspector.win.get()};
-	gallery::Page<gallery::PageFile> pageFile{win};
+
+	// 树里的浮层组件实例
+	Popups& popups() { return shell.at<ui::Id("popups")>(); }
 
 	Mk::window* inspectorWin() { return inspector.win.get(); }
 
@@ -171,7 +142,7 @@ shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuWindow
 
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp")>().name = "Help";
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp"), Mk::wg2::Id("miAbout")>().name = "About Gallery";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp"), Mk::wg2::Id("miAbout")>().onClick = [this] { aboutOpen = true; };
+shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp"), Mk::wg2::Id("miAbout")>().onClick = [this] { popups().showAbout(); };
 }
 
 	// 树里的内容区实例（页簿与页面都在这棵树上）
@@ -185,26 +156,6 @@ shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp")
 		contentArea().book.host.state.stretch = 1.0f;
 	}
 
-void initPopups() {
-shell.at<Mk::wg2::Id("popupTree")>().idname = "gpop";
-shell.at<Mk::wg2::Id("popupTree")>().open = &popupOpen;
-shell.at<Mk::wg2::Id("popupTree"), Mk::wg2::Id("popupText")>().text = "A regular popup.";
-shell.at<Mk::wg2::Id("popupTree"), Mk::wg2::Id("popupClose")>().label = "关闭";
-shell.at<Mk::wg2::Id("popupTree"), Mk::wg2::Id("popupClose")>().onClick = [this] { popupOpen = false; ImGui::CloseCurrentPopup(); };
-
-shell.at<Mk::wg2::Id("modalTree")>().idname = "gmodal";
-shell.at<Mk::wg2::Id("modalTree")>().open = &modalOpen;
-shell.at<Mk::wg2::Id("modalTree"), Mk::wg2::Id("modalText")>().text = "A modal popup blocks interaction with the host.";
-shell.at<Mk::wg2::Id("modalTree"), Mk::wg2::Id("modalClose")>().label = "关闭";
-shell.at<Mk::wg2::Id("modalTree"), Mk::wg2::Id("modalClose")>().onClick = [this] { modalOpen = false; ImGui::CloseCurrentPopup(); };
-
-shell.at<Mk::wg2::Id("aboutTree")>().idname = "about";
-shell.at<Mk::wg2::Id("aboutTree")>().open = &aboutOpen;
-shell.at<Mk::wg2::Id("aboutTree"), Mk::wg2::Id("aboutText")>().text =
-"mkui Widget Gallery\nImGui + GLFW + OpenGL wrapper\nwg2 template struct widget library";
-shell.at<Mk::wg2::Id("aboutTree"), Mk::wg2::Id("aboutOk")>().label = "OK";
-shell.at<Mk::wg2::Id("aboutTree"), Mk::wg2::Id("aboutOk")>().onClick = [this] { aboutOpen = false; ImGui::CloseCurrentPopup(); };
-}
 
 void initStatus() {
 shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFps")>().name = "FPS";
