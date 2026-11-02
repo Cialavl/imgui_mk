@@ -2,7 +2,7 @@
 // 演示页（DemoPage<Content>）：页头 + 演示场 + 代码段，三段固定
 //   SectionHead + PageDemo(demo) + CodeBlock 编译期组成页面根。
 //   每个页面把自己的 wg2 root 渲染/测量回调 addWidget 进 demo 槽位。
-#include "snippets.h"
+#include "data/snippets.h"
 #include <functional>
 #include <imgui_mk/ui/wg2/style.h>
 #include <imgui_mk/ui/wg2/wg2.h>

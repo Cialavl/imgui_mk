@@ -2,7 +2,7 @@
 // gallery 应用壳（wg2 迁移版）：
 //   - 菜单、状态栏、侧面板、弹窗全部使用 Mk::wg2 静态树；
 //   - 根节点通过 wg2 layout 回调 挂到旧引擎中央挂载点。
-#include "inspector_window.h"
+#include "tools/inspector_window.h"
 #include "popups.h"
 #include "status_bar.h"
 #include "menu_bar.h"
