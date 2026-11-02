@@ -166,6 +166,21 @@ inline ImVec2 availRegion() { return ImGui::GetContentRegionAvail(); }
 
 } // namespace metrics
 
+// —— 矩形坐标约定 ——
+// 容器传给子控件的 Rect 一律是**屏幕坐标**；控件自己开子窗口时，需换算成窗口局部坐标再定位。
+inline ImVec2 toWindowLocal(const ImVec2& screenPos) {
+	const ImVec2 origin = ImGui::GetWindowPos();
+	return ImVec2(screenPos.x - origin.x, screenPos.y - origin.y);
+}
+inline void placeCursorWindow(const Rect& r) { ImGui::SetCursorPos(toWindowLocal(ImVec2(r.x, r.y))); }
+inline void placeCursorScreen(const Rect& r) { ImGui::SetCursorScreenPos(ImVec2(r.x, r.y)); }
+// 控件内子区域（BeginChild）的当前屏幕矩形：x/y 取光标屏幕位置，宽高取可用区
+inline Rect contentRect (void) {
+	const ImVec2 sp = ImGui::GetCursorScreenPos();
+	const ImVec2 av = ImGui::GetContentRegionAvail();
+	return Rect{sp.x, sp.y, av.x > 0.0f ? av.x : 0.0f, av.y > 0.0f ? av.y : 0.0f};
+}
+
 // 字体作用域：构造 PushFont、析构 PopFont（命令式绘制区切字体的唯一入口）
 struct FontScope {
 	bool pushed = false;
