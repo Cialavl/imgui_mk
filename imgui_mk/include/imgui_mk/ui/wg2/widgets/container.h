@@ -279,6 +279,7 @@ struct ChildRegion {
 	Policy policy() const { return Policy{}; }
 
 	void draw(const Rect& r) {
+		ImGui::SetCursorPos(ImVec2(r.x, r.y));   // 容器给的矩形是窗口局部坐标：先按它定位
 		const ImVec2 sz(r.w > 0.0f ? r.w : 1.0f, r.h > 0.0f ? r.h : 1.0f);
 		const char* cid = idname.empty() ? id.data : idname.c_str();
 		if (padding.x >= 0.0f) ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, padding);
