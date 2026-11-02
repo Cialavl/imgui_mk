@@ -50,9 +50,6 @@ struct ContentArea {
 
 	Mk::wg2::WidgetState<> state;
 	Mk::wg2::PageBook<Mk::wg2::Id("book")> book;
-	ImFont* monoFont = nullptr;   // 等宽代码字体（app 装载后回填）
-
-	ImFont** monoSlot() { return &monoFont; }
 
 	gallery::DemoPage<gallery::PageLayoutBasic>   pageLayoutBasic;
 	gallery::DemoPage<gallery::PageLayoutSize>    pageLayoutSize;

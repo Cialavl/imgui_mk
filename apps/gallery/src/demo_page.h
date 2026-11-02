@@ -186,9 +186,6 @@ struct DemoPage {
 	Chrome chrome;
 	Content content;
 	const char* title = "";
-	ImFont** monoSlot = nullptr;   // 等宽字体槽位（由内容区注入）
-
-	void setMonoFont(ImFont** slot) { monoSlot = slot; }
 
 	DemoPage() = default;
 	template<class... Args>
@@ -200,7 +197,7 @@ struct DemoPage {
 		chrome.at<Mk::wg2::Id("head")>().desc = Content::desc;
 		chrome.at<Mk::wg2::Id("codeTitle")>().name = "Code";
 		chrome.at<Mk::wg2::Id("code")>().code = Content::code;
-		chrome.at<Mk::wg2::Id("code")>().monoFn = [this] { return monoSlot ? *monoSlot : nullptr; };
+		chrome.at<Mk::wg2::Id("code")>().monoFn = [] { return gMono; };
 		chrome.marginX = 0.0f;
 		chrome.marginY = 0.0f;
 		chrome.at<Mk::wg2::Id("demo")>().render  = [this](const Mk::wg2::Rect& r) { Mk::wg2::layout(content.root, r); };

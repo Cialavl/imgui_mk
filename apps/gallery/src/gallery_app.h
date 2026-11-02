@@ -77,7 +77,6 @@ InspectorWindow inspector;
 
 	// 树里的浮层组件实例
 	MenuBar& menuBar() { return shell.at<ui::Id("mainCol"), ui::Id("menuBar")>(); }
-	ImFont** monoSlot() { return contentArea().monoSlot(); }   // 等宽字体槽位
 	StatusBar& statusBar() { return shell.at<ui::Id("mainCol"), ui::Id("statusBar")>(); }
 	Popups& popups() { return shell.at<ui::Id("popups")>(); }
 
