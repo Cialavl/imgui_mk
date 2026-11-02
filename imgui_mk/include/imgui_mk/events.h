@@ -10,8 +10,14 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <imgui_mk/ui/wg2/style.h>
 
 namespace Mk {
+
+// 换肤：框架在 setTheme 时自动广播，组件按需订阅
+struct ThemeChanged {
+	Mk::wg2::Theme theme;
+};
 
 class EventBus {
 public:

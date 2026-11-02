@@ -55,7 +55,7 @@ InspectorWindow inspector;
 	GalleryWindow(Mk::MainWindow<Mk::window>& w)
 		: winRef(&w), win(&w.getWindow()), inspector(w.getWindow()) {
 		// 主题事件：本窗口组件自己应用
-		Mk::mkui<Mk::window>::Events().on<ThemeChanged>([this](const ThemeChanged& e) {
+		Mk::mkui<Mk::window>::Events().on<Mk::ThemeChanged>([this](const Mk::ThemeChanged& e) {
 			winRef->setTheme(e.theme);
 		});
 		menuBar().init(Mk::mkui<Mk::window>::Events(), winRef, [this] { popups().showAbout(); });
@@ -87,7 +87,7 @@ InspectorWindow inspector;
 	void applyTheme(const Mk::wg2::Theme& t) {
 		theme = t;
 		darkActive = t.windowBg.x < 0.5f;
-		Mk::mkui<Mk::window>::Events().emit(ThemeChanged{t});
+		Mk::mkui<Mk::window>::Events().emit(Mk::ThemeChanged{t});
 	}
 
 	template<class Content>

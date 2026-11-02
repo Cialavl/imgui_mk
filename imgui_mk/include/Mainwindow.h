@@ -63,6 +63,7 @@ namespace Mk {
 
 		// 切换窗口主题（转发到内部窗口的 setTheme）
 		void setTheme(const Mk::wg2::Theme& theme) {
+			Mk::mkui<Mk::window>::Events().emit(Mk::ThemeChanged{theme});   // 框架统一广播
 			m_Window.setTheme(theme);
 		}
 

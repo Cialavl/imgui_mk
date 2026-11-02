@@ -39,14 +39,14 @@ PageTheme() {
 
 auto& w_dark = root.at<ui::Id("row"), ui::Id("dark")>();
 w_dark.label = "Dark";
-w_dark.onClick = [&] { Mk::mkui<Mk::window>::Events().emit(ThemeChanged{Theme::dark()}); };
+w_dark.onClick = [&] { Mk::mkui<Mk::window>::Events().emit(Mk::ThemeChanged{Theme::dark()}); };
 auto& w_light = root.at<ui::Id("row"), ui::Id("light")>();
 w_light.label = "Light";
-w_light.onClick = [&] { Mk::mkui<Mk::window>::Events().emit(ThemeChanged{Theme::light()}); };
+w_light.onClick = [&] { Mk::mkui<Mk::window>::Events().emit(Mk::ThemeChanged{Theme::light()}); };
 auto& w_accent = root.at<ui::Id("row"), ui::Id("accent")>();
 w_accent.label = "Accent 红";
 w_accent.onClick = [&] {
-Mk::mkui<Mk::window>::Events().emit(ThemeChanged{Theme::dark().withAccent(ImVec4(1.0f, 0.0f, 0.0f, 1.0f))});
+Mk::mkui<Mk::window>::Events().emit(Mk::ThemeChanged{Theme::dark().withAccent(ImVec4(1.0f, 0.0f, 0.0f, 1.0f))});
 };
 root.at<ui::Id("scopeNote")>().text = "局部主题：wg2 当前使用 Colored 装饰件替代 Styled";
 root.at<ui::Id("compact")>().spacing = 2.0f;

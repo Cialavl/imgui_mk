@@ -39,11 +39,11 @@ struct MenuBar {
 		theme.name = "Theme";
 		auto& dark = root.at<ui::Id("menuTheme"), ui::Id("miDark")>();
 		dark.name = "Dark";
-		dark.onClick = [&bus] { bus.emit(ThemeChanged{Theme::dark()}); };
+		dark.onClick = [winRef] { winRef->setTheme(Theme::dark()); };
 		dark.selectedFn = [this] { return darkActive; };
 		auto& light = root.at<ui::Id("menuTheme"), ui::Id("miLight")>();
 		light.name = "Light";
-		light.onClick = [&bus] { bus.emit(ThemeChanged{Theme::light()}); };
+		light.onClick = [winRef] { winRef->setTheme(Theme::light()); };
 		light.selectedFn = [this] { return !darkActive; };
 
 		auto& window = root.at<ui::Id("menuWindow")>();
@@ -59,7 +59,7 @@ struct MenuBar {
 		about.onClick = [onAbout = std::move(onAbout)] { if (onAbout) onAbout(); };
 
 		// 主题变化时更新勾选态（菜单自己跟踪，不依赖壳）
-		bus.on<ThemeChanged>([this](const ThemeChanged& e) {
+		bus.on<Mk::ThemeChanged>([this](const Mk::ThemeChanged& e) {
 			darkActive = e.theme.windowBg.x < 0.5f;
 		});
 	}
