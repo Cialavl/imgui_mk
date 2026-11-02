@@ -1,6 +1,6 @@
 #pragma once
 // p13 菜单面板：SubWindow 面板（wg2 编译期子节点）
-#include "../../gallery_chrome.h"
+#include "../../page.h"
 
 namespace gallery {
 

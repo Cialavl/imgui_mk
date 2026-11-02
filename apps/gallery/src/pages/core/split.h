@@ -1,6 +1,6 @@
 #pragma once
 // p3 分格模式：ui::SplitH/ui::SplitV/ui::Wrap/ui::Grid（wg2 编译期布局）
-#include "../../gallery_chrome.h"
+#include "../../page.h"
 
 namespace gallery {
 

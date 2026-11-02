@@ -1,6 +1,6 @@
 #pragma once
 // p2 布局：HBox 嵌 VBox（编译期布局组合演示）
-#include "../../gallery_chrome.h"
+#include "../../page.h"
 
 namespace gallery {
 

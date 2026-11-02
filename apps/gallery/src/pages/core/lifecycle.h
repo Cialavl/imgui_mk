@@ -1,6 +1,6 @@
 #pragma once
 // p1 基础：生命周期（ui::RuntimeList 动态叶子 + When 隐藏）
-#include "../../gallery_chrome.h"
+#include "../../page.h"
 
 #include <memory>
 

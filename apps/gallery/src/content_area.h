@@ -1,6 +1,6 @@
 #pragma once
 // 中间内容区：拥有页簿与 29 个演示页，对外是一个 wg2 控件
-#include "gallery_chrome.h"
+#include "page.h"
 
 #include "pages/core/base.h"
 #include "pages/core/lifecycle.h"

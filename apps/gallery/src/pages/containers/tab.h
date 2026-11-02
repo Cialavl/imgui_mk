@@ -1,6 +1,6 @@
 #pragma once
 // p12 标签页：ui::TabBar/ui::Tab（wg2 编译期页签）
-#include "../../gallery_chrome.h"
+#include "../../page.h"
 
 namespace gallery {
 
