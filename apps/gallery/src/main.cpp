@@ -68,7 +68,7 @@ int main() {
 	Mk::MainWindow<> gallery("mkui Widget Gallery", galW, galH);
 
 	// 追加等宽代码字体（×0.85 随字号联动）：框架保证默认中文链 + 重烘焙后句柄写回 gMono
-	gallery.addAuxFont(0.85f, &gallery::gMono);
+	gallery.addAuxFont(0.85f);   // 句柄由框架保存，组件按需查询
 	gallery.setAutoScaleFont(true);
 
 	// 应用组件：主壳 + 检查器子窗口（数据各页/各窗自己持有）

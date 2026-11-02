@@ -69,6 +69,7 @@ namespace Mk {
 		// —— 字号自适应（全量转发 window.h API：应用层无需 getWindow() 绕行）——
 		void setFontLoader(std::function<bool(float)> loader) { m_Window.setFontLoader(std::move(loader)); }
 		void addAuxFont(float scale, ImFont** out = nullptr) { m_Window.addAuxFont(scale, out); }
+		ImFont* auxFont(std::size_t index = 0) const { return m_Window.auxFont(index); }
 		void setAutoScaleFont(bool on) { m_Window.setAutoScaleFont(on); }
 		void rescale(float fontSize) { m_Window.rescale(fontSize); }
 		float fontSize() const { return m_Window.fontSize(); }

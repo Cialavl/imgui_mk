@@ -64,6 +64,7 @@ InspectorWindow inspector;
 		statusBar().init(win, [this] { return currentPageTitle(); });
 		initShell();
 
+		contentArea().setMonoProvider([this] { return winRef ? winRef->auxFont() : nullptr; });   // 等宽字体查询
 		contentArea().init(tex, win, inspector.win.get());   // 内容区注册 29 页并注入依赖
 	}
 

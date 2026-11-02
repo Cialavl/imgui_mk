@@ -50,6 +50,9 @@ struct ContentArea {
 
 	Mk::wg2::WidgetState<> state;
 	Mk::wg2::PageBook<Mk::wg2::Id("book")> book;
+	std::function<ImFont*()> monoProvider;   // 等宽代码字体（应用注入）
+
+	void setMonoProvider(std::function<ImFont*()> f) { monoProvider = std::move(f); }   // 在 init() 之前调用
 
 	gallery::DemoPage<gallery::PageLayoutBasic>   pageLayoutBasic;
 	gallery::DemoPage<gallery::PageLayoutSize>    pageLayoutSize;
@@ -99,6 +102,7 @@ struct ContentArea {
 private:
 	template<class Content>
 	void add(gallery::DemoPage<Content>& p, const char* group = nullptr) {
+		p.setMonoProvider(monoProvider);   // 绘制时按需查询等宽字体
 		p.setup();
 		if (group && *group) book.addGroup(group);
 		book.addPage(p.title, [&p](const Mk::wg2::Rect& r) { p.renderTo(r); });

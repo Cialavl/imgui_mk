@@ -36,7 +36,7 @@ namespace Mk {
 			};
 			std::vector<Shortcut> m_Shortcuts;               // 快捷键轮询（addShortcut 注册）
 			std::vector<std::function<void()>> m_FileWatchers;   // 文件对话框托管（watchFileDialog 注册，每帧 poll）
-			struct AuxFont { float scale; ImFont** out; };   // 追加字体声明（addAuxFont 注册，重烘焙后写回句柄）
+			struct AuxFont { float scale; ImFont** out; ImFont* baked = nullptr; };   // 追加字体（重烘焙后写回 baked 与 out）
 			std::vector<AuxFont> m_AuxFonts;
 			std::vector<std::shared_ptr<Impl>> m_Children;  // 挂载的子窗口（mountChild；父关随关，生命周期随父）
 
@@ -151,8 +151,9 @@ namespace Mk {
 				io.Fonts->Clear();   // 全量重置（含 ConfigData）：ClearFonts 不清配置，重复 Add 会触发 ImGui 断言
 				if(m_FontLoader) m_FontLoader(fontSize);
 				else defaultFontLoader(fontSize);
-				for(const auto& aux : m_AuxFonts) {   // 追加字体：等宽编程字体（含常用汉字合并），句柄写回
+				for(auto& aux : m_AuxFonts) {   // 追加字体：等宽编程字体（含常用汉字合并），句柄写回
 					if(ImFont* f = loadMonoFont(fontSize * aux.scale)) {
+						aux.baked = f;
 						if(aux.out) *aux.out = f;
 					}
 				}
@@ -494,6 +495,12 @@ ImGui::End();
 
 		// 追加辅助字体（声明式传参）：默认中文链（或自定义装载器）之后按 scale×基准字号装载，
 		// 每次重烘焙后把句柄写回 out（可为空）；注册即请求重烘焙（同 setFontLoader 语义）
+		// 查询已烘焙的辅助字体（index 按 addAuxFont 注册顺序；未烘焙返回 nullptr）
+		ImFont* auxFont(std::size_t index = 0) const {
+			if(!m_Impl || index >= m_Impl->m_AuxFonts.size()) return nullptr;
+			return m_Impl->m_AuxFonts[index].baked;
+		}
+
 		void addAuxFont(float scale, ImFont** out = nullptr) {
 			if(m_Impl) {
 				m_Impl->m_AuxFonts.push_back({scale, out});

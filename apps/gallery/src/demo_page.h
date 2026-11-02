@@ -14,8 +14,6 @@
 
 namespace gallery {
 
-// 等宽代码字体（main 创建窗口后、首帧前装载并回填）
-inline ImFont* gMono = nullptr;
 
 
 struct ThemeChanged {          // 换肤：各窗口自己 setTheme
@@ -186,6 +184,9 @@ struct DemoPage {
 	Chrome chrome;
 	Content content;
 	const char* title = "";
+	std::function<ImFont*()> monoProvider;   // 等宽代码字体（内容区注入，绘制时查询）
+
+	void setMonoProvider(std::function<ImFont*()> f) { monoProvider = std::move(f); }
 
 	DemoPage() = default;
 	template<class... Args>
@@ -197,7 +198,7 @@ struct DemoPage {
 		chrome.at<Mk::wg2::Id("head")>().desc = Content::desc;
 		chrome.at<Mk::wg2::Id("codeTitle")>().name = "Code";
 		chrome.at<Mk::wg2::Id("code")>().code = Content::code;
-		chrome.at<Mk::wg2::Id("code")>().monoFn = [] { return gMono; };
+		chrome.at<Mk::wg2::Id("code")>().monoFn = [this] { return monoProvider ? monoProvider() : nullptr; };
 		chrome.marginX = 0.0f;
 		chrome.marginY = 0.0f;
 		chrome.at<Mk::wg2::Id("demo")>().render  = [this](const Mk::wg2::Rect& r) { Mk::wg2::layout(content.root, r); };
