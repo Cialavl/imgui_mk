@@ -116,20 +116,10 @@ struct PageHost {
 	Size hint(const Size& avail) const { return Size{avail.w, avail.h}; }
 	Policy policy() const { return Policy{}; }
 
+	// 页面自己负责滚动层；宿主只把矩形交给当前页
 	void draw(const Rect& r) {
-		const bool open = ImGui::BeginChild("wg2_pagehost", ImVec2(r.w, r.h), ImGuiChildFlags_Border,
-			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-		if (open) {
-			const int cnt = pageCount();
-			if (current && *current >= 0 && *current < cnt && pages[*current]) {
-				const ImVec2 cp = ImGui::GetCursorPos();
-				const ImVec2 avail = ImGui::GetContentRegionAvail();
-				pages[*current](Rect{cp.x, cp.y,
-					avail.x > 0.0f ? avail.x : 0.0f,
-					avail.y > 0.0f ? avail.y : 0.0f});
-			}
-		}
-		ImGui::EndChild();
+		const int cnt = pageCount();
+		if (current && *current >= 0 && *current < cnt && pages[*current]) pages[*current](r);
 	}
 };
 
