@@ -24,33 +24,33 @@ struct MenuBar {
 
 	bool darkActive = true;   // 供主题菜单勾选态
 
-	void init(Mk::MainWindow<Mk::window>* winRef, std::function<void()> onAbout) {
+	void init(Mk::EventBus& bus, Mk::MainWindow<Mk::window>* winRef, std::function<void()> onAbout) {
 		auto& file = root.at<ui::Id("menuFile")>();
 		file.name = "File";
 		auto& open = root.at<ui::Id("menuFile"), ui::Id("miOpen")>();
 		open.name = "Open...";
 		open.shortcut = "Ctrl+O";
-		open.onClick = [] { Mk::mkui<Mk::window>::RegistrationWindow().emit(OpenFile{}); };
+		open.onClick = [&bus] { bus.emit(OpenFile{}); };
 		auto& exit_ = root.at<ui::Id("menuFile"), ui::Id("miExit")>();
 		exit_.name = "Exit";
-		exit_.onClick = [winRef] { if (winRef) winRef->requestClose(); };
+		exit_.onClick = [&bus, winRef] { if (winRef) winRef->requestClose(); };
 
 		auto& theme = root.at<ui::Id("menuTheme")>();
 		theme.name = "Theme";
 		auto& dark = root.at<ui::Id("menuTheme"), ui::Id("miDark")>();
 		dark.name = "Dark";
-		dark.onClick = [] { Mk::mkui<Mk::window>::RegistrationWindow().emit(ThemeChanged{Theme::dark()}); };
+		dark.onClick = [&bus] { bus.emit(ThemeChanged{Theme::dark()}); };
 		dark.selectedFn = [this] { return darkActive; };
 		auto& light = root.at<ui::Id("menuTheme"), ui::Id("miLight")>();
 		light.name = "Light";
-		light.onClick = [] { Mk::mkui<Mk::window>::RegistrationWindow().emit(ThemeChanged{Theme::light()}); };
+		light.onClick = [&bus] { bus.emit(ThemeChanged{Theme::light()}); };
 		light.selectedFn = [this] { return !darkActive; };
 
 		auto& window = root.at<ui::Id("menuWindow")>();
 		window.name = "Window";
 		auto& insp = root.at<ui::Id("menuWindow"), ui::Id("miInspector")>();
 		insp.name = "Show/Hide Inspector";
-		insp.onClick = [] { Mk::mkui<Mk::window>::RegistrationWindow().emit(ToggleInspector{}); };
+		insp.onClick = [&bus] { bus.emit(ToggleInspector{}); };
 
 		auto& help = root.at<ui::Id("menuHelp")>();
 		help.name = "Help";
@@ -59,7 +59,7 @@ struct MenuBar {
 		about.onClick = [onAbout = std::move(onAbout)] { if (onAbout) onAbout(); };
 
 		// 主题变化时更新勾选态（菜单自己跟踪，不依赖壳）
-		Mk::mkui<Mk::window>::RegistrationWindow().on<ThemeChanged>([this](const ThemeChanged& e) {
+		bus.on<ThemeChanged>([this](const ThemeChanged& e) {
 			darkActive = e.theme.windowBg.x < 0.5f;
 		});
 	}

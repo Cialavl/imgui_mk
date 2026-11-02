@@ -39,7 +39,7 @@ struct PageWindow {
 		auto& w_toggle = root.at<ui::Id("toggle")>();
 		w_toggle.label = "显示/隐藏 Inspector";
 		w_toggle.onClick = [] {
-			Mk::mkui<Mk::window>::RegistrationWindow().emit(ToggleInspector{});
+			Mk::mkui<Mk::window>::Events().emit(ToggleInspector{});
 		};
 		root.at<ui::Id("note")>().text = "Inspector 只隐藏；Gallery 关闭后跟随退出。";
 

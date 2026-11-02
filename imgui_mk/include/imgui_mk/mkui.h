@@ -75,6 +75,7 @@ namespace Mk {
 		// 组件之间不互相持有引用：发送方 emit，接收方 on，各自管自己的数据。
 		// 事件通道：组件通过 bus() 收发（框架层统一实现）
 		Mk::EventBus& bus() { return m_Bus; }
+		static Mk::EventBus& Events() { return RegistrationWindow().bus(); }   // 组件侧便捷入口
 
 		template<class E>
 		void on(std::function<void(const E&)> fn) { m_Bus.on<E>(std::move(fn)); }
