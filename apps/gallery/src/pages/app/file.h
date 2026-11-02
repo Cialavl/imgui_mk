@@ -3,6 +3,7 @@
 #include <filesystem>
 // p20 文件对话框：FileDialog（Win32 异步，wg2 页面）
 #include "../../demo_page.h"
+#include "../../menu_bar.h"
 
 namespace gallery {
 

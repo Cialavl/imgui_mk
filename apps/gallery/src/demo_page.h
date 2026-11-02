@@ -20,9 +20,7 @@ struct ThemeChanged {          // 换肤：各窗口自己 setTheme
 	Mk::wg2::Theme theme;
 };
 
-struct ToggleInspector {};     // 显示/隐藏检查器：检查器窗口自己处理
 
-struct OpenFile {};            // 打开文件：文件页自持对话框并处理
 
 
 using namespace Mk::wg2;   // 页面代码沿用 wg2 名字

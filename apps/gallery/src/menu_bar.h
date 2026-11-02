@@ -7,6 +7,10 @@
 
 namespace gallery {
 
+// 菜单发出的事件（发布方声明，消费方 include 本头文件即可）
+struct ToggleInspector {};   // 显示/隐藏检查器
+struct OpenFile {};          // 请求打开文件（文件页处理）
+
 namespace ui = Mk::wg2;
 
 struct MenuBar {
