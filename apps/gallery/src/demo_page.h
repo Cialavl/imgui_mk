@@ -17,15 +17,6 @@ namespace gallery {
 // 等宽代码字体（main 创建窗口后、首帧前装载并回填）
 inline ImFont* gMono = nullptr;
 
-// 首个存活窗口的实际烘焙字号（无窗口返回 0）
-inline float engineFontSize() {
-	return Mk::mkui<Mk::window>::RegistrationWindow().fontSize();
-}
-
-// 引擎级字号重烘焙广播（各窗口帧内应用）
-inline void engineRescale(float fontSize) {
-	Mk::mkui<Mk::window>::RegistrationWindow().rescaleAll(fontSize);
-}
 
 struct ThemeChanged {          // 换肤：各窗口自己 setTheme
 	Mk::wg2::Theme theme;

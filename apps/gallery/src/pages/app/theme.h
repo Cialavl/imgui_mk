@@ -56,8 +56,8 @@ root.at<ui::Id("rescaleNote")>().text = "rescale(24)：重载字号图标集；�
 	auto& w_rescale = root.at<ui::Id("rescale")>();
 	w_rescale.label = "切换字号 18 / 24";
 	w_rescale.onClick = [&] {
-const float cur = engineFontSize();
-engineRescale(cur >= 23.5f ? 18.0f : 24.0f);
+const float cur = Mk::wg2::metrics::fontSize();   // 框架度量
+Mk::mkui<Mk::window>::RegistrationWindow().rescaleAll(cur >= 23.5f ? 18.0f : 24.0f);
 };
 
 }
