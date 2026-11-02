@@ -1,6 +1,6 @@
 #pragma once
 // p8 拖拽滑块：ui::DragF/ui::DragI/ui::SliderF/ui::SliderInt/ui::SliderAngle（wg2）
-#include "../../gallery_chrome.h"
+#include "../../page.h"
 
 namespace gallery {
 

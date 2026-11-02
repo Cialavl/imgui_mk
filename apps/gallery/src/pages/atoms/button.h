@@ -1,6 +1,6 @@
 #pragma once
 // p5 按钮图片：ui::Button/ui::ImageButton/ui::Image（wg2）
-#include "../../gallery_chrome.h"
+#include "../../page.h"
 
 namespace gallery {
 

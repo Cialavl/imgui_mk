@@ -1,5 +1,5 @@
 #pragma once
-// gallery 页架（wg2 迁移版）：
+// 页面组件（Page<Content>）：页头 + 演示区 + 代码块
 //   SectionHead + PageDemo(demo) + CodeBlock 编译期组成页面根。
 //   每个页面把自己的 wg2 root 渲染/测量回调 addWidget 进 demo 槽位。
 #include "snippets.h"

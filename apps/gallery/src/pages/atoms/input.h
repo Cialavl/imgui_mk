@@ -1,6 +1,6 @@
 #pragma once
 // p6 文本输入：InputText<N>（wg2）
-#include "../../gallery_chrome.h"
+#include "../../page.h"
 
 namespace gallery {
 

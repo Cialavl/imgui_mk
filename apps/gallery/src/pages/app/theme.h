@@ -1,6 +1,6 @@
 #pragma once
 // p18 主题自适应：全局 Theme 切换 + rescale（wg2）
-#include "../../gallery_chrome.h"
+#include "../../page.h"
 
 namespace gallery {
 

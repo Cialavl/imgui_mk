@@ -1,6 +1,6 @@
 #pragma once
 // 底部状态栏：FPS / 帧号 / 当前页标题
-#include "gallery_chrome.h"
+#include "page.h"
 
 #include <functional>
 

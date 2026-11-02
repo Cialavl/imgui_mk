@@ -1,6 +1,6 @@
 #pragma once
 // p17 装饰件：ui::Tooltip/ui::Colored/ui::Indent/ui::ItemWidth/When + state.enabled（wg2）
-#include "../../gallery_chrome.h"
+#include "../../page.h"
 
 namespace gallery {
 

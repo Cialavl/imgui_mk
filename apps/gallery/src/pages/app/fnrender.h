@@ -1,6 +1,6 @@
 #pragma once
 // p21 FnRender：裸 ImGui 绘制函数包装为 wg2 节点
-#include "../../gallery_chrome.h"
+#include "../../page.h"
 
 namespace gallery {
 

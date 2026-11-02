@@ -1,6 +1,6 @@
 #pragma once
 // p4 文本显示：ui::Label/ui::TextColored/ui::TextWrapped/ui::BulletText/ui::LabelText/ui::EllipsisLabel/ui::SeparatorText
-#include "../../gallery_chrome.h"
+#include "../../page.h"
 
 namespace gallery {
 
