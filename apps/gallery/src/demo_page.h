@@ -205,7 +205,8 @@ struct DemoPage {
 
 	void renderTo(const Mk::wg2::Rect& r) {
 		if (r.w <= 1.0f || r.h <= 1.0f) return;
-		// 整页滚动：同样是框架 ChildRegion，页面里不再手写 BeginChild/PushStyleVar
+		// 自包含：位置取当前光标（窗口局部坐标），只用外部给的宽高
+		const ImVec2 cur = Mk::wg2::metrics::cursorPos();
 		Mk::wg2::ChildRegion<Mk::wg2::Id("pageRegion")> region;
 		region.idname = "page_body";
 		region.padding = ImVec2(0.0f, 0.0f);
@@ -215,7 +216,7 @@ struct DemoPage {
 			const float h = want.h > 1.0f ? want.h : avail.y;
 			Mk::wg2::layout(chrome, Mk::wg2::Rect{cp.x, cp.y, avail.x, h});
 		};
-		region.draw(r);
+		region.draw(Mk::wg2::Rect{cur.x, cur.y, r.w, r.h});
 	}
 };
 
