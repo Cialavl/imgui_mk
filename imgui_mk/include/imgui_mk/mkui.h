@@ -1,4 +1,5 @@
 #pragma once
+#include "events.h"
 #include <imgui_mk/windowRendereren.h>
 #include <functional>
 #include <memory>
@@ -72,18 +73,13 @@ namespace Mk {
 
 		// ===== 类型化事件通道：组件经引擎收发事件（同步派发，帧内调用安全）=====
 		// 组件之间不互相持有引用：发送方 emit，接收方 on，各自管自己的数据。
+		// 事件通道：组件通过 bus() 收发（框架层统一实现）
+		Mk::EventBus& bus() { return m_Bus; }
+
 		template<class E>
-		void on(std::function<void(const E&)> fn) {
-			m_Events[typeid(E)].push_back(
-				[fn = std::move(fn)](const void* p) { fn(*static_cast<const E*>(p)); });
-		}
+		void on(std::function<void(const E&)> fn) { m_Bus.on<E>(std::move(fn)); }
 		template<class E>
-		void emit(const E& e) {
-			auto it = m_Events.find(typeid(E));
-			if(it == m_Events.end()) return;
-			auto handlers = it->second;   // 拷贝：回调里允许继续 on/emit
-			for(auto& h : handlers) h(&e);
-		}
+		void emit(const E& e) { m_Bus.emit<E>(e); }
 
 		// ===== 跨窗口联动广播（各窗口在自己帧内应用，避免跨窗口上下文切换）=====
 		// requires 守卫：最小契约 Impl（render/shouldClose/close）不实例化这些路径
@@ -125,7 +121,7 @@ namespace Mk {
 
 		std::vector<std::shared_ptr<ImplT>> m_Windows;
 		std::unordered_map<std::type_index, std::shared_ptr<void>> m_States;
-		std::unordered_map<std::type_index, std::vector<std::function<void(const void*)>>> m_Events;
+		Mk::EventBus m_Bus;
 	};
 
 }
