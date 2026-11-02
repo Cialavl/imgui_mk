@@ -4,6 +4,7 @@
 //   - 根节点通过 wg2 layout 回调 挂到旧引擎中央挂载点。
 #include "gallery_inspector.h"
 #include "popups.h"
+#include "status_bar.h"
 #include "content_area.h"
 #include "gallery_nav.h"
 #include <imgui_mk/ui/wg2/texture.h>
@@ -39,8 +40,7 @@ using AppMenuBar = ui::MenuBar<ui::Id("menuBar"), FileMenu, ThemeMenu, WindowMen
 
 // —— 主体三行 ——
 using ContentRow = ui::HBox<ui::Id("contentRow"), ContentArea>;   // 中间内容区（页集合自成组件）
-using StatusRow  = ui::HBox<ui::Id("statusRow"), ui::LabelText<ui::Id("stFps")>, ui::LabelText<ui::Id("stFrame")>, ui::LabelText<ui::Id("stPage")>>;
-using AppBody    = ui::VBox<ui::Id("mainCol"), AppMenuBar, ContentRow, StatusRow>;
+using AppBody    = ui::VBox<ui::Id("mainCol"), AppMenuBar, ContentRow, StatusBar>;
 
 // —— 浮层 ——
 
@@ -67,7 +67,7 @@ InspectorWindow inspector;
 		initMenus();
 		initPanels();
 		popups().init();
-		initStatus();
+		statusBar().init(win, [this] { return currentPageTitle(); });
 		initShell();
 
 		contentArea().init(tex, win, inspector.win.get());   // 内容区注册 29 页并注入依赖
@@ -82,6 +82,7 @@ InspectorWindow inspector;
 
 
 	// 树里的浮层组件实例
+	StatusBar& statusBar() { return shell.at<ui::Id("mainCol"), ui::Id("statusBar")>(); }
 	Popups& popups() { return shell.at<ui::Id("popups")>(); }
 
 	Mk::window* inspectorWin() { return inspector.win.get(); }
@@ -157,16 +158,6 @@ shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("menuBar"), Mk::wg2::Id("menuHelp")
 	}
 
 
-void initStatus() {
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFps")>().name = "FPS";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFps")>().valueFn = [] {
-return std::to_string(static_cast<int>(ImGui::GetIO().Framerate));   // 单位由 name="FPS" 显示，避免重复
-};
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFrame")>().name = "帧";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stFrame")>().valueFn = [this] { return std::to_string(win->frameIndex()); };
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stPage")>().name = "页";
-shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stPage")>().valueFn = [this] { return std::string(currentPageTitle()); };
-}
 
 	void initShell() {
 		// 侧栏宽度用 em：字号变化时布局自动跟随
@@ -177,9 +168,6 @@ shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow"), Mk::wg2::Id("stPage")
 		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow")>().marginX = 0.0f;
 		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow")>().marginY = 0.0f;
 		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("contentRow")>().state.stretch = 1.0f;
-		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow")>().marginX = 0.0f;
-		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow")>().marginY = 0.0f;
-		shell.at<Mk::wg2::Id("mainCol"), Mk::wg2::Id("statusRow")>().spacing = 12.0f;
 		shell.at<Mk::wg2::Id("mainCol")>().marginX = 0.0f;
 		shell.at<Mk::wg2::Id("mainCol")>().marginY = 0.0f;
 		shell.marginX = 0.0f;
